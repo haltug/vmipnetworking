@@ -1,28 +1,72 @@
-# Compiled Object files
-*.slo
-*.lo
-*.o
-*.obj
-
-# Precompiled Headers
-*.gch
-*.pch
-
-# Compiled Dynamic libraries
+# ignore generated files
+.metadata/
+.settings/
+inet/.settings/
+*_m.h
+*_m.cc
+*_sm.h
+*_sm.cc
+inet/src/Makefile
+inet/src/Makefile.vc
+inet/doc/
+inet/examples/*/results/
+inet/examples/*/*/results/
+inet/examples/*/*/*/results/
+inet/tests/*/work/
+*.pyc
+*.pcap
+*.sca
+*.vec
+# ignore binary files
+inet/out/
 *.so
 *.dylib
 *.dll
-
-# Fortran module files
-*.mod
-
-# Compiled Static libraries
-*.lai
-*.la
 *.a
+*.la
+*.lai
 *.lib
-
-# Executables
 *.exe
-*.out
 *.app
+*.o
+*.obj
+*.pdb
+*.gch
+*.pch
+*.idb
+*.manifest
+.tkenvrc
+.tkenvlog
+.cmdenv-log
+inet/netanim-trace.txt
+*.out
+inet/gcc-debug
+
+# ignore backup and temp files
+*.bak
+inet/backups
+*~
+xxx
+inet/3rdparty
+inet/tmp/
+# eclipse
+inet/.project
+inet/.cproject
+inet/Makefile
+inet/Makefile.vc
+inet/FeatureBuildTest
+.DS_Store
+inet/.metadata/
+inet/.gdbinit.py
+inet/CREDITS
+inet/.oppbuildspec
+inet/.oppfeatures
+inet/doxy.cfg
+inet/INSTALL
+inet/README
+inet/Version
+inet/WHATSNEW
+inet/etc/
+inet/migrate/
+inet/License
+inet/misc/
