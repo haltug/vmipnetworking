@@ -18,7 +18,7 @@
 
 package inet.examples.emulation.extclient;
 
-import inet.nodes.inet.StandardHost;
+import inet.node.inet.StandardHost;
 
 
 network ExtClient
@@ -29,8 +29,8 @@ network ExtClient
     submodules:
         peer: StandardHost {
             parameters:
-                IPForward = false;
-                routingFile = "cli1d.mrt";
+                forwarding = false;
+                routingTable.routingFile = "cli1d.mrt";
                 numExtInterfaces = 1;
                 @display("p=29,90;i=laptop3");
         }
