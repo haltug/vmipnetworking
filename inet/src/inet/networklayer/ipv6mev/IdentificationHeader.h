@@ -13,23 +13,17 @@
 // along with this program.  If not, see http://www.gnu.org/licenses/.
 // 
 
-#ifndef __INET_MEV_H_
-#define __INET_MEV_H_
-
-#include <omnetpp.h>
+#ifndef IDENTIFICATIONHEADER_H_
+#define IDENTIFICATIONHEADER_H_
 
 namespace inet {
 
-/**
- * TODO - Generated class
- */
-class MEV : public cSimpleModule
-{
-  protected:
-    virtual void initialize();
-    virtual void handleMessage(cMessage *msg);
+class IdentificationHeader {
+public:
+    IdentificationHeader();
+    virtual ~IdentificationHeader();
 };
 
-} //namespace
+} /* namespace inet */
 
-#endif
+#endif /* IDENTIFICATIONHEADER_H_ */

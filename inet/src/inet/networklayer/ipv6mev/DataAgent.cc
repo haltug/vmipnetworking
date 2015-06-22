@@ -13,18 +13,18 @@
 // along with this program.  If not, see http://www.gnu.org/licenses/.
 // 
 
-#include "mev.h"
+#include "inet/networklayer/ipv6mev/DataAgent.h"
 
 namespace inet {
 
-Define_Module(MEV);
+Define_Module(DataAgent);
 
-void MEV::initialize()
+void DataAgent::initialize()
 {
     // TODO - Generated method body
 }
 
-void MEV::handleMessage(cMessage *msg)
+void DataAgent::handleMessage(cMessage *msg)
 {
     // TODO - Generated method body
 }

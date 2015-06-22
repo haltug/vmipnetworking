@@ -18,20 +18,6 @@ package inet.networklayer.ipv6mev;
 //
 // TODO auto-generated module
 //
-//IPv6 Mobility Extension for Vehicles
-simple MEV
+simple ControlAgent
 {
-    parameters:
-        string interfaceTableModule;   // The path to the InterfaceTable module
-        string ipv6TunnelingModule;
-        string ipv6NeighbourDiscoveryModule;
-//        string bindingUpdateListModule;
-//        string bindingCacheModule;
-        bool isControlAgent;
-        bool isDataAgent;
-        bool isVehicle;
-        @display("i=block/join");
-    gates:
-        input fromIPv6;
-        output toIPv6;
 }
