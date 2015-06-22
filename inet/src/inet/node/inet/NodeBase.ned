@@ -104,15 +104,15 @@ module NodeBase like INode
             @display("p=53,350,r,10");
         }
         lo0: LoopbackInterface {
-            @display("p=78,406");
+            @display("p=22,406");
         }
         wlan[numRadios]: <default("Ieee80211Nic")> like IWirelessNic {
             parameters:
-                @display("p=216,406,row,60;q=queue");
+                @display("p=353,406,row,60;q=queue");
         }
         eth[sizeof(ethg)]: <default("EthernetInterface")> like IWiredNic {
             parameters:
-                @display("p=368,406,row,60;q=txQueue");
+                @display("p=456,406,row,60;q=txQueue");
         }
         ppp[sizeof(pppg)]: <default("PPPInterface")> like IWiredNic {
             parameters:
@@ -120,11 +120,11 @@ module NodeBase like INode
         }
         ext[numExtInterfaces]: <default("ExtInterface")> like IExternalNic {
             parameters:
-                @display("p=149,406,row,10;q=txQueue;i=block/ifcard");
+                @display("p=102,406,row,10;q=txQueue;i=block/ifcard");
         }
         tun[numTunInterfaces]: <default("TunInterface")> like ITunNic {
             parameters:
-                @display("p=213,406,row,10;q=txQueue;i=block/ifcard");
+                @display("p=231,406,row,10;q=txQueue;i=block/ifcard");
         }
 
     connections allowunconnected:

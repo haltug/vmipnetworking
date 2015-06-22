@@ -64,7 +64,7 @@ module StandardHost extends NodeBase
     submodules:
         tunApp[numTunInterfaces]: <> like ITunApp {
             parameters:
-                @display("p=280,40");
+                @display("p=270,42");
         }
         tcpApp[numTcpApps]: <> like ITCPApp {
             parameters:
@@ -76,22 +76,22 @@ module StandardHost extends NodeBase
         }
         udpApp[numUdpApps]: <> like IUDPApp {
             parameters:
-                @display("p=329,54,row,60");
+                @display("p=417,54,row,60");
         }
         udp: <udpType> like IUDP if hasUdp {
             parameters:
-                @display("p=329,141");
+                @display("p=417,141");
         }
         sctpApp[numSctpApps]: <> like ISCTPApp {
             parameters:
-                @display("p=527,54,row,60");
+                @display("p=578,50,row,60");
         }
         sctp: <sctpType> like ISCTP if hasSctp {
-            @display("p=527,141");
+            @display("p=578,141");
         }
         pingApp[numPingApps]: <default("PingApp")> like IPingApp {
             parameters:
-                @display("p=635,141,row,60");
+                @display("p=564,269,row,60");
         }
     connections allowunconnected:
         for i=0..numTcpApps-1 {
