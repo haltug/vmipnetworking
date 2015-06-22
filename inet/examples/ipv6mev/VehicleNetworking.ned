@@ -13,7 +13,7 @@
 // along with this program.  If not, see http://www.gnu.org/licenses/.
 // 
 
-package inet.examples.vmipn;
+package inet.examples.ipv6mev;
 
 import inet.linklayer.ethernet.EtherHub;
 import inet.physicallayer.ieee80211.packetlevel.Ieee80211ScalarRadioMedium;
@@ -34,7 +34,7 @@ network vehicleNetworking
         double total_mn;
         double total_cn;
         //	    **.mgmt.numChannels = 5;
-        @display("bgb=882,609;bgi=background/streetmap,s");
+        @display("bgb=1176,812;bgi=background/streetmap,s");
 
     submodules:
         configurator: FlatNetworkConfigurator6 {
