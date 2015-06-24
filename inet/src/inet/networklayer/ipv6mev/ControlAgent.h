@@ -17,6 +17,15 @@
 #define __INET_CONTROLAGENT_H_
 
 #include <omnetpp.h>
+#include <vector>
+#include <map>
+
+#include "inet/common/INETDefs.h"
+#include "inet/networklayer/contract/ipv6/IPv6Address.h"
+#include "inet/networklayer/common/L3Address.h"
+#include "inet/networklayer/ipv6tunneling/IPv6Tunneling.h"
+#include "inet/networklayer/ipv6mev/Utils.h"
+
 
 namespace inet {
 
@@ -25,6 +34,50 @@ namespace inet {
  */
 class ControlAgent : public cSimpleModule
 {
+  protected:
+    IInterfaceTable *ift;
+    IPv6RoutingTable *rt6;
+    IPv6NeighbourDiscovery *ipv6nd;
+
+    struct TargetToAgentAddressMapping
+    {
+        IPv6Address CN_Address;
+        IPv6Address DA_Address;
+
+        TargetToAgentAddressMapping(IPv6Address _cn, IPv6Address _da)
+        {
+            CN_Address = _cn;
+            DA_Address = _da;
+        }
+    };
+
+    typedef std::vector<TargetToAgentAddressMapping> TargetToAgentMappingList;
+    typedef std::map<L3Address,TargetToAgentMappingList> TargetToAgentListOfVehicle;
+    TargetToAgentListOfVehicle targetToAgentListOfVehicle;
+
+    typedef std::vector<IPv6Address> DataAgentList;
+    typedef std::map<L3Address, DataAgentList> ActiveDataAgentList;
+    ActiveDataAgentList activeDataAgentList;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
   protected:
     virtual void initialize();
     virtual void handleMessage(cMessage *msg);

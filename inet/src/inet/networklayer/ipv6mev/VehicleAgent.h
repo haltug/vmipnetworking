@@ -23,6 +23,8 @@
 #include "inet/common/INETDefs.h"
 #include "inet/networklayer/contract/ipv6/IPv6Address.h"
 #include "inet/networklayer/ipv6tunneling/IPv6Tunneling.h"
+#include "inet/networklayer/ipv6mev/Utils.h"
+#include "inet/networklayer/common/L3Address.h"
 
 namespace inet {
 
@@ -33,8 +35,7 @@ class IPv6NeighbourDiscovery;
 class IPv6Tunneling;
 class IPv6RoutingTable;
 
-#define KEY_SEQ_CHANGE_CA               0 // Sequence Update to CA
-#define KEY_SEQ_CHANGE_DA               1 // Sequence Update to CA
+
 
 class VehicleAgent : public cSimpleModule
 {
@@ -45,70 +46,43 @@ class VehicleAgent : public cSimpleModule
     IInterfaceTable *ift;
     IPv6RoutingTable *rt6;
     IPv6NeighbourDiscovery *ipv6nd;
+    L3Address *mobileID;
 
-    class RetransmitTimer
-    {
-      public:
-        cMessage *timer;
-        virtual ~RetransmitTimer() {};
-        IPv6Address dest;    // the address (HA or CN(s) for which the message is sent
-        simtime_t ackTimeout;    // timeout for the Ack
-        simtime_t nextScheduledTime;    // time when the corrsponding message is supposed to be sent
-        InterfaceEntry *ifEntry;    // interface from which the message will be transmitted
-
-    };
-
-    struct Key // TODO
-    {
-        int type;    // type of the message (BU, HoTI, CoTI) stored in the map, indexed by this key
-        int interfaceID;    // ID of the interface over which the message is sent
-        IPv6Address dest;    // the address of either the HA or the CN
-        Key(IPv6Address _dest, int _interfaceID, int _type)
-        {
-            dest = _dest;
-            interfaceID = _interfaceID;
-            type = _type;
-        }
-        bool operator<(const Key& b) const
-        {
-            if (type == b.type)
-                return interfaceID == b.interfaceID ? dest < b.dest : interfaceID < b.interfaceID;
-            else
-                return type < b.type;
-        }
-    };
     // FOR THE PURPOSE OF WHAT?
-    typedef std::map<Key, TimerIfEntry *> TransmitIfList;
-    TransmitIfList transmitIfList;
+//    typedef std::map<Utils::Key, Utils::RetransmitTimer *> TransmitIfList;
+//    TransmitIfList transmitIfList;
 
     /** holds the tuples of currently available {InterfaceID, NetworkAddress} pairs */
-    typedef std::map<int, IPv6Address> InterfaceLocalAddressList;
-    InterfaceLocalAddressList interfaceLocalAddressList;
+    typedef std::map<int, IPv6Address> InterfaceToIPv6AddressList;
+    InterfaceToIPv6AddressList interfaceToIPv6AddressList;
 
-    struct ConnectionSession
-    {
-        IPv6Address corrNode;
-        IPv6Address dataAgent;
+//    struct ConnectionSession
+//    {
+//        IPv6Address corrNode;
+//        IPv6Address dataAgent;
+//
+//    };
+//    typedef std::vector<ConnectionSession> CorrNodeDataAgentList;
+//    CorrNodeDataAgentList corrNodeDataAgentList;
+//    CorrNodeDataAgentList::iterator itCorrNodeDataAgentList;
 
-    };
-    typedef std::vector<ConnectionSession> CorrNodeDataAgentList;
-    CorrNodeDataAgentList corrNodeDataAgentList;
-    CorrNodeDataAgentList::iterator itCorrNodeDataAgentList;
+    typedef std::map<IPv6Address, IPv6Address> TargetToAgentList;
+    TargetToAgentList targetToAgentList;
 
-    class CAInitializationTimer : public RetransmitTimer
+    class CAInitializationTimer : public Utils::RetransmitTimer
     {
     };
-    class CASessionRequestTimer : public RetransmitTimer
+    class CASessionRequestTimer : public Utils::RetransmitTimer
     {
     };
-    class CASequenceUpdateTimer : public RetransmitTimer
+    class CASequenceUpdateTimer : public Utils::RetransmitTimer
     {
       public:
         uint caSequenceNumber;    // sequence number of the CA
         uint lifeTime;    // lifetime of the BU sent, 4.9.07 - CB   //Time variable related to the time at which BU was sent
         simtime_t presentSentTimeCA;    //stores the present time at which BU is/was sent
     };
-    class CALocationUpdateTimer : public RetransmitTimer
+    class CALocationUpdateTimer : public Utils::RetransmitTimer
     {
     };
 //    DataAgent does not need timer since TCP should handle such cases.
@@ -140,30 +114,7 @@ class VehicleAgent : public cSimpleModule
 
     bool cancelRetransmitTimer(const IPv6Address& dest, int interfaceID, int msgType);
 
-    RetransmitTimer *getRetransmitTimer(Key& key);
-
-    RetransmitTimer *lookupRetransmitTimer(IPv6Address& ip);
-
-    RetransmitTimer *removeRetransmitTimer(IPv6Address& ip);
-
     void cancelRetransmitTimers();
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 

@@ -13,27 +13,17 @@
 // along with this program.  If not, see http://www.gnu.org/licenses/.
 // 
 
-#ifndef __INET_ADDRESSSYNCHRONIZER_H_
-#define __INET_ADDRESSSYNCHRONIZER_H_
-
-#include <omnetpp.h>
-#include <vector>
-#include <map>
+#include <Utils.h>
 
 namespace inet {
 
-/**
- * TODO - Generated class
- */
-class AddressSynchronizer : public cSimpleModule
-{
-  protected:
-    virtual void initialize();
-    virtual void handleMessage(cMessage *msg);
+Utils::Utils() {
+    // TODO Auto-generated constructor stub
 
+}
 
-};
+Utils::~Utils() {
+    // TODO Auto-generated destructor stub
+}
 
-} //namespace
-
-#endif
+} /* namespace inet */
