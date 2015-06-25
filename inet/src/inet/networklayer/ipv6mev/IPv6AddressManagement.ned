@@ -13,20 +13,11 @@
 // along with this program.  If not, see http://www.gnu.org/licenses/.
 // 
 
-#include "AddressPoolSynchronizer.h"
+package inet.networklayer.ipv6mev;
 
-namespace inet {
-
-Define_Module(AddressPoolSynchronizer);
-
-void AddressPoolSynchronizer::initialize()
+//
+// TODO auto-generated module
+//
+simple IPv6AddressManagement
 {
-    // TODO - Generated method body
 }
-
-void AddressPoolSynchronizer::handleMessage(cMessage *msg)
-{
-    throw cRuntimeError("This module doesn't process messages");
-}
-
-} //namespace
