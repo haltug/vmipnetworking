@@ -13,18 +13,18 @@
 // along with this program.  If not, see http://www.gnu.org/licenses/.
 // 
 
-#include "AddressSynchronizer.h"
+#include "AddressPoolSynchronizer.h"
 
 namespace inet {
 
-Define_Module(AddressSynchronizer);
+Define_Module(AddressPoolSynchronizer);
 
-void AddressSynchronizer::initialize()
+void AddressPoolSynchronizer::initialize()
 {
     // TODO - Generated method body
 }
 
-void AddressSynchronizer::handleMessage(cMessage *msg)
+void AddressPoolSynchronizer::handleMessage(cMessage *msg)
 {
     throw cRuntimeError("This module doesn't process messages");
 }

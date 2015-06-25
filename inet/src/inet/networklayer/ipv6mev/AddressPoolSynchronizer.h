@@ -22,18 +22,33 @@
 
 namespace inet {
 
-/**
- * TODO - Generated class
- */
-class AddressSynchronizer : public cSimpleModule
+#define WINDOW_SIZE 64
+
+class AddressPoolSynchronizer : public cSimpleModule
 {
   protected:
     virtual void initialize();
     virtual void handleMessage(cMessage *msg);
+  private:
+    int currentSequenceNumber;
+    int lastAcknowledgement;
+  public:
+    typedef std::vector<IPv6Address> IPAddressList;
+    typedef std::vector<IPAddressList> SequenceTable;
 
+    int  getCurrentSequenceNumber();
+    void setLastAcknowledgemnt(int seq);
+    bool isLastSequenceNumberAcknowledged();
+
+    void addIPv6AddressToSequenceTable(IPv6Address& addr);
+    void addIPv6AddressToSequenceTable(IPv6AddressList& addr);
+    void removeIPv6AddressfromSequenceTable(IPv6Address& addr);
+    void removeIPv6AddressfromSequenceTable(IPv6AddressList& addr);
+    void initiateSequenceTable(IPv6Address& addr);
+
+    IPAddressList getUnacknowledgedIPv6AddressList();
 
 };
-
 } //namespace
 
 #endif
