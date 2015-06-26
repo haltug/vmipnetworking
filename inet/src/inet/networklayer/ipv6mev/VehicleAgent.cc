@@ -19,7 +19,12 @@ namespace inet {
 
 Define_Module(VehicleAgent);
 
-void VehicleAgent::initialize()
+VehicleAgent::~VehicleAgent()
+{
+    // do nothing for the moment. TODO
+}
+
+void VehicleAgent::initialize(int stage) // added int stage param
 {
     // TODO - Generated method body
 }

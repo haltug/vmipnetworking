@@ -16,6 +16,8 @@
 #ifndef UTILS_H_
 #define UTILS_H_
 
+#include "inet/networklayer/common/InterfaceEntry.h"
+
 namespace inet {
 
 #define KEY_SEQ_CHANGE_CA               0 // Sequence Update to CA

@@ -21,10 +21,16 @@
 #include <map>
 
 #include "inet/common/INETDefs.h"
-#include "inet/networklayer/contract/ipv6/IPv6Address.h"
-#include "inet/networklayer/ipv6tunneling/IPv6Tunneling.h"
-#include "inet/networklayer/ipv6mev/Utils.h"
 #include "inet/networklayer/common/L3Address.h"
+#include "inet/networklayer/common/InterfaceEntry.h"
+#include "inet/networklayer/contract/ipv6/IPv6Address.h"
+#include "inet/networklayer/contract/ipv6/IPv6ControlInfo.h"
+#include "inet/networklayer/icmpv6/IPv6NeighbourDiscovery.h"
+#include "inet/networklayer/ipv6/IPv6Datagram.h"
+#include "inet/networklayer/ipv6/IPv6RoutingTable.h"
+#include "inet/networklayer/ipv6mev/IdentificationHeader.h"
+#include "inet/networklayer/ipv6mev/Utils.h"
+#include "inet/networklayer/ipv6tunneling/IPv6Tunneling.h"
 
 namespace inet {
 
@@ -32,8 +38,8 @@ class InterfaceEntry;
 class IPv6ControlInfo;
 class IPv6Datagram;
 class IPv6NeighbourDiscovery;
-class IPv6Tunneling;
 class IPv6RoutingTable;
+class IPv6Tunneling;
 
 
 
@@ -119,8 +125,8 @@ class VehicleAgent : public cSimpleModule
 
 
 
-    virtual void initialize();
-    virtual void handleMessage(cMessage *msg);
+    virtual void initialize(int stage) override;
+    virtual void handleMessage(cMessage *msg) override;
 };
 
 } //namespace

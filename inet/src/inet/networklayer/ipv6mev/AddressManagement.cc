@@ -13,31 +13,41 @@
 // along with this program.  If not, see http://www.gnu.org/licenses/.
 // 
 
-#include <stdlib.h>
 #include <algorithm>
-#include "inet/networklayer/ipv6mev/IPv6AddressManagement.h"
+#include <iostream>
+#include <stdlib.h>
+
+#include "inet/networklayer/ipv6mev/AddressManagement.h"
 
 namespace inet {
 
-Define_Module(IPv6AddressManagement);
+Define_Module(AddressManagement);
 
-void IPv6AddressManagement::initialize()
+std::ostream& operator<<(std::ostream& os, const AddressManagement::AddressMapEntry& ame)
 {
-    WATCH_MAP(ipv6AddressMap);
+    // TODO Fix output to watch variables of seq table
+//    os << "ID:" << ame.mobileID << " SEQ: " << ame.currentSequenceNumber << " ACK: " << ame.lastAcknowledgement << " SEQ_TABLE: " << ame.sequenceTable << " TS: " << SIMTIME_STR(ame.timestamp) << "\n";
+      os << "ID:" << ame.mobileID << " SEQ: " << ame.currentSequenceNumber << " ACK: " << ame.lastAcknowledgement << "\n";
+    return os;
 }
 
-void IPv6AddressManagement::handleMessage(cMessage *msg)
+void AddressManagement::initialize()
+{
+    WATCH_MAP(addressMap);
+}
+
+void AddressManagement::handleMessage(cMessage *msg)
 {
     throw cRuntimeError("This module doesn't process messages");
 }
 
 // initialzation for VA
-uint IPv6AddressManagement::initiateAddressMap(L3Address& id)
+uint AddressManagement::initiateAddressMap(L3Address& id)
 {
 // TODO check if map exists and is filled. if so delete all entries.
-    IPv6AddressMapEntry addressEntry;
+    AddressMapEntry addressEntry;
     addressEntry.mobileID = id; // setting mobile id
-    uint seqno = (uint) ((rand() % (IPv6AddressManagement::SEQ_FIELD_SIZE - 1)) + 1); // initiating any number except from 0
+    uint seqno = (uint) ((rand() % (AddressManagement::SEQ_FIELD_SIZE - 1)) + 1); // initiating any number except from 0
     addressEntry.currentSequenceNumber = seqno; // initialize random seq number
     addressEntry.lastAcknowledgement = 0; // not acknowledged
     IPv6AddressList ipv6addressList; // create empty list
@@ -45,18 +55,18 @@ uint IPv6AddressManagement::initiateAddressMap(L3Address& id)
     seqTable[seqno] = ipv6addressList; // insert list at seqno
     addressEntry.sequenceTable = seqTable; // set seq table in object
     addressEntry.timestamp = simTime(); // set timestamp
-    ipv6AddressMap[id] = addressEntry; // assign map to id
+    addressMap[id] = addressEntry; // assign map to id
     return seqno; // return id to initialize at CA
 }
 
 // initialization for CA and DA
-void IPv6AddressManagement::initiateAddressMap(L3Address& id, uint seqno, IPv6Address& addr)
+void AddressManagement::initiateAddressMap(L3Address& id, uint seqno, IPv6Address& addr)
 {
-    if(ipv6AddressMap.count(id)) // check if id exists in map
+    if(addressMap.count(id)) // check if id exists in map
     {
         // should a error occur?
     }
-    IPv6AddressMapEntry addressEntry;
+    AddressMapEntry addressEntry;
     addressEntry.mobileID = id; // setting mobile id
     addressEntry.currentSequenceNumber = seqno; // set seqno
     addressEntry.lastAcknowledgement = seqno; // acknowledge given seq
@@ -64,47 +74,47 @@ void IPv6AddressManagement::initiateAddressMap(L3Address& id, uint seqno, IPv6Ad
     ipv6AddressList.push_back(addr); // adding address into list
     addressEntry.sequenceTable[seqno] = ipv6AddressList; // assigning to seq table
     addressEntry.timestamp = simTime(); // setting timestamp
-    ipv6AddressMap[id] = addressEntry; // adding into map
+    addressMap[id] = addressEntry; // adding into map
 }
 
-void IPv6AddressManagement::addIPv6AddressToAddressMap(L3Address& id, IPv6Address& addr)
+void AddressManagement::addIPv6AddressToAddressMap(L3Address& id, IPv6Address& addr)
 {
-    if(ipv6AddressMap.count(id)) // check if id exists in map
+    if(addressMap.count(id)) // check if id exists in map
     {
-        SequenceTable seqTable (ipv6AddressMap[id].sequenceTable); // get current sequence table
-        if(!seqTable.count(ipv6AddressMap[id].currentSequenceNumber)) // check if seq table with given seq number exists
+        SequenceTable seqTable (addressMap[id].sequenceTable); // get current sequence table
+        if(!seqTable.count(addressMap[id].currentSequenceNumber)) // check if seq table with given seq number exists
             throw cRuntimeError("Sequence Table with seqNo does not exist.");
-        IPv6AddressList newIPv6AddressList (seqTable[ipv6AddressMap[id].currentSequenceNumber]); // copy current ipaddrList in new list
+        IPv6AddressList newIPv6AddressList (seqTable[addressMap[id].currentSequenceNumber]); // copy current ipaddrList in new list
         if (std::find(newIPv6AddressList.begin(), newIPv6AddressList.end(), addr) != newIPv6AddressList.end()) // check if at any position given ip addr exists
         {
             EV_INFO << "IP address exists in address map. Should it be inserted twice?";
             return;
         }
         newIPv6AddressList.push_back(addr); // add new addr at the end of list
-        uint newSeqno = ipv6AddressMap[id].currentSequenceNumber++; // increment seq no
+        uint newSeqno = addressMap[id].currentSequenceNumber++; // increment seq no
         seqTable[newSeqno] = newIPv6AddressList; // insert (or replace is exists) new addr list in seq table
-        ipv6AddressMap[id].sequenceTable = seqTable; // set modified seq table to map
-        ipv6AddressMap[id].timestamp = simTime(); // set a current timestamp
+        addressMap[id].sequenceTable = seqTable; // set modified seq table to map
+        addressMap[id].timestamp = simTime(); // set a current timestamp
     } else {
         throw cRuntimeError("ID is not found in AddressMap. Create entry for ID.");
     }
 }
 
-void IPv6AddressManagement::removeIPv6AddressfromAddressMap(L3Address& id, IPv6Address& addr)
+void AddressManagement::removeIPv6AddressfromAddressMap(L3Address& id, IPv6Address& addr)
 {
-    if(ipv6AddressMap.count(id)) // check if id exists in map
+    if(addressMap.count(id)) // check if id exists in map
     {
-        SequenceTable seqTable (ipv6AddressMap[id].sequenceTable); // get current sequence table
-        if(!seqTable.count(ipv6AddressMap[id].currentSequenceNumber)) // check if seq table with given seq number exists
+        SequenceTable seqTable (addressMap[id].sequenceTable); // get current sequence table
+        if(!seqTable.count(addressMap[id].currentSequenceNumber)) // check if seq table with given seq number exists
             throw cRuntimeError("Sequence Table with seqNo does not exist.");
-        IPv6AddressList newIPv6AddressList (seqTable[ipv6AddressMap[id].currentSequenceNumber]); // copy current ipaddrList in new list
+        IPv6AddressList newIPv6AddressList (seqTable[addressMap[id].currentSequenceNumber]); // copy current ipaddrList in new list
         if (std::find(newIPv6AddressList.begin(), newIPv6AddressList.end(), addr) != newIPv6AddressList.end()) // check if addr exists in list
         {
             newIPv6AddressList.erase(std::remove(newIPv6AddressList.begin(), newIPv6AddressList.end(), addr), newIPv6AddressList.end()); // remove addr at
-            uint newSeqno = ipv6AddressMap[id].currentSequenceNumber++; // increment seq no
+            uint newSeqno = addressMap[id].currentSequenceNumber++; // increment seq no
             seqTable[newSeqno] = newIPv6AddressList; // insert (or replace is exists) new addr list in seq table
-            ipv6AddressMap[id].sequenceTable = seqTable; // set modified seq table to map
-            ipv6AddressMap[id].timestamp = simTime(); // set a current timestamp
+            addressMap[id].sequenceTable = seqTable; // set modified seq table to map
+            addressMap[id].timestamp = simTime(); // set a current timestamp
 
         } else {
             throw cRuntimeError("IP address does not exist in address map. Selected wrong addr?");
@@ -114,14 +124,14 @@ void IPv6AddressManagement::removeIPv6AddressfromAddressMap(L3Address& id, IPv6A
     }
 }
 
-IPv6AddressManagement::IPv6AddressChange IPv6AddressManagement::getUnacknowledgedIPv6AddressList(L3Address& id, uint ack, uint seq)
+AddressManagement::AddressChange AddressManagement::getUnacknowledgedIPv6AddressList(L3Address& id, uint ack, uint seq)
 {
-    if(ipv6AddressMap.count(id)) // check if id exists in map
+    if(addressMap.count(id)) // check if id exists in map
     {
-       IPv6AddressChange addressChange;
-       for(int idx=ack; idx<seq; idx++)
+       AddressChange addressChange;
+       for(uint idx=ack; idx<seq; idx++)
        {
-           SequenceTable seqTable (ipv6AddressMap[id].sequenceTable); // get current sequence table
+           SequenceTable seqTable (addressMap[id].sequenceTable); // get current sequence table
            if(!seqTable.count(idx)) // check if seq table with given seq number exists
                throw cRuntimeError("Sequence table with index (seqNo) does not exist.");
            if(!seqTable.count(idx+1)) // check if seq table with given seq number exists. serves as comparison.
@@ -164,50 +174,107 @@ IPv6AddressManagement::IPv6AddressChange IPv6AddressManagement::getUnacknowledge
     }
 }
 
-uint IPv6AddressManagement::getCurrentSequenceNumber(L3Address& id)
+uint AddressManagement::getCurrentSequenceNumber(L3Address& id)
 {
-    if(ipv6AddressMap.count(id)) // check if id exists in map
+    if(addressMap.count(id)) // check if id exists in map
     {
-        return ipv6AddressMap[id].currentSequenceNumber;
+        return addressMap[id].currentSequenceNumber;
     } else
     {
         throw cRuntimeError("ID is not found in AddressMap. Create entry for ID.");
     }
 }
 
-uint IPv6AddressManagement::getLastAcknowledgemnt(L3Address& id)
+uint AddressManagement::getLastAcknowledgemnt(L3Address& id)
 {
-    if(ipv6AddressMap.count(id)) // check if id exists in map
+    if(addressMap.count(id)) // check if id exists in map
     {
-        return ipv6AddressMap[id].lastAcknowledgement;
+        return addressMap[id].lastAcknowledgement;
     } else {
         throw cRuntimeError("ID is not found in AddressMap. Create entry for ID.");
     }
 }
 
-void IPv6AddressManagement::setLastAcknowledgemnt(L3Address& id, uint seqno)
+void AddressManagement::setLastAcknowledgemnt(L3Address& id, uint seqno)
 {
-    if(ipv6AddressMap.count(id)) // check if id exists in map
+    if(addressMap.count(id)) // check if id exists in map
     {
-        ipv6AddressMap[id].lastAcknowledgement = seqno;
+        addressMap[id].lastAcknowledgement = seqno;
     } else {
         throw cRuntimeError("ID is not found in AddressMap. Create entry for ID.");
     }
 }
 
-bool IPv6AddressManagement::isLastSequenceNumberAcknowledged(L3Address& id)
+bool AddressManagement::isLastSequenceNumberAcknowledged(L3Address& id)
 {
-    if(ipv6AddressMap.count(id)) // check if id exists in map
+    if(addressMap.count(id)) // check if id exists in map
     {
-        return (ipv6AddressMap[id].lastAcknowledgement==ipv6AddressMap[id].currentSequenceNumber);
+        return (addressMap[id].lastAcknowledgement==addressMap[id].currentSequenceNumber);
     } else {
         throw cRuntimeError("ID is not found in AddressMap. Create entry for ID.");
     }
 }
 
-bool IPv6AddressManagement::isAddressMapOfMobileIDProvided(L3Address& id)
+bool AddressManagement::isAddressMapOfMobileIDProvided(L3Address& id)
 {
-    return ipv6AddressMap.count(id);
+    return addressMap.count(id);
+}
+
+
+std::string AddressManagement::to_string(IPv6AddressList addrList)
+{
+    std::string str="";
+    for (IPv6Address ip : addrList )
+    {
+        str.append(ip.str());
+        str.append("\n");
+    }
+    return str;
+}
+
+std::string AddressManagement::to_string(SequenceTable seqTable)
+{
+    std::string str="";
+    for( auto& item : seqTable )
+    {
+        str.append("=== SEQ: ");
+        str.append(std::to_string(item.first)); // uint number to string
+        str.append("===\n");
+        str.append(AddressManagement::to_string(item.second));
+    }
+    return str;
+}
+
+std::string AddressManagement::to_string(AddressMapEntry addrMapEntry)
+{
+    std::string str="";
+    str.append("Mobile ID: ");
+    str.append(addrMapEntry.mobileID.str());
+    str.append("; Current Seq: ");
+    str.append(std::to_string(addrMapEntry.currentSequenceNumber));
+    str.append("; Last Ack: ");
+    str.append(std::to_string(addrMapEntry.lastAcknowledgement));
+    str.append("; Sequence Table: \n");
+    str.append(AddressManagement::to_string(addrMapEntry.sequenceTable));
+    return str;
+}
+
+std::string AddressManagement::to_string(AddressMap addrMap)
+{
+    std::string str="";
+    for( auto& item : addrMap )
+    {
+        str.append("=== ID: ");
+        str.append(item.first.str()); // uint number to string
+        str.append("===\n");
+        str.append(AddressManagement::to_string(item.second));
+    }
+    return str;
+}
+
+std::string AddressManagement::to_string()
+{
+    return AddressManagement::to_string(addressMap);
 }
 
 } //namespace

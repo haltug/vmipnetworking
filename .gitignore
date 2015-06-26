@@ -8,6 +8,7 @@ inet/.settings/
 *_sm.cc
 inet/src/Makefile
 inet/src/Makefile.vc
+inet/src/.tmp*
 inet/doc/
 inet/examples/*/results/
 inet/examples/*/*/results/
@@ -25,7 +26,7 @@ inet/out/
 *.a
 *.la
 *.lai
-*.lib
+*.libgit 
 *.exe
 *.app
 *.o

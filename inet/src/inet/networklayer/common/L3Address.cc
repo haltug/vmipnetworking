@@ -21,6 +21,7 @@
 #include "inet/linklayer/common/MACAddressType.h"
 #include "inet/networklayer/common/ModuleIdAddressType.h"
 #include "inet/networklayer/common/ModulePathAddressType.h"
+#include "inet/networklayer/ipv6mev/VehicleIdentificationType.h"
 
 namespace inet {
 
@@ -78,6 +79,9 @@ IL3AddressType *L3Address::getAddressType() const
         case L3Address::MODULEPATH:
             return &ModulePathAddressType::INSTANCE;
 
+        case L3Address::VEHICLEID:
+            return &VehicleIdentification::INSTANCE;
+
         default:
             throw cRuntimeError("Unknown type");
     }
@@ -104,6 +108,9 @@ std::string L3Address::str() const
         case L3Address::MODULEPATH:
             return toModulePath().str();
 
+        case L3Address::VEHICLEID:
+            return toID().str();
+
         default:
             throw cRuntimeError("Unknown type");
     }
@@ -115,6 +122,7 @@ bool L3Address::tryParse(const char *addr)
     MACAddress mac;
     ModuleIdAddress moduleId;
     ModulePathAddress modulePath;
+    VehicleIdentification vId;
     if (IPv4Address::isWellFormed(addr))
         set(IPv4Address(addr));
     else if (ipv6.tryParse(addr))
@@ -125,6 +133,8 @@ bool L3Address::tryParse(const char *addr)
         set(moduleId);
     else if (modulePath.tryParse(addr))
         set(modulePath);
+    else if (vId.tryParse(addr))
+        set(vId);
     else
         return false;
     return true;
@@ -149,6 +159,9 @@ bool L3Address::isUnspecified() const
             return toModuleId().isUnspecified();
 
         case L3Address::MODULEPATH:
+            return toModulePath().isUnspecified();
+
+        case L3Address::VEHICLEID:
             return toModulePath().isUnspecified();
 
         default:
@@ -177,6 +190,9 @@ bool L3Address::isUnicast() const
         case L3Address::MODULEPATH:
             return toModulePath().isUnicast();
 
+        case L3Address::VEHICLEID:
+            return toModulePath().isUnicast();
+
         default:
             throw cRuntimeError("Unknown type");
     }
@@ -201,6 +217,9 @@ bool L3Address::isMulticast() const
             return toModuleId().isMulticast();
 
         case L3Address::MODULEPATH:
+            return toModulePath().isMulticast();
+
+        case L3Address::VEHICLEID:
             return toModulePath().isMulticast();
 
         default:
@@ -230,6 +249,9 @@ bool L3Address::isBroadcast() const
         case L3Address::MODULEPATH:
             return toModulePath().isBroadcast();
 
+        case L3Address::VEHICLEID:
+            return toModulePath().isBroadcast();
+
         default:
             throw cRuntimeError("Unknown type");
     }
@@ -254,6 +276,9 @@ bool L3Address::isLinkLocal() const
             return false;
 
         case L3Address::MODULEPATH:
+            return false;
+
+        case L3Address::VEHICLEID:
             return false;
 
         default:
@@ -287,6 +312,9 @@ bool L3Address::operator<(const L3Address& other) const
             case L3Address::MODULEPATH:
                 return toModulePath() < other.toModulePath();
 
+            case L3Address::VEHICLEID:
+                return toModulePath() < other.toModulePath();
+
             default:
                 throw cRuntimeError("Unknown type");
         }
@@ -317,6 +345,9 @@ bool L3Address::operator==(const L3Address& other) const
 
             case L3Address::MODULEPATH:
                 return toModulePath() == other.toModulePath();
+
+            case L3Address::VEHICLEID:
+                return toModulePath() < other.toModulePath();
 
             default:
                 throw cRuntimeError("Unknown type");
@@ -349,6 +380,8 @@ bool L3Address::matches(const L3Address& other, int prefixLength) const
 
         case L3Address::MODULEPATH:
             return ModulePathAddress::maskedAddrAreEqual(toModulePath(), other.toModulePath(), prefixLength);
+        case L3Address::VEHICLEID:
+            return true;
 
         default:
             throw cRuntimeError("Unknown type");
@@ -374,6 +407,7 @@ L3Address L3Address::getPrefix(int prefixLength) const
 
         case L3Address::MODULEID:
         case L3Address::MODULEPATH:
+        case L3Address::VEHICLEID:
             return *this;
 
         default:
@@ -392,6 +426,7 @@ const char *L3Address::getTypeName(AddressType t)
         CASE(MAC);
         CASE(MODULEID);
         CASE(MODULEPATH);
+        CASE(VEHICLEID);
 
         default:
             return "Unknown type";

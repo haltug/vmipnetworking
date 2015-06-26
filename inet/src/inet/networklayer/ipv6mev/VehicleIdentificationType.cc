@@ -13,17 +13,10 @@
 // along with this program.  If not, see http://www.gnu.org/licenses/.
 // 
 
-#include "inet/networklayer/ipv6mev/Utils.h"
+#include "inet/networklayer/ipv6mev/VehicleIdentificationType.h"
 
 namespace inet {
 
-Utils::Utils() {
-    // TODO Auto-generated constructor stub
-
-}
-
-Utils::~Utils() {
-    // TODO Auto-generated destructor stub
-}
+VehicleIdentificationType VehicleIdentificationType::INSTANCE;
 
 } /* namespace inet */

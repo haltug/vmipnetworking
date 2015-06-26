@@ -19,12 +19,15 @@
 #include <omnetpp.h>
 #include <vector>
 #include <map>
-#include "inet/networklayer/contract/ipv6/IPv6Address.h"
+#include <string>
+
+#include "inet/common/INETDefs.h"
 #include "inet/networklayer/common/L3Address.h"
+#include "inet/networklayer/contract/ipv6/IPv6Address.h"
 
 namespace inet {
 
-class IPv6AddressManagement : public cSimpleModule
+class AddressManagement : public cSimpleModule
 {
   protected:
     virtual void initialize();
@@ -34,7 +37,7 @@ class IPv6AddressManagement : public cSimpleModule
     const int SEQ_FIELD_SIZE = 64;
     typedef std::vector<IPv6Address> IPv6AddressList;
     typedef std::map<uint,IPv6AddressList> SequenceTable;
-    struct IPv6AddressMapEntry
+    struct AddressMapEntry
     {
         L3Address mobileID;
         uint currentSequenceNumber;
@@ -43,8 +46,9 @@ class IPv6AddressManagement : public cSimpleModule
         SimTime timestamp;
 
     };
-    typedef std::map<L3Address,IPv6AddressMapEntry> IPv6AddressMap;
-    IPv6AddressMap ipv6AddressMap;
+    friend std::ostream& operator<<(std::ostream& os, const AddressMapEntry& ame);
+    typedef std::map<L3Address,AddressMapEntry> AddressMap;
+    AddressMap addressMap;
 
     uint initiateAddressMap(L3Address& id); // for VA
     void initiateAddressMap(L3Address& id, uint seqno, IPv6Address& addr); // for CA+DA
@@ -59,14 +63,20 @@ class IPv6AddressManagement : public cSimpleModule
     bool isLastSequenceNumberAcknowledged(L3Address& id);
     bool isAddressMapOfMobileIDProvided(L3Address& id);
 
-    struct IPv6AddressChange
+    struct AddressChange
     {
         uint addedAddresses = 0;
         uint removedAddresses = 0;
         IPv6AddressList getUnacknowledgedAddedIPv6AddressList;
         IPv6AddressList getUnacknowledgedRemovedIPv6AddressList;
     };
-    IPv6AddressChange getUnacknowledgedIPv6AddressList(L3Address& id, uint ack, uint seq);
+    AddressChange getUnacknowledgedIPv6AddressList(L3Address& id, uint ack, uint seq);
+
+    std::string to_string();
+    std::string to_string(IPv6AddressList addrList);
+    std::string to_string(SequenceTable seqTable);
+    std::string to_string(AddressMapEntry addrMapEntry);
+    std::string to_string(AddressMap addrMap);
 };
 } //namespace
 
