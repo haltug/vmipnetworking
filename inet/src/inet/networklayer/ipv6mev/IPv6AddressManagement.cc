@@ -31,6 +31,7 @@ void IPv6AddressManagement::handleMessage(cMessage *msg)
     throw cRuntimeError("This module doesn't process messages");
 }
 
+// initialzation for VA
 uint IPv6AddressManagement::initiateAddressMap(L3Address& id)
 {
 // TODO check if map exists and is filled. if so delete all entries.
@@ -46,6 +47,24 @@ uint IPv6AddressManagement::initiateAddressMap(L3Address& id)
     addressEntry.timestamp = simTime(); // set timestamp
     ipv6AddressMap[id] = addressEntry; // assign map to id
     return seqno; // return id to initialize at CA
+}
+
+// initialization for CA and DA
+void IPv6AddressManagement::initiateAddressMap(L3Address& id, uint seqno, IPv6Address& addr)
+{
+    if(ipv6AddressMap.count(id)) // check if id exists in map
+    {
+        // should a error occur?
+    }
+    IPv6AddressMapEntry addressEntry;
+    addressEntry.mobileID = id; // setting mobile id
+    addressEntry.currentSequenceNumber = seqno; // set seqno
+    addressEntry.lastAcknowledgement = seqno; // acknowledge given seq
+    IPv6AddressList ipv6AddressList; // creating new list
+    ipv6AddressList.push_back(addr); // adding address into list
+    addressEntry.sequenceTable[seqno] = ipv6AddressList; // assigning to seq table
+    addressEntry.timestamp = simTime(); // setting timestamp
+    ipv6AddressMap[id] = addressEntry; // adding into map
 }
 
 void IPv6AddressManagement::addIPv6AddressToAddressMap(L3Address& id, IPv6Address& addr)
@@ -131,7 +150,7 @@ IPv6AddressManagement::IPv6AddressChange IPv6AddressManagement::getUnacknowledge
                   throw cRuntimeError("Size of address list difference should be 1. ");
               } else
               {
-                  addressChange.getUnacknowledgedRemovedIPv6AddressList.push_back(difference.front());
+                  addressChange.getUnacknowledgedRemovedIPv6AddressList.push_back(difference.front()); // put the difference address in local variable
               }
            } else
            {

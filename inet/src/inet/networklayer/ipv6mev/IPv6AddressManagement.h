@@ -47,11 +47,11 @@ class IPv6AddressManagement : public cSimpleModule
     IPv6AddressMap ipv6AddressMap;
 
     uint initiateAddressMap(L3Address& id); // for VA
-    void initiateAddressMap(L3Address& id, uint seqNo, IPv6Address& addr); // for CA+DA
+    void initiateAddressMap(L3Address& id, uint seqno, IPv6Address& addr); // for CA+DA
     void addIPv6AddressToAddressMap(L3Address& id, IPv6Address& addr);
-    void addIPv6AddressToAddressMap(L3Address& id, IPv6AddressList& addr);
+//    void addIPv6AddressToAddressMap(L3Address& id, IPv6AddressList& addr);
     void removeIPv6AddressfromAddressMap(L3Address& id, IPv6Address& addr);
-    void removeIPv6AddressfromAddressMap(L3Address& id, IPv6AddressList& addr);
+//    void removeIPv6AddressfromAddressMap(L3Address& id, IPv6AddressList& addr);
 
     uint getCurrentSequenceNumber(L3Address& id);
     uint getLastAcknowledgemnt(L3Address& id);
@@ -64,11 +64,9 @@ class IPv6AddressManagement : public cSimpleModule
         uint addedAddresses = 0;
         uint removedAddresses = 0;
         IPv6AddressList getUnacknowledgedAddedIPv6AddressList;
-        IPv6AddressList getUnacknowledgedRemovedIPv6AddressList
+        IPv6AddressList getUnacknowledgedRemovedIPv6AddressList;
     };
     IPv6AddressChange getUnacknowledgedIPv6AddressList(L3Address& id, uint ack, uint seq);
-
-
 };
 } //namespace
 
