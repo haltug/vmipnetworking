@@ -17,6 +17,8 @@
 
 namespace inet {
 
+const VehicleIdentification VehicleIdentification::UNSPECIFIED_ADDRESS("DEADAFFE:DEADAFFE");
+
 bool VehicleIdentification::tryParse(const char *addr)
 {
     if (!addr)

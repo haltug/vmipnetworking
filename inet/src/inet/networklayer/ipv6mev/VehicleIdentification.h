@@ -33,6 +33,7 @@ class INET_API VehicleIdentification {
 
 private:
   uint64 id; // never 0
+  std::mt19937_64 rng;
 
 public:
   uint64 getId() const { return id; }
@@ -40,7 +41,9 @@ public:
   void setId(const char* hexstr);
   std::string str() const { std::ostringstream s; s << id; return s.str(); }
 
-  VehicleIdentification() { std::mt19937_64 rng; id = rng();}
+  static const VehicleIdentification UNSPECIFIED_ADDRESS;
+  VehicleIdentification() { id = 0; }
+  explicit VehicleIdentification(bool i) { i ? id = rng() : id = 0xDEADAFFEDEADAFFE;}
   explicit VehicleIdentification(uint64 i) { id = i; }
 //  VehicleIdentification(std::string str) { std::mt19937_64 rng; id = rng(str); }
 
