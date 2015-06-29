@@ -1,0 +1,22 @@
+%description:
+Test AddressManagement class
+
+%includes:
+#include <stdio.h>
+#include "inet/networklayer/common/L3Address.h"
+#include "inet/networklayer/contract/ipv6/IPv6Address.h"
+#include "inet/networklayer/ipv6mev/VehicleIdentification.h"
+
+%global:
+using namespace inet;
+
+%activity:
+VehicleIdentification* id = new VehicleIdentification(3);
+EV << "ID:" << id->str() << endl;
+L3Address l3addr;
+
+EV << ".\n";
+
+%contains: stdout
+ID:3
+.

@@ -41,6 +41,14 @@ void AddressManagement::handleMessage(cMessage *msg)
     throw cRuntimeError("This module doesn't process messages");
 }
 
+AddressManagement::AddressManagement()
+{
+}
+
+AddressManagement::~AddressManagement()
+{
+}
+
 // initialzation for VA
 uint AddressManagement::initiateAddressMap(L3Address& id)
 {

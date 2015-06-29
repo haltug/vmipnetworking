@@ -26,21 +26,26 @@
 
 namespace inet {
 
-class VehicleIdentification {
+#define ID_SIZE 16
+#define NOT_ID  0xDEADAFFEDEADAFFE
+
+class INET_API VehicleIdentification {
 
 private:
-  uint64 id;
+  uint64 id; // never 0
 
 public:
-  uint64 getId() const { return id; };
-  std::string str() const { std::ostringstream s; s << id; return s.str(); };
+  uint64 getId() const { return id; }
+  void setId(const uint64 i) { id = i; }
+  void setId(const char* hexstr);
+  std::string str() const { std::ostringstream s; s << id; return s.str(); }
 
   VehicleIdentification() { std::mt19937_64 rng; id = rng();}
-  VehicleIdentification(uint64 i) { id = i; }
-  VehicleIdentification(std::string str) { std::mt19937_64 rng; id = rng(str); }
+  explicit VehicleIdentification(uint64 i) { id = i; }
+//  VehicleIdentification(std::string str) { std::mt19937_64 rng; id = rng(str); }
 
-  bool tryParse(const char *addr) { uint64 i = std::stoi(addr); return i == id; };
-  bool isUnspecified() const { return true; }
+  bool tryParse(const char *addr);
+  bool isUnspecified() const { return id == NOT_ID; }
   bool isUnicast() const { return true; }
   bool isMulticast() const { return true; }
   bool isBroadcast() const { return true; }
@@ -49,6 +54,8 @@ public:
   bool operator!=(const VehicleIdentification& addr1) const { return id != addr1.id; }
   bool operator<(const VehicleIdentification& addr1) const { return id < addr1.id; }
   bool operator>(const VehicleIdentification& addr1) const { return id > addr1.id; }
+
+};
 
 } /* namespace inet */
 

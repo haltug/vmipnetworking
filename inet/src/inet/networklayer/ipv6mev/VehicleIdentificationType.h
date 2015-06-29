@@ -18,7 +18,7 @@
 
 #include "inet/common/INETDefs.h"
 #include "inet/networklayer/contract/IL3AddressType.h"
-#include "inet/networklayer/contract/ipv6/IPv6ControlInfo.h"
+#include "inet/networklayer/contract/generic/GenericNetworkProtocolControlInfo.h"
 
 namespace inet {
 
@@ -30,15 +30,15 @@ class INET_API VehicleIdentificationType : public IL3AddressType
   public:
     VehicleIdentificationType() {}
     virtual ~VehicleIdentificationType() {}
-
-    virtual int getAddressBitLength() const override { return 64; }     // change to your choice
+    // hier kann eine anpassung erforderlich sein. siehe dazu interface von tl
+    virtual int getAddressBitLength() const override { return 64; }
     virtual int getMaxPrefixLength() const override { return 0; }
-    virtual L3Address getUnspecifiedAddress() const override { return VehicleIdentification(); }    // TODO: constant
+    virtual L3Address getUnspecifiedAddress() const override { return VehicleIdentification(); }
     virtual L3Address getBroadcastAddress() const override { return VehicleIdentification(); }
-    virtual L3Address getLinkLocalManetRoutersMulticastAddress() const override { return VehicleIdentification(); }    // TODO: constant
-    virtual L3Address getLinkLocalRIPRoutersMulticastAddress() const override { return VehicleIdentification(); }    // TODO: constant
-    virtual INetworkProtocolControlInfo *createNetworkProtocolControlInfo() const override { return new IPv6ControlInfo(); }
-    virtual L3Address getLinkLocalAddress(const InterfaceEntry *ie) const override { return VehicleIdentification(); }    // TODO constant
+    virtual L3Address getLinkLocalManetRoutersMulticastAddress() const override { return VehicleIdentification(); }
+    virtual L3Address getLinkLocalRIPRoutersMulticastAddress() const override { return VehicleIdentification(); }
+    virtual INetworkProtocolControlInfo *createNetworkProtocolControlInfo() const override { return new GenericNetworkProtocolControlInfo(); }
+    virtual L3Address getLinkLocalAddress(const InterfaceEntry *ie) const override { return VehicleIdentification(); }
 };
 
 } /* namespace inet */

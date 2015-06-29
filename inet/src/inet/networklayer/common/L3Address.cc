@@ -50,6 +50,7 @@ void L3Address::set(const IPv6Address& addr)
         throw cRuntimeError("Cannot set IPv6 address");
 }
 
+// anpassung wahrscheinlich erforderlich, weil diese fuer tl genutzt wird
 L3Address::AddressType L3Address::getType() const
 {
     if (hi >> 48 == RESERVED_IPV6_ADDRESS_RANGE)
@@ -80,7 +81,7 @@ IL3AddressType *L3Address::getAddressType() const
             return &ModulePathAddressType::INSTANCE;
 
         case L3Address::VEHICLEID:
-            return &VehicleIdentification::INSTANCE;
+            return &VehicleIdentificationType::INSTANCE;
 
         default:
             throw cRuntimeError("Unknown type");
@@ -133,7 +134,7 @@ bool L3Address::tryParse(const char *addr)
         set(moduleId);
     else if (modulePath.tryParse(addr))
         set(modulePath);
-    else if (vId.tryParse(addr))
+    else if (vId.tryParse(addr)) // parsing for 0xDEAD:AFFE
         set(vId);
     else
         return false;
@@ -380,6 +381,7 @@ bool L3Address::matches(const L3Address& other, int prefixLength) const
 
         case L3Address::MODULEPATH:
             return ModulePathAddress::maskedAddrAreEqual(toModulePath(), other.toModulePath(), prefixLength);
+
         case L3Address::VEHICLEID:
             return true;
 

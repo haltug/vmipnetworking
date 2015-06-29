@@ -32,7 +32,11 @@ class AddressManagement : public cSimpleModule
   protected:
     virtual void initialize();
     virtual void handleMessage(cMessage *msg);
-  private:
+
+  public:
+    AddressManagement();
+    virtual ~AddressManagement();
+
   public:
     const int SEQ_FIELD_SIZE = 64;
     typedef std::vector<IPv6Address> IPv6AddressList;

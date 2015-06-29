@@ -12,9 +12,30 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with this program.  If not, see http://www.gnu.org/licenses/.
 // 
-
+#include <ctype.h>
 #include "inet/networklayer/ipv6mev/VehicleIdentification.h"
 
 namespace inet {
+
+bool VehicleIdentification::tryParse(const char *addr)
+{
+    if (!addr)
+        return false;
+
+    int numHexDigits = 0;
+    for (const char *s = addr; *s; s++) // works if input string is null-terminated
+    {
+        if (isxdigit(*s) && numHexDigits <= ID_SIZE)
+            numHexDigits++;
+        else
+            if(numHexDigits == (ID_SIZE/2) && *s == ':')
+                numHexDigits++;
+            else
+                return false;
+    }
+    return true;
+}
+
+
 
 } /* namespace inet */
