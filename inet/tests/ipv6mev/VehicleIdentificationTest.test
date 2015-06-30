@@ -2,18 +2,27 @@
 Test VehicleIdentification class
 
 %includes:
-#include <stdio.h>
 #include "inet/networklayer/ipv6mev/VehicleIdentification.h"
 
 %global
 using namespace inet;
 
 %activity:
-VehicleIdentification* vid = new VehicleIdentification();
+EV << "Starting test:" << endl;
+VehicleIdentification *vid = new VehicleIdentification();
 EV << vid->get_str() << endl;
-
+delete vid;
+vid = new VehicleIdentification(123456789);
+EV << vid->get_str() << endl;
+vid->setId(987654321);
+EV << vid->get_str() << endl;
+vid->setId('DEADAFFE:DEADAFFE');
+EV << vid->get_str() << endl;
 EV << ".\n";
 
 %contains: stdout
+Starting test:
+16045674556583423998
 123456789
+987654321
 .

@@ -15,3 +15,21 @@ EV << ".\n";
 
 %contains: stdout
 .
+
+%description:
+Test VehicleIdentification class
+
+%includes:
+#include "inet/networklayer/ipv6mev/VehicleIdentification.h"
+
+%global
+using namespace inet;
+
+%activity:
+VehicleIdentification* vid = new VehicleIdentification(123456789);
+EV << vid->get_str() << endl;
+EV << ".\n";
+
+%contains: stdout
+123456789
+.

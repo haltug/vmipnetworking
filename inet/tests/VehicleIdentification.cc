@@ -14,7 +14,6 @@
 // 
 #include <ctype.h>
 #include <iostream>
-#include <sstream>
 #include <stdlib.h>
 #include <string>
 #include "inet/networklayer/ipv6mev/VehicleIdentification.h"
@@ -59,34 +58,6 @@ bool VehicleIdentification::tryParse(const char *addr)
         }
     }
     return true;
-}
-
-void VehicleIdentification::setId(const char* hexstr)
-{
-    if(hexstr != nullptr)
-    {
-        if(*(hexstr+8) == ':')
-        {
-//            const char* cpy = hexstr;  // an alias to iterate through s without moving s
-//            const char* temp = hexstr;
-//            while (*cpy)
-//            {
-//                if (*cpy != ':')
-//                    *temp++ = *cpy;
-//                cpy++;
-//            }
-//            *temp = 0;
-//            id = strtoull(hexstr, NULL, 16);
-            std::string str(hexstr);
-            std::string str2(hexstr);
-            str.replace(8,1,str2,9,8);
-            id = std::stoull(str,NULL,16);
-        }
-        else
-        {
-            id = strtoull(hexstr, NULL, 16);
-        }
-    }
 }
 
 std::string VehicleIdentification::str() const
