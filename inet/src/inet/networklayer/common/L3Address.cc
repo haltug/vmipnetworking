@@ -50,7 +50,7 @@ void L3Address::set(const IPv6Address& addr)
         throw cRuntimeError("Cannot set IPv6 address");
 }
 
-// anpassung wahrscheinlich erforderlich, weil diese fuer tl genutzt wird
+// check die funktion hier ob der richtige typ zuruck gegeben wird.
 L3Address::AddressType L3Address::getType() const
 {
     if (hi >> 48 == RESERVED_IPV6_ADDRESS_RANGE)

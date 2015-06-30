@@ -16,36 +16,35 @@
 #ifndef VEHICLEIDENTIFICATION_H_
 #define VEHICLEIDENTIFICATION_H_
 
-#include <string>
-#include <iostream>
 #include <random>
 #include <crng.h>
+#include <string>
 
 #include "inet/common/INETDefs.h"
 
-
 namespace inet {
 
-#define ID_SIZE 16
 #define NOT_ID  0xDEADAFFEDEADAFFE
 
 class INET_API VehicleIdentification {
 
-private:
+protected:
   uint64 id; // never 0
   std::mt19937_64 rng;
 
 public:
-  uint64 getId() const { return id; }
-  void setId(const uint64 i) { id = i; }
-  void setId(const char* hexstr);
-  std::string str() const { std::ostringstream s; s << id; return s.str(); }
-
   static const VehicleIdentification UNSPECIFIED_ADDRESS;
+
   VehicleIdentification() { id = 0; }
   explicit VehicleIdentification(bool i) { i ? id = rng() : id = 0xDEADAFFEDEADAFFE;}
   explicit VehicleIdentification(uint64 i) { id = i; }
-//  VehicleIdentification(std::string str) { std::mt19937_64 rng; id = rng(str); }
+  ~VehicleIdentification() {}
+
+  uint64 getId() const { return id; }
+  void setId(uint64 i) { id = i; }
+  void setId(const char* hexstr);
+  std::string str() const;
+  std::string get_str() const;
 
   bool tryParse(const char *addr);
   bool isUnspecified() const { return id == NOT_ID; }

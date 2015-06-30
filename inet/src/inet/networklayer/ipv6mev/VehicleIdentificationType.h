@@ -33,12 +33,12 @@ class INET_API VehicleIdentificationType : public IL3AddressType
     // hier kann eine anpassung erforderlich sein. siehe dazu interface von tl
     virtual int getAddressBitLength() const override { return 64; }
     virtual int getMaxPrefixLength() const override { return 0; }
-    virtual L3Address getUnspecifiedAddress() const override { return VehicleIdentification(); }
-    virtual L3Address getBroadcastAddress() const override { return VehicleIdentification(); }
-    virtual L3Address getLinkLocalManetRoutersMulticastAddress() const override { return VehicleIdentification(); }
-    virtual L3Address getLinkLocalRIPRoutersMulticastAddress() const override { return VehicleIdentification(); }
+    virtual L3Address getUnspecifiedAddress() const override { return VehicleIdentification::UNSPECIFIED_ADDRESS; }
+    virtual L3Address getBroadcastAddress() const override { return VehicleIdentification::UNSPECIFIED_ADDRESS; }
+    virtual L3Address getLinkLocalManetRoutersMulticastAddress() const override { return VehicleIdentification::UNSPECIFIED_ADDRESS; }
+    virtual L3Address getLinkLocalRIPRoutersMulticastAddress() const override { return VehicleIdentification::UNSPECIFIED_ADDRESS; }
     virtual INetworkProtocolControlInfo *createNetworkProtocolControlInfo() const override { return new GenericNetworkProtocolControlInfo(); }
-    virtual L3Address getLinkLocalAddress(const InterfaceEntry *ie) const override { return VehicleIdentification(); }
+    virtual L3Address getLinkLocalAddress(const InterfaceEntry *ie) const override { return VehicleIdentification::UNSPECIFIED_ADDRESS; }
 };
 
 } /* namespace inet */

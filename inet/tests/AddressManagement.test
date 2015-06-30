@@ -11,12 +11,7 @@ Test AddressManagement class
 using namespace inet;
 
 %activity:
-VehicleIdentification* id = new VehicleIdentification(3);
-EV << "ID:" << id->str() << endl;
-L3Address l3addr;
-
 EV << ".\n";
 
 %contains: stdout
-ID:3
 .
