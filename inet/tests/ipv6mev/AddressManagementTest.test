@@ -139,9 +139,9 @@ Add:2;Rem:2;#:ffff:eeee:dddd:cccc:bbbb:aaaa:9999:3333->ffff:eeee:dddd:cccc:bbbb:
 Id:00000000:000000FF;Seq:61;Ack:0;
 61:
 
-Id:00000000:000000FF;Seq:65;Ack:0;
+Id:00000000:000000FF;Seq:1;Ack:0;
 61:
 62:ffff:eeee:dddd:cccc:bbbb:aaaa:9999:1111
 63:ffff:eeee:dddd:cccc:bbbb:aaaa:9999:1111->ffff:eeee:dddd:cccc:bbbb:aaaa:9999:2222
-64:ffff:eeee:dddd:cccc:bbbb:aaaa:9999:1111->ffff:eeee:dddd:cccc:bbbb:aaaa:9999:2222->ffff:eeee:dddd:cccc:bbbb:aaaa:9999:3333
-65:ffff:eeee:dddd:cccc:bbbb:aaaa:9999:2222->ffff:eeee:dddd:cccc:bbbb:aaaa:9999:3333
+0:ffff:eeee:dddd:cccc:bbbb:aaaa:9999:1111->ffff:eeee:dddd:cccc:bbbb:aaaa:9999:2222->ffff:eeee:dddd:cccc:bbbb:aaaa:9999:3333
+1:ffff:eeee:dddd:cccc:bbbb:aaaa:9999:2222->ffff:eeee:dddd:cccc:bbbb:aaaa:9999:3333

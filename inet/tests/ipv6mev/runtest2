@@ -13,7 +13,7 @@ if [ ! -d work ];  then mkdir work; fi
 cp -ru -t work lib
 opp_test gen $OPT -v $TESTFILES || exit 1
 echo
-(cd work; opp_makemake -f --deep -llibINET -L../../../src -P . --no-deep-includes -I../../../src; $MAKE) || exit 1
+(cd work; opp_makemake -f --deep -lINET -L../../../src -P . --no-deep-includes -I../../../src; $MAKE) || exit 1
 echo
 opp_test run -a "--check-signals=false" $OPT -v $TESTFILES || exit 1
 echo
