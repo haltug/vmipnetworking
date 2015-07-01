@@ -88,6 +88,9 @@ class INET_API L3Address
     std::string str() const;
     AddressType getType() const;
     IL3AddressType *getAddressType() const;
+    uint64 getHi() const { return hi; }
+    uint64 getLo() const { return lo; }
+
 
     /**
      * Get the first prefixLength bits of the address, with the rest set to zero.

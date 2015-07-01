@@ -32,6 +32,7 @@ protected:
 
 public:
   static const VehicleIdentification UNSPECIFIED_ADDRESS;
+  static const int ID_SIZE = 16;
 
   VehicleIdentification() { id = 0xDEADAFFEDEADAFFE; }
   explicit VehicleIdentification(uint64 vid) { id = vid; }

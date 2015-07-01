@@ -16,18 +16,17 @@
 #ifndef __INET_ADDRESSSYNCHRONIZER_H_
 #define __INET_ADDRESSSYNCHRONIZER_H_
 
-#include <omnetpp.h>
-#include <vector>
 #include <map>
+#include <omnetpp.h>
 #include <string>
+#include <vector>
 
 #include "inet/common/INETDefs.h"
-#include "inet/networklayer/common/L3Address.h"
 #include "inet/networklayer/contract/ipv6/IPv6Address.h"
 
 namespace inet {
 
-class AddressManagement : public cSimpleModule
+class INET_API AddressManagement : public cSimpleModule
 {
   protected:
     virtual void initialize();
@@ -36,14 +35,19 @@ class AddressManagement : public cSimpleModule
   public:
     AddressManagement();
     virtual ~AddressManagement();
+    static const int SEQ_FIELD_SIZE = 64;
 
   public:
-    const int SEQ_FIELD_SIZE = 64;
+    // A list of IPv6 addresses stored as vector
     typedef std::vector<IPv6Address> IPv6AddressList;
+    // A map containing a list of IPv6 addresses (IPv6AddressList) and
+    // associated to a sequence number (key)
     typedef std::map<uint,IPv6AddressList> SequenceTable;
+    // A structure that represents the address map of a vehicle agent
+    // with current sequence number, last acknowledgement, sequence table
     struct AddressMapEntry
     {
-        L3Address mobileID;
+        uint64 mobileID; // unnecessary
         uint currentSequenceNumber;
         uint lastAcknowledgement;
         SequenceTable sequenceTable;
@@ -51,21 +55,24 @@ class AddressManagement : public cSimpleModule
 
     };
     friend std::ostream& operator<<(std::ostream& os, const AddressMapEntry& ame);
-    typedef std::map<L3Address,AddressMapEntry> AddressMap;
+    // A map that contains all elements of vehicle agents
+    typedef std::map<uint64,AddressMapEntry> AddressMap;
+    // The address map variable
     AddressMap addressMap;
 
-    uint initiateAddressMap(L3Address& id); // for VA
-    void initiateAddressMap(L3Address& id, uint seqno, IPv6Address& addr); // for CA+DA
-    void addIPv6AddressToAddressMap(L3Address& id, IPv6Address& addr);
+    uint initiateAddressMap(uint64 id); // for VA
+    uint initiateAddressMap(uint64 id, int seed); // for VA
+    void initiateAddressMap(uint64 id, uint seqno, IPv6Address& addr); // for CA+DA
+    void addIPv6AddressToAddressMap(uint64 id, IPv6Address& addr);
+    void removeIPv6AddressFromAddressMap(uint64 id, IPv6Address& addr);
 //    void addIPv6AddressToAddressMap(L3Address& id, IPv6AddressList& addr);
-    void removeIPv6AddressfromAddressMap(L3Address& id, IPv6Address& addr);
 //    void removeIPv6AddressfromAddressMap(L3Address& id, IPv6AddressList& addr);
 
-    uint getCurrentSequenceNumber(L3Address& id);
-    uint getLastAcknowledgemnt(L3Address& id);
-    void setLastAcknowledgemnt(L3Address& id, uint seqno);
-    bool isLastSequenceNumberAcknowledged(L3Address& id);
-    bool isAddressMapOfMobileIDProvided(L3Address& id);
+    uint getCurrentSequenceNumber(uint64 id);
+    uint getLastAcknowledgemnt(uint64 id);
+    void setLastAcknowledgemnt(uint64 id, uint seqno);
+    bool isLastSequenceNumberAcknowledged(uint64 id);
+    bool isAddressMapOfMobileIDProvided(uint64 id);
 
     struct AddressChange
     {
@@ -74,13 +81,14 @@ class AddressManagement : public cSimpleModule
         IPv6AddressList getUnacknowledgedAddedIPv6AddressList;
         IPv6AddressList getUnacknowledgedRemovedIPv6AddressList;
     };
-    AddressChange getUnacknowledgedIPv6AddressList(L3Address& id, uint ack, uint seq);
+    AddressChange getUnacknowledgedIPv6AddressList(uint64 id, uint ack, uint seq);
 
     std::string to_string();
     std::string to_string(IPv6AddressList addrList);
     std::string to_string(SequenceTable seqTable);
     std::string to_string(AddressMapEntry addrMapEntry);
     std::string to_string(AddressMap addrMap);
+    std::string to_string(AddressChange addrChange);
 };
 } //namespace
 

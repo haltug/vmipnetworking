@@ -134,8 +134,9 @@ bool L3Address::tryParse(const char *addr)
         set(moduleId);
     else if (modulePath.tryParse(addr))
         set(modulePath);
-    else if (vId.tryParse(addr)) // parsing for 0xDEAD:AFFE
+    else if (vId.tryParse(addr)){
         set(vId);
+    }
     else
         return false;
     return true;

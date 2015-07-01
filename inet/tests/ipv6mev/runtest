@@ -3,7 +3,7 @@
 # usage: runtest [<testfile>...]
 # without args, runs all *.test files in the current directory
 #
-# (cd work; opp_makemake -f  --deep -linet -L../../../src -P . --no-deep-includes -I../../../src; $MAKE) || exit 1
+#(cd work; opp_makemake -f --deep -llibINET -L../../../src -P . --no-deep-includes -I../../../src; $MAKE) || exit 1
 
 MAKE=make
 

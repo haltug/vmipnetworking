@@ -17,11 +17,10 @@
 #include <sstream>
 #include <stdlib.h>
 #include <string>
+#include <algorithm>
 #include "inet/networklayer/ipv6mev/VehicleIdentification.h"
 
 namespace inet {
-
-static const int ID_SIZE = 16;
 
 const VehicleIdentification VehicleIdentification::UNSPECIFIED_ADDRESS;
 
@@ -44,7 +43,7 @@ bool VehicleIdentification::tryParse(const char *addr)
         return false;
 
     int numHexDigits = 0;
-    for (const char *s = addr; *s; s++) // works if input string is null-terminated
+    for (const char *s = addr; *s; s++)
     {
         if (isxdigit(*s) && numHexDigits <= ID_SIZE)
         {
@@ -58,6 +57,7 @@ bool VehicleIdentification::tryParse(const char *addr)
                 return false;
         }
     }
+    setId(addr);
     return true;
 }
 
@@ -67,20 +67,9 @@ void VehicleIdentification::setId(const char* hexstr)
     {
         if(*(hexstr+8) == ':')
         {
-//            const char* cpy = hexstr;  // an alias to iterate through s without moving s
-//            const char* temp = hexstr;
-//            while (*cpy)
-//            {
-//                if (*cpy != ':')
-//                    *temp++ = *cpy;
-//                cpy++;
-//            }
-//            *temp = 0;
-//            id = strtoull(hexstr, NULL, 16);
             std::string str(hexstr);
-            std::string str2(hexstr);
-            str.replace(8,1,str2,9,8);
-            id = std::stoull(str,NULL,16);
+            str.erase(std::remove(str.begin(),str.end(),':'), str.end());
+            id = strtoull(str.c_str(),NULL,16);
         }
         else
         {
@@ -98,7 +87,7 @@ std::string VehicleIdentification::str() const
     sprintf(buf, "%016llX", id);
     std::string str = std::string(buf);
     str.insert(ID_SIZE/2, ":");
-    str.insert(str.end(),'\0');
+    //str.insert(str.end(),'\0');
     return str;
 }
 
