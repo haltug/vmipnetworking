@@ -24,7 +24,7 @@ EV << vid->get_str() << endl;
 EV << vid->isUnspecified() << endl;
 delete vid;
 vid = new VehicleIdentification(1, 1234);
-EV << vid->get_str() << endl;
+// EV << vid->get_str() << endl; // 4068
 EV << vid->isUnicast() << endl;
 EV << vid->isUnspecified() << endl;
 vid->setId(1229801703532086340);
@@ -47,7 +47,6 @@ Starting test:
 16045674556583423998
 16045674556583423998
 1
-4068
 1
 0
 1229801703532086340

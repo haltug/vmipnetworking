@@ -22,7 +22,7 @@ EV << l3addr.getLo() << endl; // 255
 uint id = l3addr.toID().getId();
 EV << id << endl; // 255
 AddressManagement am;
-am.initiateAddressMap(l3addr.toID().getId(),1234);
+am.initiateAddressMap(l3addr.toID().getId(),36);
 EV << am.to_string() << endl; // ID:00000000:000000FF;Seq:37;Ack:0; 37;
 IPv6Address ip1("ffff:eeee:dddd:cccc:bbbb:aaaa:9999:1111");
 EV << ip1.str() << endl; // ffff:eeee:dddd:cccc:bbbb:aaaa:9999:1111
@@ -57,8 +57,10 @@ EV << am.to_string() << endl;
 ac = am.getUnacknowledgedIPv6AddressList(id,(uint)39,(uint)43);
 EV << am.to_string(ac) << endl; // Add:0;Rem:0;#:
 AddressManagement am2;
-am2.initiateAddressMap(l3addr.toID().getId(),1222);
+am2.initiateAddressMap(l3addr.toID().getId(),60);
 EV << am2.to_string() << endl; // ID:00000000:000000FF;Seq:61;Ack:0; 37;
+am2.setLastAcknowledgemnt(id, 61);
+EV << am2.to_string() << endl; // ID:00000000:000000FF;Seq:40;Ack:40; 38: ;
 am2.addIPv6AddressToAddressMap(id, ip1);
 am2.addIPv6AddressToAddressMap(id, ip2);
 am2.addIPv6AddressToAddressMap(id, ip3);
@@ -139,9 +141,12 @@ Add:2;Rem:2;#:ffff:eeee:dddd:cccc:bbbb:aaaa:9999:3333->ffff:eeee:dddd:cccc:bbbb:
 Id:00000000:000000FF;Seq:61;Ack:0;
 61:
 
-Id:00000000:000000FF;Seq:1;Ack:0;
+Id:00000000:000000FF;Seq:61;Ack:61;
+61:
+
+Id:00000000:000000FF;Seq:1;Ack:61;
+0:ffff:eeee:dddd:cccc:bbbb:aaaa:9999:1111->ffff:eeee:dddd:cccc:bbbb:aaaa:9999:2222->ffff:eeee:dddd:cccc:bbbb:aaaa:9999:3333
+1:ffff:eeee:dddd:cccc:bbbb:aaaa:9999:2222->ffff:eeee:dddd:cccc:bbbb:aaaa:9999:3333
 61:
 62:ffff:eeee:dddd:cccc:bbbb:aaaa:9999:1111
 63:ffff:eeee:dddd:cccc:bbbb:aaaa:9999:1111->ffff:eeee:dddd:cccc:bbbb:aaaa:9999:2222
-0:ffff:eeee:dddd:cccc:bbbb:aaaa:9999:1111->ffff:eeee:dddd:cccc:bbbb:aaaa:9999:2222->ffff:eeee:dddd:cccc:bbbb:aaaa:9999:3333
-1:ffff:eeee:dddd:cccc:bbbb:aaaa:9999:2222->ffff:eeee:dddd:cccc:bbbb:aaaa:9999:3333

@@ -63,12 +63,13 @@ uint AddressManagement::initiateAddressMap(uint64 id, int seed)
 // TODO check if map exists and is filled. if so delete all entries.
     AddressMapEntry addressEntry;
     addressEntry.mobileID = id; // setting mobile id
-    if(seed == 0) {
-        srand (time(NULL));
-    } else {
-        srand (seed);
-    }
-    uint seqno = (uint) ((rand() % (SEQ_FIELD_SIZE - 1)) + 1); // initiating any number except from 0
+//    if(seed == 0) {
+//        srand (time(NULL));
+//    } else {
+//        srand (seed);
+//    }
+//    uint seqno = (uint) ((rand() % (SEQ_FIELD_SIZE - 1)) + 1); // initiating any number except from 0
+    uint seqno = (uint) (seed  % (SEQ_FIELD_SIZE - 1)) + 1; // this line should be deleted and the above commented code reimplemented
     addressEntry.currentSequenceNumber = seqno; // initialize random seq number
     addressEntry.lastAcknowledgement = 0; // not acknowledged
     IPv6AddressList ipv6addressList; // create empty list
@@ -104,7 +105,7 @@ void AddressManagement::addIPv6AddressToAddressMap(uint64 id, IPv6Address& addr)
     {
         SequenceTable seqTable (addressMap[id].sequenceTable); // get current sequence table
         if(!seqTable.count(addressMap[id].currentSequenceNumber)) // check if seq table with given seq number exists
-            throw cRuntimeError("Sequence Table with seqNo does not exist.");
+            throw cRuntimeError("AddIPv6:Sequence Table with seqNo does not exist.");
         IPv6AddressList newIPv6AddressList (seqTable[addressMap[id].currentSequenceNumber]); // copy current ipaddrList in new list
         if (std::find(newIPv6AddressList.begin(), newIPv6AddressList.end(), addr) != newIPv6AddressList.end()) // check if at any position given ip addr exists
         {
@@ -112,8 +113,9 @@ void AddressManagement::addIPv6AddressToAddressMap(uint64 id, IPv6Address& addr)
             return;
         }
         newIPv6AddressList.push_back(addr); // add new addr at the end of list
-        uint newSeqno = (++addressMap[id].currentSequenceNumber % SEQ_FIELD_SIZE); // increment seq no
-        seqTable[newSeqno] = newIPv6AddressList; // insert (or replace is exists) new addr list in seq table
+        addressMap[id].currentSequenceNumber = (addressMap[id].currentSequenceNumber + 1) % SEQ_FIELD_SIZE;
+//        uint newSeqno = (++addressMap[id].currentSequenceNumber % SEQ_FIELD_SIZE); // increment seq no
+        seqTable[addressMap[id].currentSequenceNumber] = newIPv6AddressList; // insert (or replace is exists) new addr list in seq table
         addressMap[id].sequenceTable = seqTable; // set modified seq table to map
         addressMap[id].timestamp = simTime(); // set a current timestamp
     } else {
@@ -127,13 +129,14 @@ void AddressManagement::removeIPv6AddressFromAddressMap(uint64 id, IPv6Address& 
     {
         SequenceTable seqTable (addressMap[id].sequenceTable); // get current sequence table
         if(!seqTable.count(addressMap[id].currentSequenceNumber)) // check if seq table with given seq number exists
-            throw cRuntimeError("Sequence Table with seqNo does not exist.");
+            throw cRuntimeError("RemIPv6:Sequence Table with seqNo does not exist.");
         IPv6AddressList newIPv6AddressList (seqTable[addressMap[id].currentSequenceNumber]); // copy current ipaddrList in new list
         if (std::find(newIPv6AddressList.begin(), newIPv6AddressList.end(), addr) != newIPv6AddressList.end()) // check if addr exists in list
         {
             newIPv6AddressList.erase(std::remove(newIPv6AddressList.begin(), newIPv6AddressList.end(), addr), newIPv6AddressList.end()); // remove addr at
-            uint newSeqno = (++addressMap[id].currentSequenceNumber % SEQ_FIELD_SIZE); // increment seq no
-            seqTable[newSeqno] = newIPv6AddressList; // insert (or replace is exists) new addr list in seq table
+            addressMap[id].currentSequenceNumber = (addressMap[id].currentSequenceNumber + 1) % SEQ_FIELD_SIZE;
+//          uint newSeqno = (++addressMap[id].currentSequenceNumber % SEQ_FIELD_SIZE); // increment seq no
+            seqTable[addressMap[id].currentSequenceNumber] = newIPv6AddressList; // insert (or replace is exists) new addr list in seq table
             addressMap[id].sequenceTable = seqTable; // set modified seq table to map
             addressMap[id].timestamp = simTime(); // set a current timestamp
 
