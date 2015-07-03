@@ -15,15 +15,10 @@
 
 #include "inet/networklayer/ipv6mev/IdentificationHeader.h"
 
-namespace inet {
+namespace inet
+{
 
-IdentificationHeader::IdentificationHeader() {
-    // TODO Auto-generated constructor stub
-
-}
-
-IdentificationHeader::~IdentificationHeader() {
-    // TODO Auto-generated destructor stub
-}
+Register_Class(VehicleAgentHeader);
+Register_Class(ControlAgentHeader);
 
 } /* namespace inet */

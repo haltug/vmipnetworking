@@ -52,7 +52,9 @@ class VehicleAgent : public cSimpleModule
     IInterfaceTable *ift;
     IPv6RoutingTable *rt6;
     IPv6NeighbourDiscovery *ipv6nd;
-    L3Address *mobileID;
+    VehicleIdentification *vid;
+    AddressManagement *am;
+    IPv6Address ca;
 
     // FOR THE PURPOSE OF WHAT?
 //    typedef std::map<Utils::Key, Utils::RetransmitTimer *> TransmitIfList;
@@ -72,7 +74,8 @@ class VehicleAgent : public cSimpleModule
 //    CorrNodeDataAgentList corrNodeDataAgentList;
 //    CorrNodeDataAgentList::iterator itCorrNodeDataAgentList;
 
-    typedef std::map<IPv6Address, IPv6Address> TargetToAgentList;
+    // a map that holds the association of correspondent node with data agents
+    typedef std::map<IPv6Address, IPv6Address> TargetToAgentList; // IPv6address should be replaced with DataAgent <cn,da>
     TargetToAgentList targetToAgentList;
 
     class CAInitializationTimer : public Utils::RetransmitTimer
@@ -114,9 +117,9 @@ class VehicleAgent : public cSimpleModule
 
     void createDataAgentRelayingRequestHeader(); // for relaying to attached target address
 
-    void processControlAgentMessages(IdentificationHeader *idHdr,  IPv6ControlInfo *ipCtrlInfo);
+    void processControlAgentMessages(IPv6Datagram *datagram, ControlAgentHeader *ctrlAgentHdr);
 
-    void processDataAgentMessages(IdentificationHeader *idHdr,  IPv6ControlInfo *ipCtrlInfo);
+    void processDataAgentMessages(IPv6Datagram *datagram, DataAgentHeader *dataAgentHdr);
 
     bool cancelRetransmitTimer(const IPv6Address& dest, int interfaceID, int msgType);
 

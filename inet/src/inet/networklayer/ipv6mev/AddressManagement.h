@@ -35,7 +35,7 @@ class INET_API AddressManagement : public cSimpleModule
   public:
     AddressManagement();
     virtual ~AddressManagement();
-    static const int SEQ_FIELD_SIZE = 64;
+    static const int SEQ_FIELD_SIZE = 256;
 
   public:
     // A list of IPv6 addresses stored as vector
@@ -68,11 +68,13 @@ class INET_API AddressManagement : public cSimpleModule
 //    void addIPv6AddressToAddressMap(L3Address& id, IPv6AddressList& addr);
 //    void removeIPv6AddressfromAddressMap(L3Address& id, IPv6AddressList& addr);
 
-    uint getCurrentSequenceNumber(uint64 id);
-    uint getLastAcknowledgemnt(uint64 id);
+    // returns the last sequence number
+    uint getCurrentSequenceNumber(const uint64 id) const;
+    // returns the last ack number
+    uint getLastAcknowledgemnt(uint64 id) const;
     void setLastAcknowledgemnt(uint64 id, uint seqno);
-    bool isLastSequenceNumberAcknowledged(uint64 id);
-    bool isAddressMapOfMobileIDProvided(uint64 id);
+    bool isLastSequenceNumberAcknowledged(uint64 id) const;
+    bool isAddressMapOfMobileIDProvided(uint64 id)  const;
 
     struct AddressChange
     {
@@ -83,12 +85,13 @@ class INET_API AddressManagement : public cSimpleModule
     };
     AddressChange getUnacknowledgedIPv6AddressList(uint64 id, uint ack, uint seq);
 
-    std::string to_string();
-    std::string to_string(IPv6AddressList addrList);
-    std::string to_string(SequenceTable seqTable);
-    std::string to_string(AddressMapEntry addrMapEntry);
-    std::string to_string(AddressMap addrMap);
-    std::string to_string(AddressChange addrChange);
+    // prints given parameter in string form
+    std::string to_string() const;
+    std::string to_string(IPv6AddressList addrList) const;
+    std::string to_string(SequenceTable seqTable) const;
+    std::string to_string(AddressMapEntry addrMapEntry) const;
+    std::string to_string(AddressMap addrMap) const;
+    std::string to_string(AddressChange addrChange) const;
 };
 } //namespace
 

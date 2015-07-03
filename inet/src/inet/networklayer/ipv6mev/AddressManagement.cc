@@ -200,22 +200,22 @@ AddressManagement::AddressChange AddressManagement::getUnacknowledgedIPv6Address
     }
 }
 
-uint AddressManagement::getCurrentSequenceNumber(uint64 id)
+uint AddressManagement::getCurrentSequenceNumber(const uint64 id) const
 {
     if(addressMap.count(id)) // check if id exists in map
     {
-        return addressMap[id].currentSequenceNumber;
+        return addressMap.find(id)->second.currentSequenceNumber;
     } else
     {
         throw cRuntimeError("ID is not found in AddressMap. Create entry for ID.");
     }
 }
 
-uint AddressManagement::getLastAcknowledgemnt(uint64 id)
+uint AddressManagement::getLastAcknowledgemnt(const uint64 id) const
 {
     if(addressMap.count(id)) // check if id exists in map
     {
-        return addressMap[id].lastAcknowledgement;
+        return addressMap.find(id)->second.lastAcknowledgement;
     } else {
         throw cRuntimeError("ID is not found in AddressMap. Create entry for ID.");
     }
@@ -231,23 +231,23 @@ void AddressManagement::setLastAcknowledgemnt(uint64 id, uint seqno)
     }
 }
 
-bool AddressManagement::isLastSequenceNumberAcknowledged(uint64 id)
+bool AddressManagement::isLastSequenceNumberAcknowledged(uint64 id) const
 {
     if(addressMap.count(id)) // check if id exists in map
     {
-        return (addressMap[id].lastAcknowledgement==addressMap[id].currentSequenceNumber);
+        return (addressMap.find(id)->second.lastAcknowledgement==addressMap.find(id)->second.currentSequenceNumber);
     } else {
         throw cRuntimeError("ID is not found in AddressMap. Create entry for ID.");
     }
 }
 
-bool AddressManagement::isAddressMapOfMobileIDProvided(uint64 id)
+bool AddressManagement::isAddressMapOfMobileIDProvided(uint64 id) const
 {
     return addressMap.count(id);
 }
 
 // Prints all IPv6 Addresses in IPv6AddressList
-std::string AddressManagement::to_string(IPv6AddressList addrList)
+std::string AddressManagement::to_string(IPv6AddressList addrList) const
 {
     std::string str="";
     bool first = true;
@@ -262,7 +262,7 @@ std::string AddressManagement::to_string(IPv6AddressList addrList)
 }
 
 // Prints sequence table: seqNo + associated IPv6AddressList
-std::string AddressManagement::to_string(SequenceTable seqTable)
+std::string AddressManagement::to_string(SequenceTable seqTable) const
 {
     std::string str="";
     for( auto& item : seqTable )
@@ -276,7 +276,7 @@ std::string AddressManagement::to_string(SequenceTable seqTable)
     return str;
 }
 // Prints elements of AddressMapEntry: current seqNo, last ack, entire seqTable
-std::string AddressManagement::to_string(AddressMapEntry addrMapEntry)
+std::string AddressManagement::to_string(AddressMapEntry addrMapEntry) const
 {
     std::string str="";
 //    str.append("Id:");
@@ -290,7 +290,7 @@ std::string AddressManagement::to_string(AddressMapEntry addrMapEntry)
     return str;
 }
 // Prints a given addressMap
-std::string AddressManagement::to_string(AddressMap addrMap)
+std::string AddressManagement::to_string(AddressMap addrMap) const
 {
     std::string str="";
     for( auto& item : addrMap )
@@ -306,12 +306,12 @@ std::string AddressManagement::to_string(AddressMap addrMap)
     return str;
 }
 // Prints a addressMap of this object
-std::string AddressManagement::to_string()
+std::string AddressManagement::to_string() const
 {
     return AddressManagement::to_string(addressMap);
 }
 // Prints a list modified addresses
-std::string AddressManagement::to_string(AddressChange addrChange)
+std::string AddressManagement::to_string(AddressChange addrChange) const
 {
     std::string str = "";
     str.append("Add:");

@@ -26,12 +26,32 @@ VehicleAgent::~VehicleAgent()
 
 void VehicleAgent::initialize(int stage) // added int stage param
 {
-    // TODO - Generated method body
+    cSimpleModule::initialize(stage); // purpose?
+
+    ift = getModuleFromPar<IInterfaceTable>(par("interfaceTableModule"), this);
+    ipv6nd = getModuleFromPar<IPv6NeighbourDiscovery>(par("ipv6NeighbourDiscoveryModule"), this);    //Zarrar Yousaf 17.07.07
+    am = getModuleFromPar<AddressManagement>(par("addressManagementModule"), this);
+
+    WATCH_MAP(interfaceToIPv6AddressList);
+    WATCH_MAP(targetToAgentList);
 }
 
 void VehicleAgent::handleMessage(cMessage *msg)
 {
-    // TODO - Generated method body
+    if(msg->isSelfMessage()) {
+
+    }
+    else if (dynamic_cast<IPv6Datagram *> (msg)) {
+        IPv6ExtensionHeader *eh = (IPv6ExtensionHeader *)msg->getContextPointer();
+        if (dynamic_cast<ControlAgentHeader *>(eh))
+            processControlAgentMessages((IPv6Datagram *)msg, (ControlAgentHeader *)eh);
+        else if (dynamic_cast<DataAgentHeader *>(eh))
+            processDataAgentMessages((IPv6Datagram *)msg, (DataAgentHeader *)eh);
+        else
+            throw cRuntimeError("VA:handleMsg: Extension Hdr Type not known. What did you send?");
+    }
+    else
+        throw cRuntimeError("VA:handleMsg: cMessage Type not known. What did you send?");
 }
 
 } //namespace
