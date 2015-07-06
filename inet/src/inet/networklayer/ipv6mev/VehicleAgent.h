@@ -28,6 +28,7 @@
 #include "inet/networklayer/icmpv6/IPv6NeighbourDiscovery.h"
 #include "inet/networklayer/ipv6/IPv6Datagram.h"
 #include "inet/networklayer/ipv6/IPv6RoutingTable.h"
+#include "inet/networklayer/ipv6mev/AddressManagement.h"
 #include "inet/networklayer/ipv6mev/IdentificationHeader.h"
 #include "inet/networklayer/ipv6mev/Utils.h"
 #include "inet/networklayer/ipv6tunneling/IPv6Tunneling.h"
@@ -47,6 +48,12 @@ class VehicleAgent : public cSimpleModule
 {
   public:
     virtual ~VehicleAgent();
+    enum AgentState {
+        NONE       = 0,
+        INITIALIZE = 1,
+        REGISTERED = 2
+    };
+    AgentState state;
 
   protected:
     IInterfaceTable *ift;
@@ -54,7 +61,7 @@ class VehicleAgent : public cSimpleModule
     IPv6NeighbourDiscovery *ipv6nd;
     VehicleIdentification *vid;
     AddressManagement *am;
-    IPv6Address ca;
+    IPv6Address *ca;
 
     // FOR THE PURPOSE OF WHAT?
 //    typedef std::map<Utils::Key, Utils::RetransmitTimer *> TransmitIfList;
@@ -101,35 +108,39 @@ class VehicleAgent : public cSimpleModule
 //    class DASequenceUpdateTimer : public RetransmitTimer
 //    {
 //    };
-    void createControlAgentInitializationHeader();
+    virtual int numInitStages() const override { return NUM_INIT_STAGES; }
+    virtual void initialize(int stage) override;
+    virtual void handleMessage(cMessage *msg) override;
 
-    void createControlAgentSessionRequestHeader(); // for getting ip address of data agent
+    void sendCAInitialization(); // send initialization message to CA
+    void resendCAInitialization(cMessage *msg); // resend after timer expired
 
-    void createControlAgentSequenceUpdateHeader(); // for informing of net addr changes
+    void sendCASequenceUpdate(); // for informing of net addr changes
+    void resendCASequenceUpdate(cMessage *msg); // resend after timer expired
 
-    void createControlAgentLocationUpdateHeader(); // for latter implementation
+    void sendCASessionRequest(); // for getting ip address of data agent
+    void resendCASessionRequest(cMessage *msg); // resend after timer expired
 
-    void createDataAgentRegularTransmissionHeader(); // nothing to say
+    void sendCALocationUpdate(); // for latter implementation
+    void resendCALocationUpdate(cMessage *msg); // resend after timer expired
 
-    void createDataAgentSequenceUpdateHeader(); // for updating network address changes
+    void processCAMessages(IPv6Datagram *datagram, ControlAgentHeader *ctrlAgentHdr);
 
-    void createDataAgentSessionRequestHeader(); // for establishing a stable session
+    void createDARegularTransmissionHeader(); // nothing to say
 
-    void createDataAgentRelayingRequestHeader(); // for relaying to attached target address
+    void createDASequenceUpdateHeader(); // for updating network address changes
 
-    void processControlAgentMessages(IPv6Datagram *datagram, ControlAgentHeader *ctrlAgentHdr);
+    void createDASessionRequestHeader(); // for establishing a stable session
 
-    void processDataAgentMessages(IPv6Datagram *datagram, DataAgentHeader *dataAgentHdr);
+    void createDARelayingRequestHeader(); // for relaying to attached target address
+
+    void processDAMessages(IPv6Datagram *datagram, DataAgentHeader *dataAgentHdr);
+
 
     bool cancelRetransmitTimer(const IPv6Address& dest, int interfaceID, int msgType);
 
     void cancelRetransmitTimers();
 
-
-
-
-    virtual void initialize(int stage) override;
-    virtual void handleMessage(cMessage *msg) override;
 };
 
 } //namespace

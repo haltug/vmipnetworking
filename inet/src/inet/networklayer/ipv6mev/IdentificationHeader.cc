@@ -20,5 +20,6 @@ namespace inet
 
 Register_Class(VehicleAgentHeader);
 Register_Class(ControlAgentHeader);
+Register_Class(DataAgentHeader);
 
 } /* namespace inet */

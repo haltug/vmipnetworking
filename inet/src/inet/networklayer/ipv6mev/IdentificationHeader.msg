@@ -15,6 +15,7 @@
 
 cplusplus {{
 #include "inet/common/INETDefs.h"
+#include "inet/common/ByteArray.h"
 #include "inet/networklayer/contract/ipv6/IPv6Address.h"
 #include "inet/networklayer/ipv6/IPv6Datagram.h" // added by CB
 #include "inet/networklayer/ipv6/IPv6ExtensionHeaders.h" // 17.10.07 - CB
@@ -46,41 +47,53 @@ packet VehicleAgentHeader extends IPv6DestinationOptionsHeader
 {
 	   @customize(true);
 	   byteLength = 32;
-	   uint8 flagField = 96;
-	   uint8 idHeaderLength = 2;
-	   uint8 ipSequenceNumber = 0;
-	   uint8 ipAcknowledgementNumber = 0;
-	   uint8 ipAddingField = 0;
-	   uint8 ipRemovingField = 0;
-	   uint8 functionField = 0;
-	   uint64 id = 0;
+	   bool idInit;
+	   bool idAck;
+	   bool seqValid;
+	   bool ackValid;
+	   bool addValid;
+	   bool remValid;
+	   bool directAddrInit;
+	   bool redirectAddrInit;
+	   uint8 ipSequenceNumber;
+	   uint8 ipAcknowledgementNumber;
+	   uint8 ipAddingField;
+	   uint8 ipRemovingField;
+	   uint8 functionField;
+	   uint64 id;
 	   IPv6Address addedAddresses[];
 	   IPv6Address removedAddresses[];
-	   IPv6Address bindingTargetAddress;
+	   IPv6Address redirectAddress;
 }
 
 packet ControlAgentHeader extends IPv6DestinationOptionsHeader
 {
     	@customize(true);
 		byteLength = 32;
-    	uint8 flagField = 0;
-    	uint8 idHeaderLength = 0;
-    	uint8 ipSequenceNumber = 0;
-    	uint8 functionField1 = 0;
-    	uint8 functionField2 = 0;
-    	uint8 functionField3 = 0;	   
-    	IPv6Address bindingAddress;
+	    bool idInit;
+	    bool idAck;
+	    bool seqValid;
+	    bool directAddrAck;
+	    bool redirectAddrAck;
+    	uint8 ipSequenceNumber;
+    	uint8 functionField1;
+    	uint8 functionField2;
+    	uint8 functionField3;	   
+    	IPv6Address redirectAddress[];
 }
 
 packet DataAgentHeader extends IPv6DestinationOptionsHeader
 {
     	@customize(true);
 		byteLength = 32;
-    	uint8 flagField = 0;
-    	uint8 idHeaderLength = 0;
-    	uint8 ipSequenceNumber = 0;
-    	uint8 functionField1 = 0;
-    	uint8 functionField2 = 0;
-    	uint8 functionField3 = 0;	   
-    	IPv6Address bindingAddress;
+	    bool idInit;
+	    bool idAck;
+	    bool seqValid;
+	    bool directAddrAck;
+	    bool redirectAddrAck;
+    	uint8 ipSequenceNumber;
+    	uint8 functionField1;
+    	uint8 functionField2;
+    	uint8 functionField3;		   
+    	IPv6Address redirectAddress[];
 }

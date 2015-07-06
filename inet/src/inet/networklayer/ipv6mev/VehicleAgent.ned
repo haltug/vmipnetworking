@@ -20,4 +20,12 @@ package inet.networklayer.ipv6mev;
 //
 simple VehicleAgent
 {
+	parameters:
+        string interfaceTableModule;   // The path to the InterfaceTable module
+        string ipv6TunnelingModule;
+        string ipv6NeighbourDiscoveryModule;
+        string addressManagementModule;
+    gates:
+        input fromIPv6;
+        output toIPv6;               
 }

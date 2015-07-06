@@ -23,34 +23,28 @@ namespace inet {
 
 class INET_API VehicleAgentHeader : public VehicleAgentHeader_Base
 {
-    private:
-//        void copy(const VehicleAgentHeader& other) { ... }
     public:
         VehicleAgentHeader() : VehicleAgentHeader_Base() {}
         VehicleAgentHeader(const VehicleAgentHeader& other) : VehicleAgentHeader_Base(other) {}
-        VehicleAgentHeader& operator=(const VehicleAgentHeader& other) {if (this==&other) return *this; VehicleAgentHeader_Base::operator=(other); copy(other); return *this;}
+        VehicleAgentHeader& operator=(const VehicleAgentHeader& other) {VehicleAgentHeader_Base::operator=(other); return *this;}
         virtual VehicleAgentHeader *dup() const override { return new VehicleAgentHeader(*this); }
 };
 
 class INET_API ControlAgentHeader : public ControlAgentHeader_Base
 {
-    private:
-//        void copy(const ControlAgentHeader& other) { ... }
     public:
         ControlAgentHeader() : ControlAgentHeader_Base() {}
-        ControlAgentHeader(const ControlAgentHeader& other) : ControlAgentHeader_Base(other) {copy(other);}
-        ControlAgentHeader& operator=(const ControlAgentHeader& other) {if (this==&other) return *this; ControlAgentHeader_Base::operator=(other); copy(other); return *this;}
+        ControlAgentHeader(const ControlAgentHeader& other) : ControlAgentHeader_Base(other) {}
+        ControlAgentHeader& operator=(const ControlAgentHeader& other) {ControlAgentHeader_Base::operator=(other); return *this;}
         virtual ControlAgentHeader *dup() const override { return new ControlAgentHeader(*this); }
 };
 
 class INET_API DataAgentHeader : public DataAgentHeader_Base
 {
-    private:
-//        void copy(const ControlAgentHeader& other) { ... }
     public:
         DataAgentHeader() : DataAgentHeader_Base() {}
-        DataAgentHeader(const DataAgentHeader& other) : DataAgentHeader_Base(other) {copy(other);}
-        DataAgentHeader& operator=(const DataAgentHeader& other) {if (this==&other) return *this; DataAgentHeader_Base::operator=(other); copy(other); return *this;}
+        DataAgentHeader(const DataAgentHeader& other) : DataAgentHeader_Base(other) {}
+        DataAgentHeader& operator=(const DataAgentHeader& other) {DataAgentHeader_Base::operator=(other); return *this;}
         virtual DataAgentHeader *dup() const override { return new DataAgentHeader(*this); }
 };
 
