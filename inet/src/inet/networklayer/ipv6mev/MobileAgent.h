@@ -13,18 +13,23 @@
 // along with this program.  If not, see http://www.gnu.org/licenses/.
 // 
 
-#ifndef FLOWCONTROL_H_
-#define FLOWCONTROL_H_
+#ifndef __INET_MOBILEAGENT_H_
+#define __INET_MOBILEAGENT_H_
+
+#include <omnetpp.h>
 
 namespace inet {
-// This class enables a pattern based traffic flow
 
-class FlowControl {
-public:
-    FlowControl();
-    virtual ~FlowControl();
+/**
+ * TODO - Generated class
+ */
+class MobileAgent : public cSimpleModule
+{
+  protected:
+    virtual void initialize() override;
+    virtual void handleMessage(cMessage *msg) override;
 };
 
-} /* namespace inet */
+} //namespace
 
-#endif /* FLOWCONTROL_H_ */
+#endif

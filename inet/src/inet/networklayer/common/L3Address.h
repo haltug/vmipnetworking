@@ -25,7 +25,6 @@
 #include "inet/linklayer/common/MACAddress.h"
 #include "inet/networklayer/common/ModuleIdAddress.h"
 #include "inet/networklayer/common/ModulePathAddress.h"
-#include "inet/networklayer/ipv6mev/VehicleIdentification.h"
 
 namespace inet {
 
@@ -48,8 +47,7 @@ class INET_API L3Address
         IPv6,
         MAC,
         MODULEPATH,
-        MODULEID,
-        VEHICLEID
+        MODULEID
     };
 
   private:
@@ -68,21 +66,21 @@ class INET_API L3Address
     L3Address(const MACAddress& addr) { set(addr); }
     L3Address(const ModuleIdAddress& addr) { set(addr); }
     L3Address(const ModulePathAddress& addr) { set(addr); }
-    L3Address(const VehicleIdentification& addr) { set(addr); }
+//    L3Address(const VehicleIdentification& addr) { set(addr); }
 
     void set(const IPv4Address& addr) { set(IPv4, addr.getInt()); }
     void set(const IPv6Address& addr);
     void set(const MACAddress& addr) { set(MAC, addr.getInt()); }
     void set(const ModuleIdAddress& addr) { set(MODULEID, addr.getId()); }
     void set(const ModulePathAddress& addr) { set(MODULEPATH, addr.getId()); }
-    void set(const VehicleIdentification& addr) { set(VEHICLEID, addr.getId()); }
+//    void set(const VehicleIdentification& addr) { set(VEHICLEID, addr.getId()); }
 
     IPv4Address toIPv4() const { return getType() == NONE ? IPv4Address() : IPv4Address(get(IPv4)); }
     IPv6Address toIPv6() const { return getType() == NONE ? IPv6Address() : IPv6Address(hi, lo); }
     MACAddress toMAC() const { return getType() == NONE ? MACAddress() : MACAddress(get(MAC)); }
     ModuleIdAddress toModuleId() const { return getType() == NONE ? ModuleIdAddress() : ModuleIdAddress(get(MODULEID)); }
     ModulePathAddress toModulePath() const { return getType() == NONE ? ModulePathAddress() : ModulePathAddress(get(MODULEPATH)); }
-    VehicleIdentification toID() const { return getType() == NONE ? VehicleIdentification() : VehicleIdentification(lo); }
+//    VehicleIdentification toID() const { return getType() == NONE ? VehicleIdentification() : VehicleIdentification(lo); }
 
 
     std::string str() const;

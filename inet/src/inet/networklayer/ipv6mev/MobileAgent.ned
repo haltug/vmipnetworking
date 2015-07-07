@@ -13,10 +13,14 @@
 // along with this program.  If not, see http://www.gnu.org/licenses/.
 // 
 
-#include "inet/networklayer/ipv6mev/VehicleIdentificationType.h"
+package inet.networklayer.ipv6mev;
 
-namespace inet {
-
-VehicleIdentificationType VehicleIdentificationType::INSTANCE;
-
-} /* namespace inet */
+//
+// TODO auto-generated module
+//
+simple MobileAgent extends Agent
+{
+	parameters:
+        string id;
+        string caAddress;
+}

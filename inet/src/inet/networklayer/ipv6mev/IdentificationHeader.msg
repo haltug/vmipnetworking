@@ -21,32 +21,36 @@ cplusplus {{
 #include "inet/networklayer/ipv6/IPv6ExtensionHeaders.h" // 17.10.07 - CB
 }}
 
+cplusplus {{
+const int IPPROTO_NONE = 59;
+const int MAX_ID_HEADER_LENGTH = 1500;
+}}
+
+
 namespace inet;
 
 class noncobject IPv6Address;
 class noncobject IPv6DestinationOptionsHeader;
-//class nonobject IPv6ExtensionHeader;
+class noncobject IPv6ExtensionHeader;
 
-//enum IdentificationHeaderType 
-//{
-//    VEHICLE_AGENT = 0;
-//    CONTROL_DATA_AGENT = 1;
-//}
+enum IdentificationHeaderType 
+{
+    MOBILE_AGENT  = 0;
+    CONTROL_AGENT = 1;
+    DATA_AGENT    = 2;
+}
 
-////
-//// TODO generated message class
-////
-//packet IdentificationHeader 
-//{
-//    int identificationHeaderType @enum(IdentificationHeaderType);
-//}
+packet IdentificationHeader 
+{
+    int identificationHeaderType @enum(IdentificationHeaderType);
+    int nextHeader = IPPROTO_NONE;
+    int headerLength = 16;
+}
 
 // Identification headers are represented as IPv6 extension of destination type
 // 
-packet VehicleAgentHeader extends IPv6DestinationOptionsHeader 
+packet MobileAgentHeader extends IdentificationHeader 
 {
-	   @customize(true);
-	   byteLength = 32;
 	   bool idInit;
 	   bool idAck;
 	   bool seqValid;
@@ -66,10 +70,8 @@ packet VehicleAgentHeader extends IPv6DestinationOptionsHeader
 	   IPv6Address redirectAddress;
 }
 
-packet ControlAgentHeader extends IPv6DestinationOptionsHeader
+packet ControlAgentHeader extends IdentificationHeader
 {
-    	@customize(true);
-		byteLength = 32;
 	    bool idInit;
 	    bool idAck;
 	    bool seqValid;
@@ -82,10 +84,8 @@ packet ControlAgentHeader extends IPv6DestinationOptionsHeader
     	IPv6Address redirectAddress[];
 }
 
-packet DataAgentHeader extends IPv6DestinationOptionsHeader
+packet DataAgentHeader extends IdentificationHeader
 {
-    	@customize(true);
-		byteLength = 32;
 	    bool idInit;
 	    bool idAck;
 	    bool seqValid;

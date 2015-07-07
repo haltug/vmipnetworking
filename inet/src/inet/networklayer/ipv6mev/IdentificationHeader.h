@@ -20,34 +20,6 @@
 #include "inet/networklayer/ipv6mev/IdentificationHeader_m.h"
 
 namespace inet {
-
-class INET_API VehicleAgentHeader : public VehicleAgentHeader_Base
-{
-    public:
-        VehicleAgentHeader() : VehicleAgentHeader_Base() {}
-        VehicleAgentHeader(const VehicleAgentHeader& other) : VehicleAgentHeader_Base(other) {}
-        VehicleAgentHeader& operator=(const VehicleAgentHeader& other) {VehicleAgentHeader_Base::operator=(other); return *this;}
-        virtual VehicleAgentHeader *dup() const override { return new VehicleAgentHeader(*this); }
-};
-
-class INET_API ControlAgentHeader : public ControlAgentHeader_Base
-{
-    public:
-        ControlAgentHeader() : ControlAgentHeader_Base() {}
-        ControlAgentHeader(const ControlAgentHeader& other) : ControlAgentHeader_Base(other) {}
-        ControlAgentHeader& operator=(const ControlAgentHeader& other) {ControlAgentHeader_Base::operator=(other); return *this;}
-        virtual ControlAgentHeader *dup() const override { return new ControlAgentHeader(*this); }
-};
-
-class INET_API DataAgentHeader : public DataAgentHeader_Base
-{
-    public:
-        DataAgentHeader() : DataAgentHeader_Base() {}
-        DataAgentHeader(const DataAgentHeader& other) : DataAgentHeader_Base(other) {}
-        DataAgentHeader& operator=(const DataAgentHeader& other) {DataAgentHeader_Base::operator=(other); return *this;}
-        virtual DataAgentHeader *dup() const override { return new DataAgentHeader(*this); }
-};
-
 } /* namespace inet */
 
 #endif /* IDENTIFICATIONHEADER_H_ */

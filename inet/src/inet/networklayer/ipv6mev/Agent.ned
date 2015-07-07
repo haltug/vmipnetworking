@@ -13,17 +13,22 @@
 // along with this program.  If not, see http://www.gnu.org/licenses/.
 // 
 
-#include "inet/networklayer/ipv6mev/FlowControl.h"
+package inet.networklayer.ipv6mev;
 
-namespace inet {
-
-FlowControl::FlowControl() {
-    // TODO Auto-generated constructor stub
-
+//
+// TODO auto-generated module
+//
+simple Agent
+{
+    parameters:
+        @display("i=block/routing");
+        string addressManagementModule;
+        string controlAgentAddress = default("");  // server address (may be symbolic)
+        bool isMA;
+        bool isCA;
+	gates:
+	    input tcpIn;
+	    input udpIn;
+	    output tcpOut;
+	    output udpOut;
 }
-
-FlowControl::~FlowControl() {
-    // TODO Auto-generated destructor stub
-}
-
-} /* namespace inet */

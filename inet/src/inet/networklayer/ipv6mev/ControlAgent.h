@@ -24,7 +24,6 @@
 #include "inet/networklayer/contract/ipv6/IPv6Address.h"
 #include "inet/networklayer/common/L3Address.h"
 #include "inet/networklayer/ipv6tunneling/IPv6Tunneling.h"
-#include "inet/networklayer/ipv6mev/Utils.h"
 #include "inet/networklayer/icmpv6/IPv6NeighbourDiscovery.h"
 
 

@@ -13,17 +13,20 @@
 // along with this program.  If not, see http://www.gnu.org/licenses/.
 // 
 
-#include "inet/networklayer/ipv6mev/Utils.h"
+#include "inet/networklayer/ipv6mev/MobileAgent.h"
 
 namespace inet {
 
-Utils::Utils() {
-    // TODO Auto-generated constructor stub
+Define_Module(MobileAgent);
 
+void MobileAgent::initialize()
+{
+    // TODO - Generated method body
 }
 
-Utils::~Utils() {
-    // TODO Auto-generated destructor stub
+void MobileAgent::handleMessage(cMessage *msg)
+{
+    // TODO - Generated method body
 }
 
-} /* namespace inet */
+} //namespace

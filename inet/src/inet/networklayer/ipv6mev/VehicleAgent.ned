@@ -18,14 +18,10 @@ package inet.networklayer.ipv6mev;
 //
 // TODO auto-generated module
 //
-simple VehicleAgent
+simple VehicleAgent extends Agent
 {
 	parameters:
-        string interfaceTableModule;   // The path to the InterfaceTable module
-        string ipv6TunnelingModule;
-        string ipv6NeighbourDiscoveryModule;
-        string addressManagementModule;
-    gates:
-        input fromIPv6;
-        output toIPv6;               
+        string id;
+        string caAddress;
+                    
 }
