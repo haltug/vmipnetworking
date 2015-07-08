@@ -21,6 +21,7 @@
 #include <map>
 #include "inet/networklayer/common/L3Address.h"
 #include "inet/networklayer/common/InterfaceEntry.h"
+#include "inet/networklayer/common/InterfaceTable.h"
 #include "inet/networklayer/contract/ipv6/IPv6Address.h"
 #include "inet/networklayer/contract/ipv6/IPv6ControlInfo.h"
 #include "inet/networklayer/ipv6/IPv6Datagram.h"
@@ -29,9 +30,23 @@
 
 namespace inet {
 
-#define KEY_CA_INIT 0
-#define MSG_CA_INIT 100
-#define TIM_CA_INIT 1 // sec
+//========== Timer key value ==========
+#define KEY_CA_INIT 0 // ca init key for timer module
+
+//========== Message type in handleMessage() ==========
+#define MSG_CA_INIT 100 // ca init msg type for handling
+#define MSG_START_TIME 200
+//========== Retransmission time of messages ==========
+#define TIME_CA_INIT 1 // retransmission time of ca init in sec
+
+//========== Header SIZE ===========
+#define FD_MIN_HEADER_SIZE    16
+#define FD_IP_ADDR_SIZE       16
+#define FD_REDIRECT_ADDR_REQ  16
+#define FD_REDIRECT_ADDR_RESP 32
+#define FD_LOCATION_SIZE      32
+//#define USER_ID_SIZE          16 // Mobile ID length in char
+
 class InterfaceEntry;
 /**
  * TODO - Generated class
@@ -39,9 +54,11 @@ class InterfaceEntry;
 class Agent : public cSimpleModule
 {
   protected:
-    virtual void initialize();
-    virtual void handleMessage(cMessage *msg);
-
+    virtual int numInitStages() const override { return NUM_INIT_STAGES; }
+    virtual void initialize(int stage) override;
+    virtual void handleMessage(cMessage *msg) override;
+    cMessage *timeoutMsg = nullptr;
+    simtime_t startTime;
   public:
     Agent();
     virtual ~Agent();
@@ -56,33 +73,40 @@ class Agent : public cSimpleModule
     IInterfaceTable *ift; // for recognizing changes etc
     AddressManagement *am; // for sliding address mechanism
     IPv6Address CA_Address; // ip address of ca
+    uint64 mobileId;
+    typedef std::vector<uint64>  MobileIdList;
+    MobileIdList mobileIdList;
     bool isMA;
     bool isCA;
     bool isDA;
 
     typedef std::map<int, IPv6Address> InterfaceToIPv6AddressList; // not sure if type is set correct but it's stores association of dest addr of cn to data agent addr
     InterfaceToIPv6AddressList interfaceToIPv6AddressList;
+
     typedef std::map<IPv6Address, IPv6Address> DirectAddressList; // IPv6address should be replaced with DataAgent <cn,da>
     DirectAddressList directAddressList;
 
-    virtual void processLowerLayerMessage(cMessage *msg);
-    virtual void processUpperLayerMessage(cMessage *msg);
+//    virtual void processLowerLayerMessage(cMessage *msg);
+//    virtual void processUpperLayerMessage(cMessage *msg);
 
     void createCAInitialization();
-    void sendCAInitialization(); // send initialization message to CA
-    void resendCAInitialization(cMessage *msg); // resend after timer expired
-    void processCAMessages(ControlAgentHeader *ctrlAgentHdr, IPv6ControlInfo *ipCtrlInfo);
+    void sendCAInitialization(cMessage *msg); // send initialization message to CA
+    void sendToLowerLayer(cMessage *msg, const IPv6Address& destAddr, const IPv6Address& srcAddr = IPv6Address::UNSPECIFIED_ADDRESS, int interfaceId = -1, simtime_t sendTime = 0); // resend after timer expired
+    void processCAMessages(ControlAgentHeader *agentHdr, IPv6ControlInfo *ipCtrlInfo);
+    void processMAMessages(MobileAgentHeader *agentHdr, IPv6ControlInfo *ipCtrlInfo);
+
 //============================================= Timer configuration ===========================
     class ExpiryTimer {
     public:
         cMessage *timer;
-        virtual ~ExpiryTimer();
+        virtual ~ExpiryTimer() {};
         IPv6Address dest;
         simtime_t ackTimeout;
         simtime_t nextScheduledTime;
         InterfaceEntry *ie; // store over which entry it should be send
     };
     class TimerKey {
+    public:
         int type;
         int interfaceID;
         IPv6Address dest;
@@ -98,7 +122,7 @@ class Agent : public cSimpleModule
                 return type < b.type;
         }
     };
-    typedef std::map<TimerKey,ExpiryTimer> ExpiredTimerList;
+    typedef std::map<TimerKey,ExpiryTimer *> ExpiredTimerList;
     ExpiredTimerList expiredTimerList;
     class InitMessageTimer : public ExpiryTimer {
     public:
@@ -117,8 +141,8 @@ class Agent : public cSimpleModule
         uint lifetime;
     };
     ExpiryTimer *getExpiryTimer(TimerKey& key, int timerType);
-
-    bool cancelExpiryTimer(const IPv6Address& dest, int interfaceID, int msgType);
+    bool pendingExpiryTimer(const IPv6Address& dest, int interfaceId, int timerType);
+    bool cancelExpiryTimer(const IPv6Address& dest, int interfaceId, int timerType);
     void cancelExpiryTimers();
 //============================================= Timer configuration ===========================
 

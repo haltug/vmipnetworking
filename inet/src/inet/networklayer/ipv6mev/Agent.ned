@@ -21,9 +21,10 @@ package inet.networklayer.ipv6mev;
 simple Agent
 {
     parameters:
-        @display("i=block/routing");
-        string addressManagementModule;
+        @display("i=block/join");
+//        string addressManagementModule;
         string controlAgentAddress = default("");  // server address (may be symbolic)
+        double startTime @unit(s) = default(5s);
         bool isMA;
         bool isCA;
 	gates:

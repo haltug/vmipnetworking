@@ -23,6 +23,7 @@ cplusplus {{
 
 cplusplus {{
 const int IPPROTO_NONE = 59;
+const int IP_PROT_IPv6EXT_ID = 140;
 const int MAX_ID_HEADER_LENGTH = 1500;
 }}
 
@@ -39,8 +40,8 @@ enum IdentificationHeaderType
     CONTROL_AGENT = 1;
     DATA_AGENT    = 2;
 }
-
-packet IdentificationHeader 
+// extends IPv6ExtensionHeader TODO
+packet IdentificationHeader
 {
     int identificationHeaderType @enum(IdentificationHeaderType);
     int nextHeader = IPPROTO_NONE;

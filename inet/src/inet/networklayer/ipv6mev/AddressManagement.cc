@@ -17,10 +17,11 @@
 #include <iostream>
 #include <stdlib.h>
 #include <stdio.h>
+#include <string>
 #include <time.h>
 
 #include "inet/networklayer/ipv6mev/AddressManagement.h"
-#include "inet/networklayer/ipv6mev/VehicleIdentification.h"
+#include "inet/networklayer/ipv6mev/Agent.h"
 
 namespace inet {
 
@@ -296,10 +297,10 @@ std::string AddressManagement::to_string(AddressMap addrMap) const
     for( auto& item : addrMap )
     {
         str.append("Id:");
-        char buf[VehicleIdentification::ID_SIZE+1];
+        char buf[16+1]; // length in char
         sprintf(buf, "%016llX", item.first);
         std::string str2 = std::string(buf);
-        str2.insert(VehicleIdentification::ID_SIZE/2, ":");
+        str2.insert(16/2, ":");
         str.append(str2); // uint number to string
         str.append(AddressManagement::to_string(item.second));
     }
