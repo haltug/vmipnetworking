@@ -45,6 +45,10 @@ module MobileAgent extends NodeBase
         string udpType = default(firstAvailableOrEmpty("UDP"));
         string sctpType = default(firstAvailableOrEmpty("SCTP"));
         forwarding = default(false);  // disable routing by default
+		xml routes = default(xml("<routingTable/>"));
+		networkLayerType = "IPv6NetworkLayer";
+        routingTableType = "IPv6RoutingTable";
+        routingTable.routes = routes;
         networkLayer.proxyARP = default(false);
     submodules:
         tunApp[numTunInterfaces]: <> like ITunApp {
@@ -85,26 +89,25 @@ module MobileAgent extends NodeBase
                 isCA = false;
         }
     connections allowunconnected:
+        idLayer.fromLowerLayer <-- networkLayer.transportOut++;
+        idLayer.toLowerLayer --> networkLayer.transportIn++;
+
         for i=0..numTcpApps-1 {
             tcpApp[i].tcpOut --> tcp.appIn++;
             tcpApp[i].tcpIn <-- tcp.appOut++;
         }
 
-        tcp.ipOut --> idLayer.tcpIn if hasUdp;
-        idLayer.tcpOut --> networkLayer.transportIn++;
+        tcp.ipOut --> idLayer.fromUpperLayer if hasUdp;
+        tcp.ipIn <-- idLayer.toUpperLayer if hasUdp;
         
-        tcp.ipIn <-- idLayer.tcpOut if hasUdp;
-        idLayer.tcpIn <-- networkLayer.transportOut++;
 
         for i=0..numUdpApps-1 {
             udpApp[i].udpOut --> udp.appIn++;
             udpApp[i].udpIn <-- udp.appOut++;
         }
 
-        udp.ipOut --> idLayer.udpIn if hasUdp;
-        idLayer.udpOut --> networkLayer.transportIn++;
-        udp.ipIn <-- idLayer.udpOut if hasUdp;
-		idLayer.udpIn <-- networkLayer.transportOut++;
+        udp.ipOut --> idLayer.fromUpperLayer if hasUdp;
+        udp.ipIn <-- idLayer.toUpperLayer if hasUdp;
 		
         for i=0..numSctpApps-1 {
             sctpApp[i].sctpOut --> sctp.from_appl++;

@@ -23,13 +23,15 @@ simple Agent
     parameters:
         @display("i=block/join");
 //        string addressManagementModule;
+        string interfaceTableModule;
         string controlAgentAddress = default("");  // server address (may be symbolic)
         double startTime @unit(s) = default(5s);
         bool isMA;
         bool isCA;
+        *.interfaceTableModule = default(absPath(interfaceTableModule));
 	gates:
-	    input tcpIn;
-	    input udpIn;
-	    output tcpOut;
-	    output udpOut;
+	    input fromUpperLayer;
+	    input fromLowerLayer;
+	    output toUpperLayer;
+	    output toLowerLayer;
 }

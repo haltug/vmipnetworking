@@ -24,12 +24,11 @@ network ControlAgent extends NodeBase
 {
      parameters:
         @display("i=abstract/router2");
-        forwarding = false;
         xml routes = default(xml("<routingTable/>"));
         networkLayerType = "IPv6NetworkLayer";
         routingTableType = "IPv6RoutingTable";
         routingTable.routes = routes;
-        networkLayer.proxyARP = default(false);
+        forwarding = false;
 	submodules:
 	    idLayer : Agent {
 	    	parameters:
@@ -38,9 +37,6 @@ network ControlAgent extends NodeBase
                 isCA = true;
 	    }
 	connections allowunconnected:
-        idLayer.tcpOut --> networkLayer.transportIn++;
-        idLayer.tcpIn <-- networkLayer.transportOut++;
-        idLayer.udpOut --> networkLayer.transportIn++;
-		idLayer.udpIn <-- networkLayer.transportOut++;    
-
+        idLayer.toLowerLayer --> networkLayer.transportIn++;
+        idLayer.fromLowerLayer <-- networkLayer.transportOut++;
 }

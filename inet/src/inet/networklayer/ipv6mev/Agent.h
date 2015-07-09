@@ -16,28 +16,29 @@
 #ifndef __INET_AGENT_H_
 #define __INET_AGENT_H_
 
-#include <omnetpp.h>
-#include <vector>
 #include <map>
-#include "inet/networklayer/common/L3Address.h"
-#include "inet/networklayer/common/InterfaceEntry.h"
-#include "inet/networklayer/common/InterfaceTable.h"
+#include <vector>
+#include "inet/common/INETDefs.h"
 #include "inet/networklayer/contract/ipv6/IPv6Address.h"
-#include "inet/networklayer/contract/ipv6/IPv6ControlInfo.h"
-#include "inet/networklayer/ipv6/IPv6Datagram.h"
-#include "inet/networklayer/ipv6mev/AddressManagement.h"
 #include "inet/networklayer/ipv6mev/IdentificationHeader.h"
 
 namespace inet {
 
 //========== Timer key value ==========
-#define KEY_CA_INIT 0 // ca init key for timer module
+#define TIMERKEY_CA_INIT  0 // ca init key for timer module
+
+//========== Timer type
+#define TIMERTYPE_INIT_MSG    50
+#define TIMERTYPE_SESSION_REQ 51
+#define TIMERTYPE_SEQ_UPDATE  52
+#define TIMERTYPE_LOC_UPDATE  53
 
 //========== Message type in handleMessage() ==========
-#define MSG_CA_INIT 100 // ca init msg type for handling
-#define MSG_START_TIME 200
+#define MSG_CA_INIT       100 // ca init msg type for handling
+#define MSG_START_TIME    101
+
 //========== Retransmission time of messages ==========
-#define TIME_CA_INIT 1 // retransmission time of ca init in sec
+#define TIME_CA_INIT      1 // retransmission time of ca init in sec
 
 //========== Header SIZE ===========
 #define FD_MIN_HEADER_SIZE    16
@@ -48,10 +49,12 @@ namespace inet {
 //#define USER_ID_SIZE          16 // Mobile ID length in char
 
 class InterfaceEntry;
+class IInterfaceTable;
+class IPv6ControlInfo;
 /**
  * TODO - Generated class
  */
-class Agent : public cSimpleModule
+class INET_API Agent : public cSimpleModule
 {
   protected:
     virtual int numInitStages() const override { return NUM_INIT_STAGES; }
@@ -70,10 +73,10 @@ class Agent : public cSimpleModule
     };
     AgentState state;
 
-    IInterfaceTable *ift; // for recognizing changes etc
-    AddressManagement *am; // for sliding address mechanism
+    IInterfaceTable *ift = nullptr; // for recognizing changes etc
+//    AddressManagement *am = nullptr; // for sliding address mechanism
     IPv6Address CA_Address; // ip address of ca
-    uint64 mobileId;
+    uint64 mobileId = 0;
     typedef std::vector<uint64>  MobileIdList;
     MobileIdList mobileIdList;
     bool isMA;
@@ -124,18 +127,23 @@ class Agent : public cSimpleModule
     };
     typedef std::map<TimerKey,ExpiryTimer *> ExpiredTimerList;
     ExpiredTimerList expiredTimerList;
+
+    // TimerType 50
     class InitMessageTimer : public ExpiryTimer {
     public:
         uint lifetime;
     };
+    // TimerType 51
     class SessionRequestMessageTimer : public ExpiryTimer {
     public:
         uint lifetime;
     };
+    // TimerType 52
     class SequenceUpdateMessageTimer : public ExpiryTimer {
     public:
         uint lifetime;
     };
+    // TimerType 53
     class LocationUpdateMessageTimer : public ExpiryTimer {
     public:
         uint lifetime;
