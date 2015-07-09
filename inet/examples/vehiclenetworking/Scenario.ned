@@ -92,7 +92,7 @@ network vehicleConnectivity
         }
         CA: ControlAgent {
             parameters:
-                @display("p=730,130");
+                @display("p=130,30");
         }
         MA[total_mn]: MobileAgent {
             parameters:
@@ -108,6 +108,8 @@ network vehicleConnectivity
         R_3.ethg$i++ <-- ethernetline <-- R_5.ethg$o++;
         R_4.ethg$o++ --> ethernetline --> R_5.ethg$i++;
         R_4.ethg$i++ <-- ethernetline <-- R_5.ethg$o++;
+		CA.ethg$o++ --> ethernetline --> R_5.ethg$i++;
+        CA.ethg$i++ <-- ethernetline <-- R_5.ethg$o++;
         AP_1.ethg$o++ --> ethernetline --> R_1.ethg$i++;
         AP_1.ethg$i++ <-- ethernetline <-- R_1.ethg$o++;
         AP_2.ethg$o++ --> ethernetline --> R_2.ethg$i++;
@@ -118,8 +120,6 @@ network vehicleConnectivity
         AP_4.ethg$i++ <-- ethernetline <-- R_4.ethg$o++;
         HUB_1.ethg$o++ --> ethernetline --> R_5.ethg$i++;
         HUB_1.ethg$i++ <-- ethernetline <-- R_5.ethg$o++;
-        HUB_1.ethg$o++ --> ethernetline --> CA.ethg$i++;
-        HUB_1.ethg$i++ <-- ethernetline <-- CA.ethg$o++;
         for i=0..total_cn-1 {
             CN[i].ethg$o++ --> ethernetline --> HUB_1.ethg$i++;
             CN[i].ethg$i++ <-- ethernetline <-- HUB_1.ethg$o++;
