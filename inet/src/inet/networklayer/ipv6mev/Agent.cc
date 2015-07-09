@@ -24,8 +24,10 @@
 #include "inet/networklayer/contract/IInterfaceTable.h"
 #include "inet/networklayer/contract/ipv6/IPv6ControlInfo.h"
 #include "inet/networklayer/ipv6/IPv6Datagram.h"
+#include "inet/networklayer/ipv6/IPv6ExtensionHeaders.h"
 #include "inet/networklayer/ipv6/IPv6InterfaceData.h"
 #include "inet/networklayer/ipv6mev/AddressManagement.h"
+#include "inet/networklayer/ipv6mev/IdHeader.h"
 
 namespace inet {
 
@@ -104,6 +106,17 @@ void Agent::handleMessage(cMessage *msg)
         }
         else
             throw cRuntimeError("VA:handleMsg: Extension Hdr Type not known. What did you send?");
+    }
+    else if (dynamic_cast<IPv6Datagram *>(msg)) {
+        IPv6ExtensionHeader *eh = (IPv6ExtensionHeader *)msg->getContextPointer();
+        if(dynamic_cast<MobileAgentOptionHeader *>(eh)) {
+            EV << "MobileAgentOptionHeader received." << endl;
+            processMAMessages((IPv6Datagram *)msg, (MobileAgentOptionHeader *)eh);
+        }//TODO implement this to end and implement idHeader with CaHdr
+        else if(dynamic_cast<ControlAgentOptionHeader *>(eh)) {
+            EV << "MobileAgentOptionHeader received." << endl;
+            processMAMessages((IPv6Datagram *)msg, (MobileAgentOptionHeader *)eh);
+        }
     }
     else
         throw cRuntimeError("VA:handleMsg: cMessage Type not known. What did you send?");

@@ -30,27 +30,13 @@ const int MAX_ID_HEADER_LENGTH = 1500;
 namespace inet;
 
 class noncobject IPv6Address;
-class noncobject IPv6DestinationOptionsHeader;
 class noncobject IPv6ExtensionHeader;
 
-enum IdentificationHeaderType 
+packet MobileAgentOptionHeader extends IPv6ExtensionHeader
 {
-    MOBILE_AGENT  = 0;
-    CONTROL_AGENT = 1;
-    DATA_AGENT    = 2;
-}
-// extends IPv6ExtensionHeader TODO
-packet IdentificationHeader
-{
-    int identificationHeaderType @enum(IdentificationHeaderType);
-    int nextHeader = IP_PROT_IPv6EXT_ID;
-    int headerLength = 16;
-}
-
-// Identification headers are represented as IPv6 extension of destination type
-// 
-packet MobileAgentHeader extends IdentificationHeader 
-{
+       @customize(true);
+       extensionType = IP_PROT_IPv6EXT_ID;
+   	   byteLength = 16;
 	   bool idInit;
 	   bool idAck;
 	   bool seqValid;
@@ -67,11 +53,16 @@ packet MobileAgentHeader extends IdentificationHeader
 	   uint64 id;
 	   IPv6Address addedAddresses[];
 	   IPv6Address removedAddresses[];
-	   IPv6Address redirectAddress;
+	   IPv6Address redirectAddress;    
 }
 
-packet ControlAgentHeader extends IdentificationHeader
+// Identification headers are represented as IPv6 extension of destination type
+// 
+packet ControlAgentOptionHeader extends IPv6ExtensionHeader
 {
+    	@customize(true);
+    	extensionType = IP_PROT_IPv6EXT_ID;
+	    byteLength = 16;
 	    bool idInit;
 	    bool idAck;
 	    bool seqValid;
@@ -84,8 +75,11 @@ packet ControlAgentHeader extends IdentificationHeader
     	IPv6Address redirectAddress[];
 }
 
-packet DataAgentHeader extends IdentificationHeader
+packet DataAgentOptionHeader extends IPv6ExtensionHeader
 {
+	    @customize(true);
+	    extensionType = IP_PROT_IPv6EXT_ID;
+	    byteLength = 16;
 	    bool idInit;
 	    bool idAck;
 	    bool seqValid;
