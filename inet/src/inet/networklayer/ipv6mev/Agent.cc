@@ -114,7 +114,7 @@ void Agent::handleMessage(cMessage *msg)
 //        }
 //    }
     else if (dynamic_cast<IdentificationHeader *> (msg)) {
-        EV << " Received id_header" << endl;
+        EV << "A: Received id_header" << endl;
         IPv6ControlInfo *ctrlInfo = check_and_cast<IPv6ControlInfo *>(msg->removeControlInfo());
         IdentificationHeader *idHdr = (IdentificationHeader *) msg;
         if (dynamic_cast<ControlAgentHeader *>(idHdr)) {
@@ -127,11 +127,11 @@ void Agent::handleMessage(cMessage *msg)
             MobileAgentHeader *ma = (MobileAgentHeader *) idHdr;
             processMobileAgentMessages(ma,ctrlInfo);
         } else {
-            throw cRuntimeError("VA:handleMsg: Extension Hdr Type not known. What did you send?");
+            throw cRuntimeError("A:handleMsg: Extension Hdr Type not known. What did you send?");
         }
     }
     else
-        throw cRuntimeError("VA:handleMsg: cMessage Type not known. What did you send?");
+        throw cRuntimeError("A:handleMsg: cMessage Type not known. What did you send?");
 }
 
 Agent::Agent() {}
@@ -170,7 +170,7 @@ void Agent::createSessionInit() {
 }
 
 void Agent::createSequenceInit() {
-    EV << "Create CA_seq_init" << endl;
+    EV << "MA: Create CA_seq_init" << endl;
     if(!isMA && sessionState != REGISTERED)
         throw cRuntimeError("MA: Not registered at CA. Cannot run seq init.");
     if(isMA && seqnoState == UNASSOCIATED) {
@@ -225,7 +225,7 @@ void Agent::sendSessionInit(cMessage* msg) {
 }
 
 void Agent::sendSequenceInit(cMessage *msg) {
-    EV << "Send Seq_init_to_CA" << endl;
+    EV << "MA: Send Seq_init_to_CA" << endl;
     SequenceInitTimer *sit = (SequenceInitTimer *) msg->getContextPointer();
     InterfaceEntry *ie = sit->ie;
     const IPv6Address &dest = sit->dest;
@@ -250,7 +250,7 @@ void Agent::sendSequenceInit(cMessage *msg) {
 
 
 void Agent::sendToLowerLayer(cMessage *msg, const IPv6Address& destAddr, const IPv6Address& srcAddr, int interfaceId, simtime_t delayTime) {
-    EV << "Creating IPv6ControlInfo to lower layer" << endl;
+    EV << "A: Creating IPv6ControlInfo to lower layer" << endl;
     IPv6ControlInfo *ctrlInfo = new IPv6ControlInfo();
     ctrlInfo->setProtocol(IP_PROT_IPv6EXT_ID); // todo must be adjusted
     ctrlInfo->setDestAddr(destAddr);
@@ -331,7 +331,8 @@ void Agent::processControlAgentMessage(ControlAgentHeader* agentHeader, IPv6Cont
                 IPv6Address &caAddr = controlInfo->getSrcAddr();
                 InterfaceEntry *ie = ift->getInterfaceById(controlInfo->getInterfaceId());
                 cancelExpiryTimer(caAddr,ie->getInterfaceId(), TIMERKEY_SESSION_INIT);
-                EV << "MA: Session init timer removed." << endl;
+                EV << "MA: Session init timer removed. Process successfully finished." << endl;
+                createSequenceInit();
             } else {
                 EV << "MA: Session created yet. Why do I received it again?" << endl;
             }
@@ -343,7 +344,7 @@ void Agent::processControlAgentMessage(ControlAgentHeader* agentHeader, IPv6Cont
                 IPv6Address &caAddr = controlInfo->getSrcAddr();
                 InterfaceEntry *ie = ift->getInterfaceById(controlInfo->getInterfaceId());
                 cancelExpiryTimer(caAddr,ie->getInterfaceId(), TIMERKEY_SESSION_INIT);
-                EV << "MA: Session init timer removed." << endl;
+                EV << "MA: Seqno init timer removed. Process successfully finished." << endl;
             } else { // if seqno is initialized, it should be a upper layer packet inside or seq confirmation or whatelse
 
             }

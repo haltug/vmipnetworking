@@ -25,9 +25,9 @@ simple Agent
         string interfaceTableModule;
         string controlAgentAddress = default("");  // server address (may be symbolic)
         double startTime @unit(s) = default(5s);
-        bool isMA;
-        bool isCA;
-        bool isDA;
+        bool isMA = default(false);
+        bool isCA = default(false);
+        bool isDA = default(false);
         *.interfaceTableModule = default(absPath(interfaceTableModule));
 	gates:
 	    input fromLowerLayer;
