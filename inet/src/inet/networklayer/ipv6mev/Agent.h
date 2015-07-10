@@ -21,6 +21,7 @@
 #include "inet/common/INETDefs.h"
 #include "inet/networklayer/contract/ipv6/IPv6Address.h"
 #include "inet/networklayer/ipv6mev/IdentificationHeader.h"
+#include "inet/networklayer/ipv6mev/IdHeader.h"
 
 namespace inet {
 
@@ -41,16 +42,17 @@ namespace inet {
 #define TIME_CA_INIT      1 // retransmission time of ca init in sec
 
 //========== Header SIZE ===========
-#define FD_MIN_HEADER_SIZE    16
-#define FD_IP_ADDR_SIZE       16
-#define FD_REDIRECT_ADDR_REQ  16
-#define FD_REDIRECT_ADDR_RESP 32
-#define FD_LOCATION_SIZE      32
+#define SIZE_AGENT_HEADER        16
+#define SIZE_ADDING_ADDR_TO_HDR  16
+#define SIZE_REDIRECT_ADDR_REQU  16
+#define SIZE_REDIRECT_ADDR_RESP  32
+#define SIZE_LOCATION_UPDATE     32
 //#define USER_ID_SIZE          16 // Mobile ID length in char
 
 class InterfaceEntry;
 class IInterfaceTable;
 class IPv6ControlInfo;
+class IPv6Datagram;
 /**
  * TODO - Generated class
  */
@@ -95,8 +97,12 @@ class INET_API Agent : public cSimpleModule
     void createCAInitialization();
     void sendCAInitialization(cMessage *msg); // send initialization message to CA
     void sendToLowerLayer(cMessage *msg, const IPv6Address& destAddr, const IPv6Address& srcAddr = IPv6Address::UNSPECIFIED_ADDRESS, int interfaceId = -1, simtime_t sendTime = 0); // resend after timer expired
+    void sendToLowerLayer(cObject *obj, const IPv6Address& destAddr, const IPv6Address& srcAddr = IPv6Address::UNSPECIFIED_ADDRESS, int interfaceId = -1, simtime_t sendTime = 0); // resend after timer expired
     void processCAMessages(ControlAgentHeader *agentHdr, IPv6ControlInfo *ipCtrlInfo);
     void processMAMessages(MobileAgentHeader *agentHdr, IPv6ControlInfo *ipCtrlInfo);
+    // extension header processing
+    void messageProcessingUnitMA(MobileAgentOptionHeader *optHeader, IPv6Datagram *datagram, IPv6ControlInfo *controlInfo);
+    void messageProcessingUnitCA(ControlAgentOptionHeader *optHeader, IPv6Datagram *datagram, IPv6ControlInfo *controlInfo);
 
 //============================================= Timer configuration ===========================
     class ExpiryTimer {

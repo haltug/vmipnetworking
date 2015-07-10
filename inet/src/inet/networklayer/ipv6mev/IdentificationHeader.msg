@@ -21,10 +21,10 @@ cplusplus {{
 #include "inet/networklayer/ipv6/IPv6ExtensionHeaders.h" // 17.10.07 - CB
 }}
 
-cplusplus {{
-const int IP_PROT_IPv6EXT_ID = 140;
-const int MAX_ID_HEADER_LENGTH = 1500;
-}}
+//cplusplus {{
+////const int IP_PROT_IPv6EXT_ID = 140;
+////const int MAX_ID_HEADER_LENGTH = 1500;
+//}}
 
 
 namespace inet;
@@ -43,7 +43,7 @@ enum IdentificationHeaderType
 packet IdentificationHeader
 {
     int identificationHeaderType @enum(IdentificationHeaderType);
-    int nextHeader = IP_PROT_IPv6EXT_ID;
+    int nextHeader = 140;
     int headerLength = 16;
 }
 

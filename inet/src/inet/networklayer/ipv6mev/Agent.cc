@@ -50,7 +50,7 @@ void Agent::initialize(int stage)
         }
     }
     if(stage == INITSTAGE_TRANSPORT_LAYER) {
-        IPSocket ipSocket(gate("toLowerLayer"));
+        IPSocket ipSocket(gate("toLowerLayer")); // register own protocol
         ipSocket.registerProtocol(IP_PROT_IPv6EXT_ID);
     }
     if (stage == INITSTAGE_APPLICATION_LAYER) {
@@ -90,6 +90,25 @@ void Agent::handleMessage(cMessage *msg)
         else
             throw cRuntimeError("handleMessage: Unknown timer expired. Which timer msg is unknown?");
     }
+//    else if (dynamic_cast<IPv6Datagram *>(msg)) {
+//        EV << "IPv6Datagram received." << endl;
+//        IPv6ExtensionHeader *eh = (IPv6ExtensionHeader *)msg->getContextPointer();
+//        IPv6ControlInfo *controlInfo = check_and_cast<IPv6ControlInfo *>(msg->removeControlInfo());
+//        IPv6Datagram *datagram = (IPv6Datagram *)msg;
+//        if(dynamic_cast<MobileAgentOptionHeader *>(eh)) {
+//            EV << "MobileAgentOptionHeader received." << endl;
+//            MobileAgentOptionHeader *optHeader = (MobileAgentOptionHeader *)eh;
+//            messageProcessingUnitMA(optHeader, datagram, controlInfo);
+//        }
+//        else if(dynamic_cast<ControlAgentOptionHeader *>(eh)) {
+//            EV << "ControlAgentOptionHeader received." << endl;
+//            ControlAgentOptionHeader *optHeader = (ControlAgentOptionHeader *)eh;
+//            messageProcessingUnitCA(optHeader, datagram, controlInfo);
+//        }
+//        else if(dynamic_cast<ControlAgentOptionHeader *>(eh)) {
+//            EV << "DataAgentOptionHeader received. Not implemented yet." << endl;
+//        }
+//    }
     else if (dynamic_cast<IdentificationHeader *> (msg)) {
         EV << " Received ID header message" << endl;
         IPv6ControlInfo *ctrlInfo = check_and_cast<IPv6ControlInfo *>(msg->removeControlInfo());
@@ -103,19 +122,8 @@ void Agent::handleMessage(cMessage *msg)
         } else if (dynamic_cast<MobileAgentHeader *>(idHdr)) {
             MobileAgentHeader *ma = (MobileAgentHeader *) idHdr;
             processMAMessages(ma,ctrlInfo);
-        }
-        else
+        } else {
             throw cRuntimeError("VA:handleMsg: Extension Hdr Type not known. What did you send?");
-    }
-    else if (dynamic_cast<IPv6Datagram *>(msg)) {
-        IPv6ExtensionHeader *eh = (IPv6ExtensionHeader *)msg->getContextPointer();
-        if(dynamic_cast<MobileAgentOptionHeader *>(eh)) {
-            EV << "MobileAgentOptionHeader received." << endl;
-            processMAMessages((IPv6Datagram *)msg, (MobileAgentOptionHeader *)eh);
-        }//TODO implement this to end and implement idHeader with CaHdr
-        else if(dynamic_cast<ControlAgentOptionHeader *>(eh)) {
-            EV << "MobileAgentOptionHeader received." << endl;
-            processMAMessages((IPv6Datagram *)msg, (MobileAgentOptionHeader *)eh);
         }
     }
     else
@@ -163,20 +171,36 @@ void Agent::createCAInitialization() {
 
 void Agent::sendCAInitialization(cMessage* msg) {
     EV << "sendCAInitialization" << endl;
-    InitMessageTimer *imt = (InitMessageTimer *) msg->getContextPointer();
-    InterfaceEntry *ie = imt->ie;
-    IPv6Address &dest = imt->dest;
-    const IPv6Address &src = ie->ipv6Data()->getPreferredAddress(); // to get src ip
-    imt->nextScheduledTime = simTime() + imt->ackTimeout;
-    imt->ackTimeout = (imt->ackTimeout)*2;
-    MobileAgentHeader *mah = new MobileAgentHeader("CA init");
-    mah->setIdentificationHeaderType(MOBILE_AGENT);
-    mah->setIdInit(true);
-    mah->setIdAck(false);
-    mah->setId(mobileId);
-    mah->setHeaderLength(FD_MIN_HEADER_SIZE);
-    sendToLowerLayer(mah, dest, src);
-    scheduleAt(imt->nextScheduledTime, msg);
+//    if(true) { // send as extension header
+//        InitMessageTimer *imt = (InitMessageTimer *) msg->getContextPointer();
+//        InterfaceEntry *ie = imt->ie;
+//        IPv6Address &dest = imt->dest;
+//        const IPv6Address &src = ie->ipv6Data()->getPreferredAddress(); // to get src ip
+//        imt->nextScheduledTime = simTime() + imt->ackTimeout;
+//        imt->ackTimeout = (imt->ackTimeout)*2; // double ack time
+//        MobileAgentOptionHeader *mah = new MobileAgentOptionHeader();
+//        mah->setIdInit(true);
+//        mah->setIdAck(false);
+//        mah->setId(mobileId);
+//        mah->setByteLength(SIZE_AGENT_HEADER);
+//        sendToLowerLayer(mah, dest, src);
+//        scheduleAt(imt->nextScheduledTime, msg);
+//        return;
+//    }
+        InitMessageTimer *imt = (InitMessageTimer *) msg->getContextPointer();
+        InterfaceEntry *ie = imt->ie;
+        IPv6Address &dest = imt->dest;
+        const IPv6Address &src = ie->ipv6Data()->getPreferredAddress(); // to get src ip
+        imt->nextScheduledTime = simTime() + imt->ackTimeout;
+        imt->ackTimeout = (imt->ackTimeout)*2;
+        MobileAgentHeader *mah = new MobileAgentHeader("CA init");
+        mah->setIdentificationHeaderType(MOBILE_AGENT);
+        mah->setIdInit(true);
+        mah->setIdAck(false);
+        mah->setId(mobileId);
+        mah->setHeaderLength(SIZE_AGENT_HEADER);
+        sendToLowerLayer(mah, dest, src);
+        scheduleAt(imt->nextScheduledTime, msg);
 }
 
 void Agent::sendToLowerLayer(cMessage *msg, const IPv6Address& destAddr, const IPv6Address& srcAddr, int interfaceId, simtime_t delayTime) {
@@ -199,6 +223,31 @@ void Agent::sendToLowerLayer(cMessage *msg, const IPv6Address& destAddr, const I
     }
 }
 
+void Agent::sendToLowerLayer(cObject *obj, const IPv6Address& destAddr, const IPv6Address& srcAddr, int interfaceId, simtime_t delayTime)
+{
+    EV << "Creating IPv6ControlInfo for sending to IP and appending Extension header." << endl;
+    IPv6ControlInfo *ctrlInfo = new IPv6ControlInfo();
+    ctrlInfo->setProtocol(IP_PROT_IPv6EXT_ID); // todo must be adjusted
+    ctrlInfo->setDestAddr(destAddr);
+    ctrlInfo->setSrcAddr(srcAddr);
+    ctrlInfo->setHopLimit(255);
+    ctrlInfo->setInterfaceId(interfaceId);
+    IPv6ExtensionHeader *extHeader = (IPv6ExtensionHeader *) obj;
+    ctrlInfo->addExtensionHeader(extHeader);
+    IdentificationHeader *msg = new IdentificationHeader("Empty pckt..");
+    msg->setControlInfo(ctrlInfo);
+    cGate *outgate = gate("toLowerLayer");
+    EV << "ctrlInfo: DestAddr=" << ctrlInfo->getDestAddr() << " SrcAddr=" << ctrlInfo->getSrcAddr() << " InterfaceId=" << ctrlInfo->getInterfaceId() << endl;
+    if (delayTime > 0) {
+        EV << "delayed sending" << endl;
+        sendDelayed(msg, delayTime, outgate);
+    }
+    else {
+        send(msg, outgate);
+    }
+}
+
+
 void Agent::processMAMessages(MobileAgentHeader* agentHdr, IPv6ControlInfo* ipCtrlInfo) {
     EV << "CA: Entered MA processing" << endl;
     if(isCA) {
@@ -218,7 +267,7 @@ void Agent::processMAMessages(MobileAgentHeader* agentHdr, IPv6ControlInfo* ipCt
                 cah->setIdentificationHeaderType(CONTROL_AGENT);
                 cah->setIdInit(true);
                 cah->setIdAck(true);
-                cah->setHeaderLength(FD_MIN_HEADER_SIZE);
+//                cah->setHeaderLength(SIZE_AGENT_HEADER); // not necessary since 8 B is defined as default
                 // TODO remove below assignment from here
                 ift = getModuleFromPar<IInterfaceTable>(par("interfaceTableModule"), this);
                 InterfaceEntry *ie = ift->getInterfaceById(ipCtrlInfo->getInterfaceId());
@@ -226,12 +275,8 @@ void Agent::processMAMessages(MobileAgentHeader* agentHdr, IPv6ControlInfo* ipCt
             }
         }
     } else {
-        delete agentHdr;
-        delete ipCtrlInfo;
         throw cRuntimeError("Received message that is supposed to be received by control agent. check message type that has to be processed.");
     }
-    delete agentHdr;
-    delete ipCtrlInfo;
 }
 
 void Agent::processCAMessages(ControlAgentHeader* agentHdr, IPv6ControlInfo* ipCtrlInfo) {
@@ -252,8 +297,68 @@ void Agent::processCAMessages(ControlAgentHeader* agentHdr, IPv6ControlInfo* ipC
 
         }
     }
+    delete agentHdr; // delete at this point because it's not used any more
+    delete ipCtrlInfo;
 }
 
+// message processing unit to be used by control agent and data agents. msg sent by mobile agent is of type extension header
+void Agent::messageProcessingUnitMA(MobileAgentOptionHeader *optHeader, IPv6Datagram *datagram, IPv6ControlInfo *controlInfo)
+{
+    EV << "CA: Entered msg processing unit: parse msg of type extension hdr." << endl;
+    if(isCA) {// check if you are ca or da
+        IPv6Address &destAddr = datagram->getSrcAddress(); // address to be responsed
+        IPv6Address &sourceAddr = datagram->getDestAddress(); // address address from sender
+        if(optHeader->getIdInit() && !optHeader->getIdAck()) { // init process request
+            EV << "CA: name of msg is as expected." << endl;
+//            std::find(newIPv6AddressList.begin(), newIPv6AddressList.end(), addr) != newIPv6AddressList.end()) // check if at any position given ip addr exists
+            if(std::find(mobileIdList.begin(), mobileIdList.end(), optHeader->getId()) != mobileIdList.end()) {
+                EV << "CA id already exists. check for mistakes" << endl;
+            } else {
+                EV << "CA: adding id to list and sending response." << endl;
+                mobileIdList.push_back(optHeader->getId());
+                ControlAgentOptionHeader *option = new ControlAgentOptionHeader();
+                option->setIdInit(true);
+                option->setIdAck(true);
+                option->setByteLength(SIZE_AGENT_HEADER);
+//                    ControlAgentHeader *cah = new ControlAgentHeader("MA Init Ack");
+//                    cah->setIdentificationHeaderType(CONTROL_AGENT);
+//                    cah->setIdInit(true);
+//                    cah->setIdAck(true);
+//                    cah->setHeaderLength(SIZE_AGENT_HEADER);
+                    // TODO remove below assignment from here
+//                    ift = getModuleFromPar<IInterfaceTable>(par("interfaceTableModule"), this);
+//                    InterfaceEntry *ie = ift->getInterfaceById(datagram->getInterfaceId());
+                    sendToLowerLayer(option, destAddr, sourceAddr);
+                }
+            }
+    }
+    delete optHeader;
+    delete datagram;
+    delete controlInfo;
+}
+
+void Agent::messageProcessingUnitCA(ControlAgentOptionHeader *optHeader, IPv6Datagram *datagram, IPv6ControlInfo *controlInfo)
+{
+    EV << "MA: Entering msg processing unit: parse ext hdr" << endl;
+    if(isMA) {
+        if(optHeader->getIdInit() && optHeader->getIdAck()) { // session init
+            if(state == INITIALIZE) {
+                state = REGISTERED;
+                EV << "session start confirmed. " << endl;
+                IPv6Address &caAddr = datagram->getSrcAddress();
+                InterfaceEntry *ie = ift->getInterfaceById(controlInfo->getInterfaceId());
+                cancelExpiryTimer(caAddr, ie->getInterfaceId(), TIMERKEY_CA_INIT);
+                EV << "session start confirmed and from timer removed. END. " << endl;
+            } else {
+                EV << "session created yet." << endl;
+            }
+        } else {
+        }
+    }
+    delete optHeader; // delete at this point because it's not used any more
+    delete datagram;
+    delete controlInfo;
+}
 //============================ Timer =======================
 
 // Returns the corresponding timer. If a timer does not exist, it is created and inserted to list.

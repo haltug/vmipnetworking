@@ -30,6 +30,24 @@ public:
     virtual MobileAgentOptionHeader *dup() const override { return new MobileAgentOptionHeader(*this); }
 };
 
+class INET_API ControlAgentOptionHeader : public ControlAgentOptionHeader_Base
+{
+public:
+    ControlAgentOptionHeader() : ControlAgentOptionHeader_Base() {}
+    ControlAgentOptionHeader(const ControlAgentOptionHeader& other) : ControlAgentOptionHeader_Base(other) {}
+    ControlAgentOptionHeader& operator=(const ControlAgentOptionHeader& other) { ControlAgentOptionHeader_Base::operator =(other); return *this; }
+    virtual ControlAgentOptionHeader *dup() const override { return new ControlAgentOptionHeader(*this); }
+};
+
+class INET_API DataAgentOptionHeader : public DataAgentOptionHeader_Base
+{
+public:
+    DataAgentOptionHeader() : DataAgentOptionHeader_Base() {}
+    DataAgentOptionHeader(const DataAgentOptionHeader& other) : DataAgentOptionHeader_Base(other) {}
+    DataAgentOptionHeader& operator=(const DataAgentOptionHeader& other) { DataAgentOptionHeader_Base::operator =(other); return *this; }
+    virtual DataAgentOptionHeader *dup() const override { return new DataAgentOptionHeader(*this); }
+};
+
 } /* namespace inet */
 
 

@@ -62,7 +62,7 @@ packet ControlAgentOptionHeader extends IPv6ExtensionHeader
 {
     	@customize(true);
     	extensionType = IP_PROT_IPv6EXT_ID;
-	    byteLength = 16;
+	    byteLength = 8;
 	    bool idInit;
 	    bool idAck;
 	    bool seqValid;
@@ -79,7 +79,7 @@ packet DataAgentOptionHeader extends IPv6ExtensionHeader
 {
 	    @customize(true);
 	    extensionType = IP_PROT_IPv6EXT_ID;
-	    byteLength = 16;
+	    byteLength = 8;
 	    bool idInit;
 	    bool idAck;
 	    bool seqValid;
