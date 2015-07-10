@@ -97,8 +97,8 @@ module MobileAgent extends NodeBase
             tcpApp[i].tcpIn <-- tcp.appOut++;
         }
 
-        tcp.ipOut --> idLayer.fromUpperLayer if hasUdp;
-        tcp.ipIn <-- idLayer.toUpperLayer if hasUdp;
+        tcp.ipOut --> idLayer.fromTCP if hasUdp;
+        tcp.ipIn <-- idLayer.toTCP if hasUdp;
         
 
         for i=0..numUdpApps-1 {
@@ -106,8 +106,8 @@ module MobileAgent extends NodeBase
             udpApp[i].udpIn <-- udp.appOut++;
         }
 
-        udp.ipOut --> idLayer.fromUpperLayer if hasUdp;
-        udp.ipIn <-- idLayer.toUpperLayer if hasUdp;
+        udp.ipOut --> idLayer.fromUDP if hasUdp;
+        udp.ipIn <-- idLayer.toUDP if hasUdp;
 		
         for i=0..numSctpApps-1 {
             sctpApp[i].sctpOut --> sctp.from_appl++;

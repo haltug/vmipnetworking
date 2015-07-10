@@ -53,24 +53,14 @@ AddressManagement::AddressManagement()
 AddressManagement::~AddressManagement()
 {
 }
-uint AddressManagement::initiateAddressMap(uint64 id)
-{
-    return AddressManagement::initiateAddressMap(id,0);
-}
 
 // initialzation for VA
-uint AddressManagement::initiateAddressMap(uint64 id, int seed)
+uint AddressManagement::initiateAddressMap(uint64 id, int seq)
 {
 // TODO check if map exists and is filled. if so delete all entries.
     AddressMapEntry addressEntry;
     addressEntry.mobileID = id; // setting mobile id
-//    if(seed == 0) {
-//        srand (time(NULL));
-//    } else {
-//        srand (seed);
-//    }
-//    uint seqno = (uint) ((rand() % (SEQ_FIELD_SIZE - 1)) + 1); // initiating any number except from 0
-    uint seqno = (uint) (seed  % (SEQ_FIELD_SIZE - 1)) + 1; // this line should be deleted and the above commented code reimplemented
+    uint seqno = (uint) (seq  % (SEQ_FIELD_SIZE - 1)) + 1; // this line should be deleted and the above commented code reimplemented
     addressEntry.currentSequenceNumber = seqno; // initialize random seq number
     addressEntry.lastAcknowledgement = 0; // not acknowledged
     IPv6AddressList ipv6addressList; // create empty list
@@ -83,21 +73,23 @@ uint AddressManagement::initiateAddressMap(uint64 id, int seed)
 }
 
 // initialization for CA and DA
-void AddressManagement::initiateAddressMap(uint64 id, uint seqno, IPv6Address& addr)
+bool AddressManagement::insertNewId(uint64 id, uint seqno, IPv6Address& addr)
 {
-    if(addressMap.count(id)) // check if id exists in map
+    if(!addressMap.count(id)) // check if id exists in map
     {
-        // should a error occur?
+        AddressMapEntry addressEntry;
+        addressEntry.mobileID = id; // setting mobile id
+        addressEntry.currentSequenceNumber = seqno; // set seqno
+        addressEntry.lastAcknowledgement = seqno; // acknowledge given seq
+        IPv6AddressList ipv6AddressList; // creating new list
+        ipv6AddressList.push_back(addr); // adding address into list
+        addressEntry.sequenceTable[seqno] = ipv6AddressList; // assigning to seq table
+        addressEntry.timestamp = simTime(); // setting timestamp
+        addressMap[id] = addressEntry; // adding into map
+        return true;
+    } else {
+        return false;
     }
-    AddressMapEntry addressEntry;
-//    addressEntry.mobileID = id.toID().getId(); // setting mobile id
-    addressEntry.currentSequenceNumber = seqno; // set seqno
-    addressEntry.lastAcknowledgement = seqno; // acknowledge given seq
-    IPv6AddressList ipv6AddressList; // creating new list
-    ipv6AddressList.push_back(addr); // adding address into list
-    addressEntry.sequenceTable[seqno] = ipv6AddressList; // assigning to seq table
-    addressEntry.timestamp = simTime(); // setting timestamp
-    addressMap[id] = addressEntry; // adding into map
 }
 // Adds an IPv6 address in list of id
 void AddressManagement::addIPv6AddressToAddressMap(uint64 id, IPv6Address& addr)

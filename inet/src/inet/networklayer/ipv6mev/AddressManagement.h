@@ -60,9 +60,8 @@ class INET_API AddressManagement : public cSimpleModule
     // The address map variable
     AddressMap addressMap;
 
-    uint initiateAddressMap(uint64 id); // for VA
     uint initiateAddressMap(uint64 id, int seed); // for VA
-    void initiateAddressMap(uint64 id, uint seqno, IPv6Address& addr); // for CA+DA
+    bool insertNewId(uint64 id, uint seqno, IPv6Address& addr); // for CA+DA
     void addIPv6AddressToAddressMap(uint64 id, IPv6Address& addr);
     void removeIPv6AddressFromAddressMap(uint64 id, IPv6Address& addr);
 //    void addIPv6AddressToAddressMap(L3Address& id, IPv6AddressList& addr);

@@ -15,25 +15,35 @@
 
 package inet.networklayer.ipv6mev;
 
-//
-// TODO auto-generated module
-//
-simple Agent
+import inet.physicallayer.errormodel.packetlevel.StochasticErrorModel;
+
+
+module xAgent
 {
     parameters:
         @display("i=block/join");
-        string interfaceTableModule;
         string controlAgentAddress = default("");  // server address (may be symbolic)
         double startTime @unit(s) = default(5s);
         bool isMA;
         bool isCA;
         bool isDA;
-        *.interfaceTableModule = default(absPath(interfaceTableModule));
-	gates:
-	    input fromLowerLayer;
-	    output toLowerLayer;
-	    input fromTCP;
-	    output toTCP;
-	    input fromUDP;
-	    output toUDP;
+
+        *.addressManagementModule = default(absPath(".addressMgmt"));
+    gates:
+        input fromLowerLayer;
+        output toLowerLayer;
+        input fromTCP;
+        output toTCP;
+    submodules:
+        agent: Agent {
+            isMA = isMA;
+            isCA = isCA;
+            isDA = isDA;
+            @display("p=136,38");
+        }
+        addressMgmt: AddressManagement {
+            parameters:
+                @display("p=136,126");
+        }
+
 }

@@ -21,25 +21,28 @@
 #include "inet/common/INETDefs.h"
 #include "inet/networklayer/contract/ipv6/IPv6Address.h"
 #include "inet/networklayer/ipv6mev/IdentificationHeader.h"
-#include "inet/networklayer/ipv6mev/IdHeader.h"
+#include "inet/networklayer/ipv6mev/AddressManagement.h"
+#include "inet/networklayer/common/InterfaceEntry.h"
 
 namespace inet {
 
 //========== Timer key value ==========
-#define TIMERKEY_CA_INIT  0 // ca init key for timer module
-
+#define TIMERKEY_SESSION_INIT  0 // ca init key for timer module
+#define TIMERKEY_SEQNO_INIT    1
 //========== Timer type
-#define TIMERTYPE_INIT_MSG    50
-#define TIMERTYPE_SESSION_REQ 51
-#define TIMERTYPE_SEQ_UPDATE  52
-#define TIMERTYPE_LOC_UPDATE  53
+#define TIMERTYPE_SESSION_INIT  50
+#define TIMERTYPE_SEQNO_INIT    51
+#define TIMERTYPE_SEQ_UPDATE    52
+#define TIMERTYPE_LOC_UPDATE    53
 
 //========== Message type in handleMessage() ==========
-#define MSG_CA_INIT       100 // ca init msg type for handling
-#define MSG_START_TIME    101
+#define MSG_START_TIME    100
+#define MSG_SESSION_INIT  101 // ca init msg type for handling
+#define MSG_SEQNO_INIT    102
 
 //========== Retransmission time of messages ==========
-#define TIME_CA_INIT      1 // retransmission time of ca init in sec
+#define TIMEOUT_SESSION_INIT    1 // retransmission time of ca init in sec
+#define TIMEOUT_SEQNO_INIT      1
 
 //========== Header SIZE ===========
 #define SIZE_AGENT_HEADER        16
@@ -49,10 +52,10 @@ namespace inet {
 #define SIZE_LOCATION_UPDATE     32
 //#define USER_ID_SIZE          16 // Mobile ID length in char
 
-class InterfaceEntry;
 class IInterfaceTable;
 class IPv6ControlInfo;
 class IPv6Datagram;
+class AddressManagement;
 /**
  * TODO - Generated class
  */
@@ -73,7 +76,9 @@ class INET_API Agent : public cSimpleModule
         INITIALIZE   = 1,
         REGISTERED   = 2
     };
-    AgentState state;
+    AgentState sessionState; // state of MA at beginning
+    AgentState seqnoState; // state of MA for seq init
+
 
     IInterfaceTable *ift = nullptr; // for recognizing changes etc
 //    AddressManagement *am = nullptr; // for sliding address mechanism
@@ -91,18 +96,24 @@ class INET_API Agent : public cSimpleModule
     typedef std::map<IPv6Address, IPv6Address> DirectAddressList; // IPv6address should be replaced with DataAgent <cn,da>
     DirectAddressList directAddressList;
 
+    AddressManagement am;
 //    virtual void processLowerLayerMessage(cMessage *msg);
 //    virtual void processUpperLayerMessage(cMessage *msg);
 
-    void createCAInitialization();
-    void sendCAInitialization(cMessage *msg); // send initialization message to CA
+    void createSessionInit();
+    void sendSessionInit(cMessage *msg); // send initialization message to CA
     void sendToLowerLayer(cMessage *msg, const IPv6Address& destAddr, const IPv6Address& srcAddr = IPv6Address::UNSPECIFIED_ADDRESS, int interfaceId = -1, simtime_t sendTime = 0); // resend after timer expired
-    void sendToLowerLayer(cObject *obj, const IPv6Address& destAddr, const IPv6Address& srcAddr = IPv6Address::UNSPECIFIED_ADDRESS, int interfaceId = -1, simtime_t sendTime = 0); // resend after timer expired
-    void processCAMessages(ControlAgentHeader *agentHdr, IPv6ControlInfo *ipCtrlInfo);
-    void processMAMessages(MobileAgentHeader *agentHdr, IPv6ControlInfo *ipCtrlInfo);
+    void createSequenceInit();
+    void sendSequenceInit(cMessage *msg);
+
+    InterfaceEntry *getInterface(IPv6Address destAddr, int destPort = -1, int sourcePort = -1, short protocol = -1); //const ,
+    void processControlAgentMessage(ControlAgentHeader *agentHdr, IPv6ControlInfo *ipCtrlInfo);
+    void processMobileAgentMessages(MobileAgentHeader *agentHdr, IPv6ControlInfo *ipCtrlInfo);
+
     // extension header processing
-    void messageProcessingUnitMA(MobileAgentOptionHeader *optHeader, IPv6Datagram *datagram, IPv6ControlInfo *controlInfo);
-    void messageProcessingUnitCA(ControlAgentOptionHeader *optHeader, IPv6Datagram *datagram, IPv6ControlInfo *controlInfo);
+//    void sendToLowerLayer(cObject *obj, const IPv6Address& destAddr, const IPv6Address& srcAddr = IPv6Address::UNSPECIFIED_ADDRESS, int interfaceId = -1, simtime_t sendTime = 0); // resend after timer expired
+//    void messageProcessingUnitMA(MobileAgentOptionHeader *optHeader, IPv6Datagram *datagram, IPv6ControlInfo *controlInfo);
+//    void messageProcessingUnitCA(ControlAgentOptionHeader *optHeader, IPv6Datagram *datagram, IPv6ControlInfo *controlInfo);
 
 //============================================= Timer configuration ===========================
     class ExpiryTimer {
@@ -135,22 +146,22 @@ class INET_API Agent : public cSimpleModule
     ExpiredTimerList expiredTimerList;
 
     // TimerType 50
-    class InitMessageTimer : public ExpiryTimer {
+    class SessionInitTimer : public ExpiryTimer {
     public:
         uint lifetime;
     };
     // TimerType 51
-    class SessionRequestMessageTimer : public ExpiryTimer {
+    class SequenceInitTimer : public ExpiryTimer {
     public:
         uint lifetime;
     };
     // TimerType 52
-    class SequenceUpdateMessageTimer : public ExpiryTimer {
+    class SequenceUpdateTimer : public ExpiryTimer {
     public:
         uint lifetime;
     };
     // TimerType 53
-    class LocationUpdateMessageTimer : public ExpiryTimer {
+    class LocationUpdateTimer : public ExpiryTimer {
     public:
         uint lifetime;
     };

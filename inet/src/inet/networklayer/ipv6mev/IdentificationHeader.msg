@@ -21,10 +21,10 @@ cplusplus {{
 #include "inet/networklayer/ipv6/IPv6ExtensionHeaders.h" // 17.10.07 - CB
 }}
 
-//cplusplus {{
-////const int IP_PROT_IPv6EXT_ID = 140;
-////const int MAX_ID_HEADER_LENGTH = 1500;
-//}}
+cplusplus {{
+const int IP_PROT_IPv6EXT_ID = 140;
+const int MAX_ID_HEADER_LENGTH = 1500;
+}}
 
 
 namespace inet;
@@ -33,24 +33,18 @@ class noncobject IPv6Address;
 class noncobject IPv6DestinationOptionsHeader;
 class noncobject IPv6ExtensionHeader;
 
-enum IdentificationHeaderType 
-{
-    MOBILE_AGENT  = 0;
-    CONTROL_AGENT = 1;
-    DATA_AGENT    = 2;
-}
 // extends IPv6ExtensionHeader TODO
 packet IdentificationHeader
 {
-    int identificationHeaderType @enum(IdentificationHeaderType);
-    int nextHeader = 140;
-    int headerLength = 16;
+    int nextHeader = IP_PROT_IPv6EXT_ID;
+    int byteLength;
 }
 
 // Identification headers are represented as IPv6 extension of destination type
 // 
 packet MobileAgentHeader extends IdentificationHeader 
 {
+	   byteLength = 16;
 	   bool idInit;
 	   bool idAck;
 	   bool seqValid;
@@ -72,6 +66,7 @@ packet MobileAgentHeader extends IdentificationHeader
 
 packet ControlAgentHeader extends IdentificationHeader
 {
+	    byteLength = 8;
 	    bool idInit;
 	    bool idAck;
 	    bool seqValid;
@@ -86,6 +81,7 @@ packet ControlAgentHeader extends IdentificationHeader
 
 packet DataAgentHeader extends IdentificationHeader
 {
+	    byteLength = 8;
 	    bool idInit;
 	    bool idAck;
 	    bool seqValid;

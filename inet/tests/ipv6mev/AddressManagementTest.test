@@ -2,9 +2,7 @@
 Test AddressManagement class
 
 %includes:
-#include "inet/networklayer/common/L3Address.h"
 #include "inet/networklayer/contract/ipv6/IPv6Address.h"
-#include "inet/networklayer/ipv6mev/VehicleIdentification.h"
 #include "inet/networklayer/ipv6mev/AddressManagement.h"
 
 %global:
@@ -12,17 +10,8 @@ using namespace inet;
 
 %activity:
 EV << "Starting test:" << endl;
-VehicleIdentification vid(255);
-EV << vid.get_str() << endl;
-L3Address l3addr(vid);
-EV << l3addr.str() << endl; // 00000000:000000FF
-EV << l3addr.getType() << endl; // 6
-EV << l3addr.tryParse(vid.str().c_str()) << endl; // 1
-EV << l3addr.getLo() << endl; // 255
-uint id = l3addr.toID().getId();
-EV << id << endl; // 255
 AddressManagement am;
-am.initiateAddressMap(l3addr.toID().getId(),36);
+am.initiateAddressMap(255,36);
 EV << am.to_string() << endl; // ID:00000000:000000FF;Seq:37;Ack:0; 37;
 IPv6Address ip1("ffff:eeee:dddd:cccc:bbbb:aaaa:9999:1111");
 EV << ip1.str() << endl; // ffff:eeee:dddd:cccc:bbbb:aaaa:9999:1111
@@ -70,12 +59,6 @@ EV << am2.to_string() << endl; // ID:00000000:000000FF;Seq:40;Ack:0; 38: ;
 
 %contains: stdout
 Starting test:
-255
-00000000:000000FF
-6
-1
-255
-255
 Id:00000000:000000FF;Seq:37;Ack:0;
 37:
 
