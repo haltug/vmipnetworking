@@ -54,11 +54,11 @@ class INET_API AddressManagement : public cSimpleModule
         SimTime timestamp;
 
     };
-    friend std::ostream& operator<<(std::ostream& os, const AddressMapEntry& ame);
     // A map that contains all elements of vehicle agents
     typedef std::map<uint64,AddressMapEntry> AddressMap;
     // The address map variable
     AddressMap addressMap;
+//    friend std::ostream& operator<<(std::ostream& os, const AddressManagement& am);
 
     uint initiateAddressMap(uint64 id, int seed); // for VA
     bool insertNewId(uint64 id, uint seqno, IPv6Address& addr); // for CA+DA
@@ -73,7 +73,7 @@ class INET_API AddressManagement : public cSimpleModule
     uint getLastAcknowledgemnt(uint64 id) const;
     void setLastAcknowledgemnt(uint64 id, uint seqno);
     bool isLastSequenceNumberAcknowledged(uint64 id) const;
-    bool isAddressMapOfMobileIDProvided(uint64 id)  const;
+    bool isIdInListgiven(uint64 id)  const;
 
     struct AddressChange
     {

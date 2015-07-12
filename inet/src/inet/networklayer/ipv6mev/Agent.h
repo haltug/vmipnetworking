@@ -59,7 +59,7 @@ class AddressManagement;
 /**
  * TODO - Generated class
  */
-class INET_API Agent : public cSimpleModule
+class INET_API Agent : public cSimpleModule, public cListener
 {
   protected:
     virtual int numInitStages() const override { return NUM_INIT_STAGES; }
@@ -89,6 +89,8 @@ class INET_API Agent : public cSimpleModule
     bool isMA;
     bool isCA;
     bool isDA;
+    const char *ctrlAgentAddr;
+    cModule *interfaceNotifier = nullptr; // listens for changes in interfacetable
 
     typedef std::map<int, IPv6Address> InterfaceToIPv6AddressList; // not sure if type is set correct but it's stores association of dest addr of cn to data agent addr
     InterfaceToIPv6AddressList interfaceToIPv6AddressList;
@@ -106,9 +108,14 @@ class INET_API Agent : public cSimpleModule
     void createSequenceInit();
     void sendSequenceInit(cMessage *msg);
 
-    InterfaceEntry *getInterface(IPv6Address destAddr, int destPort = -1, int sourcePort = -1, short protocol = -1); //const ,
     void processControlAgentMessage(ControlAgentHeader *agentHdr, IPv6ControlInfo *ipCtrlInfo);
     void processMobileAgentMessages(MobileAgentHeader *agentHdr, IPv6ControlInfo *ipCtrlInfo);
+
+    /*
+         * Signal handler for cObject, override cListener function.
+         */
+    InterfaceEntry *getInterface(IPv6Address destAddr, int destPort = -1, int sourcePort = -1, short protocol = -1); //const ,
+    virtual void receiveSignal(cComponent *source, simsignal_t signalID, cObject *obj) override;
 
     // extension header processing
 //    void sendToLowerLayer(cObject *obj, const IPv6Address& destAddr, const IPv6Address& srcAddr = IPv6Address::UNSPECIFIED_ADDRESS, int interfaceId = -1, simtime_t sendTime = 0); // resend after timer expired
@@ -133,6 +140,11 @@ class INET_API Agent : public cSimpleModule
         TimerKey(IPv6Address _dest, int _interfaceID, int _type) {
             dest=_dest;
             interfaceID=_interfaceID;
+            type=_type;
+        }
+        TimerKey(int _type) { // could lead to a failure because of the operator overload!!!
+            dest=dest.UNSPECIFIED_ADDRESS;
+            interfaceID=-1;
             type=_type;
         }
         bool operator<(const TimerKey& b) const {

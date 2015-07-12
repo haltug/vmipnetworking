@@ -28,17 +28,25 @@ namespace inet {
 
 Define_Module(AddressManagement);
 
-std::ostream& operator<<(std::ostream& os, const AddressManagement::AddressMapEntry& ame)
-{
-    // TODO Fix output to watch variables of seq table
-//    os << "ID:" << ame.mobileID << " SEQ: " << ame.currentSequenceNumber << " ACK: " << ame.lastAcknowledgement << " SEQ_TABLE: " << ame.sequenceTable << " TS: " << SIMTIME_STR(ame.timestamp) << "\n";
-      os << "ID:" << ame.mobileID << " SEQ: " << ame.currentSequenceNumber << " ACK: " << ame.lastAcknowledgement << "\n";
-    return os;
-}
+//std::ostream& operator<<(std::ostream& os, const AddressManagement& am)
+//{
+//    os << "Not implemented yet." << endl;
+//    return os;
+////    for(std::map<uint64,AddressManagement::AddressMapEntry>::const_iterator item=am.begin(); item!=am.end(); ++item) {
+////        os << "id:" << item->first << ";" << "seq:" << item->second.currentSequenceNumber << ";" << "ack:" << item->second.lastAcknowledgement << ";" << "tab:\n";
+////    }
+////        for(auto& item2: item.second.sequenceTable) {
+////            os << "" << item2.first << ":";
+////            for(IPv6Address item3 : item2.second) {
+////                os << "" << item3.str() << ";";
+////            }
+////            os << "\n";
+////        }
+//}
 
 void AddressManagement::initialize()
 {
-    WATCH_MAP(addressMap);
+//    WATCH_MAP(addressMap);
 }
 
 void AddressManagement::handleMessage(cMessage *msg)
@@ -234,7 +242,7 @@ bool AddressManagement::isLastSequenceNumberAcknowledged(uint64 id) const
     }
 }
 
-bool AddressManagement::isAddressMapOfMobileIDProvided(uint64 id) const
+bool AddressManagement::isIdInListgiven(uint64 id) const
 {
     return addressMap.count(id);
 }
