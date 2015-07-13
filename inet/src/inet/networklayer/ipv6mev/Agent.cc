@@ -59,16 +59,18 @@ void Agent::initialize(int stage)
         interfaceNotifier->subscribe(NF_L2_ASSOCIATED,this);
         interfaceNotifier->subscribe(NF_L2_DISASSOCIATED,this);
         interfaceNotifier->subscribe(NF_L2_ASSOCIATED_NEWAP,this);
-        interfaceNotifier->subscribe(NF_L2_ASSOCIATED_OLDAP,this);
-        interfaceNotifier->subscribe(NF_L2_AP_ASSOCIATED,this);
-        interfaceNotifier->subscribe(NF_L2_AP_DISASSOCIATED,this);
-
         interfaceNotifier->subscribe(NF_INTERFACE_IPv6CONFIG_CHANGED,this);
-        interfaceNotifier->subscribe(NF_INTERFACE_CONFIG_CHANGED,this);
-        interfaceNotifier->subscribe(NF_INTERFACE_CREATED,this);
-        interfaceNotifier->subscribe(NF_INTERFACE_DELETED,this);
-        interfaceNotifier->subscribe(NF_INTERFACE_STATE_CHANGED,this);
 
+        // kein Aufruf
+//        interfaceNotifier->subscribe(NF_L2_ASSOCIATED_OLDAP,this);
+//        interfaceNotifier->subscribe(NF_L2_AP_ASSOCIATED,this); // kein Aufruf
+//        interfaceNotifier->subscribe(NF_L2_AP_DISASSOCIATED,this); // kein Aufruf
+//        interfaceNotifier->subscribe(NF_INTERFACE_CONFIG_CHANGED,this);
+//        interfaceNotifier->subscribe(NF_INTERFACE_STATE_CHANGED,this);
+//        interfaceNotifier->subscribe(NF_INTERFACE_CREATED,this);
+//        interfaceNotifier->subscribe(NF_INTERFACE_DELETED,this);
+//        interfaceNotifier->subscribe(NF_IPv6_HANDOVER_OCCURRED,this);
+//        interfaceNotifier->subscribe(NF_LINK_BREAK,this);
     }
     if (stage == INITSTAGE_APPLICATION_LAYER) {
         if(isMA) {
@@ -372,21 +374,38 @@ InterfaceEntry *Agent::getInterface(IPv6Address destAddr, int destPort, int sour
 
 void Agent::receiveSignal(cComponent *source, simsignal_t signalID, cObject *obj)
 {
-    Enter_Method_Silent();
+    if(isCA) return;
     EV << "A: Received notification signal." << endl;
+    Enter_Method_Silent();
     printNotificationBanner(signalID, obj);
-    if (signalID == NF_INTERFACE_IPv6CONFIG_CHANGED) {
-        InterfaceEntry *ie = getInterface(IPv6Address());
-        if(ie->ipv6Data()->getPreferredAddress().isGlobal() && isMA) {
-            if(sessionState == UNASSOCIATED) {
-                EV_INFO << "Interface associated, starting session init." << endl;
-                createSessionInit();
-            }
+    if(signalID == NF_L2_DISASSOCIATED) {
+        if(dynamic_cast<InterfaceEntry *>(obj)) {
+            EV << "Delete interface." << endl;
+            ((InterfaceEntry *) obj)->resetInterface();
         }
-//        InterfaceEntry *associatedIE = check_and_cast_nullable<InterfaceEntry *>(obj);
-//        if (associatedIE) {
-//        }
     }
+//    for (int i=0; i<ift->getNumInterfaces(); i++) {
+//        ie = ift->getInterface(i);
+//        if(!(ie->isLoopback()))
+//        {
+//            EV << "getName: " << ie->getName();
+//            EV << "; getId: " << ie->getInterfaceId();
+//            EV << "; isUP: " << ie->isUp();
+//            EV << "; isGlobal: " << ie->ipv6Data()->getPreferredAddress().isGlobal();
+//            EV << "; hasCarrier: " << ie->hasCarrier();
+//            EV << "; getPreferredAddress: " << ie->ipv6Data()->getPreferredAddress() << endl;
+//            EV << "================================================================" << endl;
+//        }
+//    }
+//    if (signalID == NF_INTERFACE_IPv6CONFIG_CHANGED) {
+//        InterfaceEntry *ie = getInterface(IPv6Address());
+//        if(ie->ipv6Data()->getPreferredAddress().isGlobal() && isMA) {
+//            if(sessionState == UNASSOCIATED) {
+//                EV_INFO << "Interface associated, starting session init." << endl;
+//                createSessionInit();
+//            }
+//        }
+//    }
     // What to do??
 }
 

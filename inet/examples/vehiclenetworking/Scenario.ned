@@ -70,10 +70,10 @@ network vehicleConnectivity
             parameters:
                 @display("p=230,300;i=device/accesspoint_s");
         }
-        AP_2: AccessPoint {
-            parameters:
-                @display("p=630,300;i=device/accesspoint_s");
-        }
+//        AP_2: AccessPoint {
+//            parameters:
+//                @display("p=630,300;i=device/accesspoint_s");
+//        }
         AP_3: AccessPoint {
             parameters:
                 @display("p=430,500;i=device/accesspoint_s");
@@ -112,8 +112,8 @@ network vehicleConnectivity
         CA.ethg$i++ <-- ethernetline <-- R_5.ethg$o++;
         AP_1.ethg$o++ --> ethernetline --> R_1.ethg$i++;
         AP_1.ethg$i++ <-- ethernetline <-- R_1.ethg$o++;
-        AP_2.ethg$o++ --> ethernetline --> R_2.ethg$i++;
-        AP_2.ethg$i++ <-- ethernetline <-- R_2.ethg$o++;
+//        AP_2.ethg$o++ --> ethernetline --> R_2.ethg$i++;
+//        AP_2.ethg$i++ <-- ethernetline <-- R_2.ethg$o++;
         AP_3.ethg$o++ --> ethernetline --> R_3.ethg$i++;
         AP_3.ethg$i++ <-- ethernetline <-- R_3.ethg$o++;
         AP_4.ethg$o++ --> ethernetline --> R_4.ethg$i++;

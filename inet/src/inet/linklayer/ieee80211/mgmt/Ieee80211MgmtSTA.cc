@@ -383,8 +383,10 @@ void Ieee80211MgmtSTA::processScanCommand(Ieee80211Prim_ScanRequest *ctrl)
 {
     EV << "Received Scan Request from agent, clearing AP list and starting scanning...\n";
 
-    if (isScanning)
-        throw cRuntimeError("processScanCommand: scanning already in progress");
+    if (isScanning) {
+//        throw cRuntimeError("processScanCommand: scanning already in progress");
+        return;
+    }
     if (isAssociated) {
         disassociate();
     }
