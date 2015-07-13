@@ -49,18 +49,18 @@ network vehicleNetworking
             parameters:
                 @display("p=230,230");
         }
-        R_2: Router6 {
-            parameters:
-                @display("p=630,230");
-        }
-        R_3: Router6 {
-            parameters:
-                @display("p=230,570");
-        }
-        R_4: Router6 {
-            parameters:
-                @display("p=630,570");
-        }
+//        R_2: Router6 {
+//            parameters:
+//                @display("p=630,230");
+//        }
+//        R_3: Router6 {
+//            parameters:
+//                @display("p=230,570");
+//        }
+//        R_4: Router6 {
+//            parameters:
+//                @display("p=630,570");
+//        }
         R_5: Router6 {
             parameters:
                 @display("p=430,30");
@@ -69,18 +69,18 @@ network vehicleNetworking
             parameters:
                 @display("p=230,300;i=device/accesspoint_s");
         }
-        AP_2: AccessPoint {
-            parameters:
-                @display("p=630,300;i=device/accesspoint_s");
-        }
-        AP_3: AccessPoint {
-        	parameters:
-        	    @display("p=430,500;i=device/accesspoint_s");
-        }
-        AP_4: AccessPoint {
-        	parameters:
-        	    @display("p=830,500;i=device/accesspoint_s");
-        }
+//        AP_2: AccessPoint {
+//            parameters:
+//                @display("p=630,300;i=device/accesspoint_s");
+//        }
+//        AP_3: AccessPoint {
+//        	parameters:
+//        	    @display("p=430,500;i=device/accesspoint_s");
+//        }
+//        AP_4: AccessPoint {
+//        	parameters:
+//        	    @display("p=830,500;i=device/accesspoint_s");
+//        }
         HUB_1: EtherHub {
             parameters:
                 @display("p=730,30;i=device/hub_s");
@@ -97,20 +97,20 @@ network vehicleNetworking
     connections allowunconnected:
         R_1.ethg$o++ --> ethernetline --> R_5.ethg$i++;
         R_1.ethg$i++ <-- ethernetline <-- R_5.ethg$o++;
-        R_2.ethg$o++ --> ethernetline --> R_5.ethg$i++;
-        R_2.ethg$i++ <-- ethernetline <-- R_5.ethg$o++;
-        R_3.ethg$o++ --> ethernetline --> R_5.ethg$i++;
-        R_3.ethg$i++ <-- ethernetline <-- R_5.ethg$o++;
-        R_4.ethg$o++ --> ethernetline --> R_5.ethg$i++;
-        R_4.ethg$i++ <-- ethernetline <-- R_5.ethg$o++;
+//        R_2.ethg$o++ --> ethernetline --> R_5.ethg$i++;
+//        R_2.ethg$i++ <-- ethernetline <-- R_5.ethg$o++;
+//        R_3.ethg$o++ --> ethernetline --> R_5.ethg$i++;
+//        R_3.ethg$i++ <-- ethernetline <-- R_5.ethg$o++;
+//        R_4.ethg$o++ --> ethernetline --> R_5.ethg$i++;
+//        R_4.ethg$i++ <-- ethernetline <-- R_5.ethg$o++;
         AP_1.ethg$o++ --> ethernetline --> R_1.ethg$i++;
         AP_1.ethg$i++ <-- ethernetline <-- R_1.ethg$o++;
-        AP_2.ethg$o++ --> ethernetline --> R_2.ethg$i++;
-        AP_2.ethg$i++ <-- ethernetline <-- R_2.ethg$o++;
-        AP_3.ethg$o++ --> ethernetline --> R_3.ethg$i++;
-        AP_3.ethg$i++ <-- ethernetline <-- R_3.ethg$o++;
-        AP_4.ethg$o++ --> ethernetline --> R_4.ethg$i++;
-        AP_4.ethg$i++ <-- ethernetline <-- R_4.ethg$o++;
+//        AP_2.ethg$o++ --> ethernetline --> R_2.ethg$i++;
+//        AP_2.ethg$i++ <-- ethernetline <-- R_2.ethg$o++;
+//        AP_3.ethg$o++ --> ethernetline --> R_3.ethg$i++;
+//        AP_3.ethg$i++ <-- ethernetline <-- R_3.ethg$o++;
+//        AP_4.ethg$o++ --> ethernetline --> R_4.ethg$i++;
+//        AP_4.ethg$i++ <-- ethernetline <-- R_4.ethg$o++;
         HUB_1.ethg$o++ --> ethernetline --> R_5.ethg$i++;
         HUB_1.ethg$i++ <-- ethernetline <-- R_5.ethg$o++;
         for i=0..total_cn-1 {

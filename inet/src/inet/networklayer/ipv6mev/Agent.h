@@ -27,22 +27,31 @@
 namespace inet {
 
 //========== Timer key value ==========
-#define TIMERKEY_SESSION_INIT  0 // ca init key for timer module
-#define TIMERKEY_SEQNO_INIT    1
+#define TIMERKEY_SESSION_INIT       0 // ca init key for timer module
+#define TIMERKEY_SEQNO_INIT         1
+#define TIMERKEY_L2_DISASSOCIATION  2
+#define TIMERKEY_L2_ASSOCIATION     3
+
 //========== Timer type
-#define TIMERTYPE_SESSION_INIT  50
-#define TIMERTYPE_SEQNO_INIT    51
-#define TIMERTYPE_SEQ_UPDATE    52
-#define TIMERTYPE_LOC_UPDATE    53
+#define TIMERTYPE_SESSION_INIT      50
+#define TIMERTYPE_SEQNO_INIT        51
+#define TIMERTYPE_SEQ_UPDATE        52
+#define TIMERTYPE_LOC_UPDATE        53
+#define TIMERTYPE_L2_DISASSOCIATION 54
+#define TIMERTYPE_L2_ASSOCIATION    55
 
 //========== Message type in handleMessage() ==========
-#define MSG_START_TIME    100
-#define MSG_SESSION_INIT  101 // ca init msg type for handling
-#define MSG_SEQNO_INIT    102
+#define MSG_START_TIME          100
+#define MSG_SESSION_INIT        101 // ca init msg type for handling
+#define MSG_SEQNO_INIT          102
+#define MSG_L2_DISASSOCIATION   103
+#define MSG_L2_ASSOCIATION      104
 
 //========== Retransmission time of messages ==========
-#define TIMEOUT_SESSION_INIT    1 // retransmission time of ca init in sec
-#define TIMEOUT_SEQNO_INIT      1
+#define TIMEOUT_SESSION_INIT          1 // retransmission time of ca init in sec
+#define TIMEOUT_SEQNO_INIT            1
+#define TIMEDELAY_L2_DISASSOCIATION   2   // delay of ip msg handler
+#define TIMEDELAY_L2_ASSOCIATION      0.2
 
 //========== Header SIZE ===========
 #define SIZE_AGENT_HEADER        16
@@ -50,7 +59,7 @@ namespace inet {
 #define SIZE_REDIRECT_ADDR_REQU  16
 #define SIZE_REDIRECT_ADDR_RESP  32
 #define SIZE_LOCATION_UPDATE     32
-//#define USER_ID_SIZE          16 // Mobile ID length in char
+#define USER_ID_SIZE             16 // Mobile ID length in char, not used
 
 class IInterfaceTable;
 class IPv6ControlInfo;
@@ -107,6 +116,10 @@ class INET_API Agent : public cSimpleModule, public cListener
     void sendToLowerLayer(cMessage *msg, const IPv6Address& destAddr, const IPv6Address& srcAddr = IPv6Address::UNSPECIFIED_ADDRESS, int interfaceId = -1, simtime_t sendTime = 0); // resend after timer expired
     void createSequenceInit();
     void sendSequenceInit(cMessage *msg);
+    void createL2Disassociation(int ie);
+    void handleL2Disassociation(cMessage *msg);
+    void createL2Association(int ie);
+    void handleL2Association(cMessage *msg);
 
     void processControlAgentMessage(ControlAgentHeader *agentHdr, IPv6ControlInfo *ipCtrlInfo);
     void processMobileAgentMessages(MobileAgentHeader *agentHdr, IPv6ControlInfo *ipCtrlInfo);
@@ -142,9 +155,9 @@ class INET_API Agent : public cSimpleModule, public cListener
             interfaceID=_interfaceID;
             type=_type;
         }
-        TimerKey(int _type) { // could lead to a failure because of the operator overload!!!
+        TimerKey(int _interfaceID,int _type) { // could lead to a failure because of the operator overload!!!
             dest=dest.UNSPECIFIED_ADDRESS;
-            interfaceID=-1;
+            interfaceID=_interfaceID;
             type=_type;
         }
         bool operator<(const TimerKey& b) const {
@@ -176,6 +189,15 @@ class INET_API Agent : public cSimpleModule, public cListener
     class LocationUpdateTimer : public ExpiryTimer {
     public:
         uint lifetime;
+    };
+    // TimerType 54
+    class L2DisassociationTimer : public ExpiryTimer {
+    public:
+        bool active = false;
+    };
+    class L2AssociationTimer : public ExpiryTimer {
+    public:
+        bool active = false;
     };
     ExpiryTimer *getExpiryTimer(TimerKey& key, int timerType);
     bool pendingExpiryTimer(const IPv6Address& dest, int interfaceId, int timerType);

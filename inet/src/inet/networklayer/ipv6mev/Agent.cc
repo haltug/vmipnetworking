@@ -66,7 +66,7 @@ void Agent::initialize(int stage)
 //        interfaceNotifier->subscribe(NF_L2_AP_ASSOCIATED,this); // kein Aufruf
 //        interfaceNotifier->subscribe(NF_L2_AP_DISASSOCIATED,this); // kein Aufruf
 //        interfaceNotifier->subscribe(NF_INTERFACE_CONFIG_CHANGED,this);
-//        interfaceNotifier->subscribe(NF_INTERFACE_STATE_CHANGED,this);
+        interfaceNotifier->subscribe(NF_INTERFACE_STATE_CHANGED,this);
 //        interfaceNotifier->subscribe(NF_INTERFACE_CREATED,this);
 //        interfaceNotifier->subscribe(NF_INTERFACE_DELETED,this);
 //        interfaceNotifier->subscribe(NF_IPv6_HANDOVER_OCCURRED,this);
@@ -83,8 +83,8 @@ void Agent::initialize(int stage)
 
     WATCH(mobileId);
     WATCH(CA_Address);
-    WATCH(isMA);
-    WATCH(isCA);
+//    WATCH(isMA);
+//    WATCH(isCA);
 //    WATCHMAP(interfaceToIPv6AddressList);
 //    WATCHMAP(directAddressList);
 }
@@ -105,6 +105,14 @@ void Agent::handleMessage(cMessage *msg)
         else if(msg->getKind() == MSG_SEQNO_INIT) {
             EV << "CA_init_msg received" << endl;
             sendSequenceInit(msg);
+        }
+        else if(msg->getKind() == MSG_L2_DISASSOCIATION) {
+            EV << "L2 disassociation timer received" << endl;
+            handleL2Disassociation(msg);
+        }
+        else if(msg->getKind() == MSG_L2_ASSOCIATION) {
+            EV << "L2 association timer received" << endl;
+            handleL2Association(msg);
         }
 //        else if (msg->getKind() == SEND_CA_SEQ_UPDATE)
 //            resendCASequenceUpdate(msg);
@@ -213,23 +221,23 @@ void Agent::createSequenceInit() {
 
 void Agent::sendSessionInit(cMessage* msg) {
     EV << "Send CA_init" << endl;
-        SessionInitTimer *sit = (SessionInitTimer *) msg->getContextPointer();
-        InterfaceEntry *ie = sit->ie;
+    SessionInitTimer *sit = (SessionInitTimer *) msg->getContextPointer();
+    InterfaceEntry *ie = sit->ie;
 // TODO check for global address if not skip this round
-        const IPv6Address &dest =  CA_Address;
-        const IPv6Address &src = ie->ipv6Data()->getPreferredAddress(); // to get src ip
-        sit->dest = CA_Address;
-        sit->nextScheduledTime = simTime() + sit->ackTimeout;
-        sit->ackTimeout = (sit->ackTimeout)*2;
-        if(CA_Address.isGlobal()) {
-            MobileAgentHeader *mah = new MobileAgentHeader("ca_init");
-            mah->setIdInit(true);
-            mah->setIdAck(false);
-            mah->setId(mobileId);
-            mah->setByteLength(SIZE_AGENT_HEADER);
-            sendToLowerLayer(mah, dest, src);
-        }
-        scheduleAt(sit->nextScheduledTime, msg);
+    const IPv6Address &dest =  CA_Address;
+    const IPv6Address &src = ie->ipv6Data()->getPreferredAddress(); // to get src ip
+    sit->dest = CA_Address;
+    sit->nextScheduledTime = simTime() + sit->ackTimeout;
+    sit->ackTimeout = (sit->ackTimeout)*2;
+    if(CA_Address.isGlobal()) {
+        MobileAgentHeader *mah = new MobileAgentHeader("ca_init");
+        mah->setIdInit(true);
+        mah->setIdAck(false);
+        mah->setId(mobileId);
+        mah->setByteLength(SIZE_AGENT_HEADER);
+        sendToLowerLayer(mah, dest, src);
+    }
+    scheduleAt(sit->nextScheduledTime, msg);
 }
 
 void Agent::sendSequenceInit(cMessage *msg) {
@@ -372,6 +380,73 @@ InterfaceEntry *Agent::getInterface(IPv6Address destAddr, int destPort, int sour
     return ie;
 }
 
+void Agent::createL2Disassociation(int ie)
+{
+    EV << "MA: Create L2 disassociation timer" << endl;
+    cMessage *msg = new cMessage("L2DisassociationTimer", MSG_L2_DISASSOCIATION);
+    IPv6Address ip;
+    TimerKey key(ip.UNSPECIFIED_ADDRESS,ie,TIMERKEY_L2_DISASSOCIATION);
+    L2DisassociationTimer *l2dt = (L2DisassociationTimer*) getExpiryTimer(key, TIMERTYPE_L2_DISASSOCIATION);
+    int i;
+    for (i=0; i<ift->getNumInterfaces(); i++) {
+        if(ift->getInterface(i)->getInterfaceId() == ie) break;
+    }
+    l2dt->ie = ift->getInterface(i);
+    l2dt->timer = msg;
+    l2dt->active = true;
+    l2dt->nextScheduledTime = simTime()+TIMEDELAY_L2_DISASSOCIATION;
+    msg->setContextPointer(l2dt);
+    scheduleAt(l2dt->nextScheduledTime, msg);
+}
+
+void Agent::handleL2Disassociation(cMessage *msg)
+{
+    EV << "MA: handle L2 disassociation" << endl;
+    L2DisassociationTimer *l2dt = (L2DisassociationTimer *) msg->getContextPointer();
+    InterfaceEntry *ie = l2dt->ie;
+    ie->setCarrier(false);
+    IPv6Address ip;
+    cancelExpiryTimer(ip.UNSPECIFIED_ADDRESS,ie->getInterfaceId(),TIMERKEY_L2_DISASSOCIATION);
+//    delete msg;
+    // TODO UPDATE MAP
+}
+
+void Agent::createL2Association(int ie)
+{
+    EV << "MA: handle L2 association" << endl;
+    IPv6Address ip;
+    if(!cancelExpiryTimer(ip.UNSPECIFIED_ADDRESS, ie,TIMERKEY_L2_DISASSOCIATION))
+    { // no l2 disassociation timer exists
+        EV << "MA: no l2 disassociation before" << endl;
+        cMessage *msg = new cMessage("L2AssociaitonTimer", MSG_L2_ASSOCIATION);
+        TimerKey key(ip.UNSPECIFIED_ADDRESS, ie, TIMERKEY_L2_ASSOCIATION);
+        L2AssociationTimer *l2at = new L2AssociationTimer();
+        int i;
+        for (i=0; i<ift->getNumInterfaces(); i++) {
+            if(ift->getInterface(i)->getInterfaceId() == ie) break;
+        }
+        l2at->ie = ift->getInterface(i);
+        l2at->timer = msg;
+        l2at->active = true;
+        l2at->nextScheduledTime = simTime()+TIMEDELAY_L2_ASSOCIATION;
+        msg->setContextPointer(l2at);
+        scheduleAt(l2at->nextScheduledTime, msg);
+    }
+    else { EV << "A disassociation message been created earlier." << endl; }
+}
+
+void Agent::handleL2Association(cMessage *msg)
+{
+    EV << "MA: handle L2 association" << endl;
+    L2AssociationTimer *l2at = (L2AssociationTimer *) msg->getContextPointer();
+    InterfaceEntry *ie = l2at->ie;
+    ie->setCarrier(true);
+    IPv6Address ip;
+    cancelExpiryTimer(ip.UNSPECIFIED_ADDRESS,ie->getInterfaceId(),TIMERKEY_L2_ASSOCIATION);
+//    delete msg;
+    // TODO UDPATE
+}
+
 void Agent::receiveSignal(cComponent *source, simsignal_t signalID, cObject *obj)
 {
     if(isCA) return;
@@ -380,33 +455,39 @@ void Agent::receiveSignal(cComponent *source, simsignal_t signalID, cObject *obj
     printNotificationBanner(signalID, obj);
     if(signalID == NF_L2_DISASSOCIATED) {
         if(dynamic_cast<InterfaceEntry *>(obj)) {
-            EV << "Delete interface." << endl;
-            ((InterfaceEntry *) obj)->resetInterface();
+            createL2Disassociation(((InterfaceEntry *) obj)->getInterfaceId());
+//            EV << "Set carrier of interface to false." << endl;
+//            ((InterfaceEntry *) obj)->setCarrier(false);
+//            ((InterfaceEntry *) obj)->ipv6Data()->setReachableTime(0);
+//            EV << "ll:" << ((InterfaceEntry *) obj)->ipv6Data()->getLinkLocalAddress() << endl;
         }
     }
-//    for (int i=0; i<ift->getNumInterfaces(); i++) {
-//        ie = ift->getInterface(i);
-//        if(!(ie->isLoopback()))
-//        {
+    if(signalID == NF_L2_ASSOCIATED_NEWAP) {
+        if(dynamic_cast<InterfaceEntry *>(obj)) {
+            createL2Association(((InterfaceEntry *) obj)->getInterfaceId());
+//            EV << "Set carrier of interface to false." << endl;
+//            ((InterfaceEntry *) obj)->setCarrier(true);
+        }
+    }
+    if(signalID == NF_INTERFACE_STATE_CHANGED) {
+                EV << "interface changed." << endl;
+            if(dynamic_cast<InterfaceEntry *>(obj)) {
+    //            ((InterfaceEntry *) obj)->setCarrier(true);
+            }
+        }
+    for (int i=0; i<ift->getNumInterfaces(); i++) {
+        InterfaceEntry *ie = ift->getInterface(i);
+        if(!(ie->isLoopback()))
+        {
 //            EV << "getName: " << ie->getName();
-//            EV << "; getId: " << ie->getInterfaceId();
-//            EV << "; isUP: " << ie->isUp();
-//            EV << "; isGlobal: " << ie->ipv6Data()->getPreferredAddress().isGlobal();
-//            EV << "; hasCarrier: " << ie->hasCarrier();
-//            EV << "; getPreferredAddress: " << ie->ipv6Data()->getPreferredAddress() << endl;
-//            EV << "================================================================" << endl;
-//        }
-//    }
-//    if (signalID == NF_INTERFACE_IPv6CONFIG_CHANGED) {
-//        InterfaceEntry *ie = getInterface(IPv6Address());
-//        if(ie->ipv6Data()->getPreferredAddress().isGlobal() && isMA) {
-//            if(sessionState == UNASSOCIATED) {
-//                EV_INFO << "Interface associated, starting session init." << endl;
-//                createSessionInit();
-//            }
-//        }
-//    }
-    // What to do??
+            EV << "; Id: " << ie->getInterfaceId();
+            EV << "; Up: " << ie->isUp();
+            EV << "; Glob: " << ie->ipv6Data()->getPreferredAddress().isGlobal();
+            EV << "; Carr: " << ie->hasCarrier();
+            EV << "; Addr: " << ie->ipv6Data()->getPreferredAddress() << endl;
+            EV << "================================================================" << endl;
+        }
+    }
 }
 
 //============================ Timer =======================
@@ -432,6 +513,13 @@ Agent::ExpiryTimer *Agent::getExpiryTimer(TimerKey& key, int timerType) {
             LocationUpdateTimer *lut = (LocationUpdateTimer *) pos->second;
             cancelAndDelete(lut->timer);
             timer = lut;
+        } else if(dynamic_cast<L2DisassociationTimer *>(pos->second)) {
+//            L2DisassociationTimer *l2dt = (L2DisassociationTimer *) pos->second;
+//            cancelAndDelete(l2dt->timer);
+//            timer = l2dt;
+            throw cRuntimeError("ERROR Invoked L2Disassociation timer creation although one in map exists. There shouldn't be a one in the list");
+        } else if(dynamic_cast<L2AssociationTimer *>(pos->second)) {
+            throw cRuntimeError("ERROR Invoked L2Association timer creation although one in map exists. There shouldn't be a one in the list");
         } else { throw cRuntimeError("ERROR Received timer not known. It's not a subclass of ExpiryTimer. Therefore getExpir... throwed this exception."); }
         timer->timer = nullptr;
     }
@@ -449,12 +537,18 @@ Agent::ExpiryTimer *Agent::getExpiryTimer(TimerKey& key, int timerType) {
             case TIMERTYPE_LOC_UPDATE:
                 timer = new LocationUpdateTimer();
                 break;
+            case TIMERTYPE_L2_DISASSOCIATION:
+                timer = new L2DisassociationTimer();
+                break;
+            case TIMERTYPE_L2_ASSOCIATION:
+                timer = new L2AssociationTimer();
+                break;
             default:
                 throw cRuntimeError("Timer is not known. Type of key is wrong, check that.");
         }
-        timer->timer = nullptr;
-        timer->ie = nullptr;
-        expiredTimerList.insert(std::make_pair(key,timer));
+        timer->timer = nullptr; // setting new timer to null
+        timer->ie = nullptr; // setting new timer to null
+        expiredTimerList.insert(std::make_pair(key,timer)); // inserting timer in list
     }
     return timer;
 }
