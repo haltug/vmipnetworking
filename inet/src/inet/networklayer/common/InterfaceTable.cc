@@ -73,6 +73,8 @@ void InterfaceTable::initialize(int stage)
     if (stage == INITSTAGE_LOCAL) {
         // get a pointer to the host module
         host = getContainingNode(this);
+        host->subscribe(NF_L2_ASSOCIATED,this);
+        host->subscribe(NF_L2_DISASSOCIATED,this);
         WATCH_PTRVECTOR(idToInterface);
     }
     else if (stage == INITSTAGE_NETWORK_LAYER) {
@@ -97,9 +99,19 @@ void InterfaceTable::handleMessage(cMessage *msg)
 
 void InterfaceTable::receiveSignal(cComponent *source, simsignal_t signalID, cObject *obj)
 {
-    // nothing needed here at the moment
+//  updates the interface entries when L2 associates/disassociates from AP
     Enter_Method_Silent();
     printNotificationBanner(signalID, obj);
+    if(signalID == NF_L2_ASSOCIATED) {
+        if(dynamic_cast<InterfaceEntry *>(obj)) {
+            ((InterfaceEntry *) obj)->setCarrier(true);
+        }
+    }
+    if(signalID == NF_L2_DISASSOCIATED) {
+        if(dynamic_cast<InterfaceEntry *>(obj)) {
+            ((InterfaceEntry *) obj)->setCarrier(false);
+        }
+    }
 }
 
 //---
@@ -364,9 +376,7 @@ void InterfaceTable::invalidateTmpInterfaceList()
 void InterfaceTable::interfaceChanged(simsignal_t signalID, const InterfaceEntryChangeDetails *details)
 {
     Enter_Method_Silent();
-
     emit(signalID, const_cast<InterfaceEntryChangeDetails *>(details));
-
     if (hasGUI() && par("displayAddresses").boolValue())
         updateLinkDisplayString(details->getInterfaceEntry());
 }

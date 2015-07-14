@@ -74,7 +74,7 @@ InterfaceEntry::InterfaceEntry(cModule *module)
         throw cRuntimeError("NIC module not found in the host");
     setName(utils::stripnonalnum(interfaceModule->getFullName()).c_str());
     state = UP;
-    carrier = true;
+    carrier = false;
     datarate = 0;
 }
 

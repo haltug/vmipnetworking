@@ -197,10 +197,11 @@ void IPv6RoutingTable::receiveSignal(cComponent *source, simsignal_t signalID, c
     else if (signalID == NF_INTERFACE_STATE_CHANGED) {
         const InterfaceEntry *interfaceEntry = check_and_cast<const InterfaceEntryChangeDetails*>(obj)->getInterfaceEntry();
         int interfaceEntryId = interfaceEntry->getInterfaceId();
-
-        // an interface went down
         if (!interfaceEntry->isUp()) {
             purgeDestCacheForInterfaceID(interfaceEntryId);
+//            IPv6Address linkLocalAddr = IPv6Address().formLinkLocalAddress(interfaceEntry->getInterfaceToken());
+//            interfaceEntry->ipv6Data()->assignAddress(linkLocalAddr, true, SIMTIME_ZERO, SIMTIME_ZERO);
+//            deleteInterfaceRoutes(interfaceEntry);
         }
     }
     else if (signalID == NF_INTERFACE_CONFIG_CHANGED) {

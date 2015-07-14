@@ -56,17 +56,17 @@ void Agent::initialize(int stage)
         IPSocket ipSocket(gate("toLowerLayer")); // register own protocol
         ipSocket.registerProtocol(IP_PROT_IPv6EXT_ID);
         interfaceNotifier = getContainingNode(this);
-        interfaceNotifier->subscribe(NF_L2_ASSOCIATED,this);
-        interfaceNotifier->subscribe(NF_L2_DISASSOCIATED,this);
-        interfaceNotifier->subscribe(NF_L2_ASSOCIATED_NEWAP,this);
-        interfaceNotifier->subscribe(NF_INTERFACE_IPv6CONFIG_CHANGED,this);
+//        interfaceNotifier->subscribe(NF_L2_ASSOCIATED,this);
+//        interfaceNotifier->subscribe(NF_L2_DISASSOCIATED,this);
+//        interfaceNotifier->subscribe(NF_L2_ASSOCIATED_NEWAP,this);
+//        interfaceNotifier->subscribe(NF_INTERFACE_IPv6CONFIG_CHANGED,this);
 
+        interfaceNotifier->subscribe(NF_INTERFACE_STATE_CHANGED,this);
         // kein Aufruf
 //        interfaceNotifier->subscribe(NF_L2_ASSOCIATED_OLDAP,this);
 //        interfaceNotifier->subscribe(NF_L2_AP_ASSOCIATED,this); // kein Aufruf
 //        interfaceNotifier->subscribe(NF_L2_AP_DISASSOCIATED,this); // kein Aufruf
 //        interfaceNotifier->subscribe(NF_INTERFACE_CONFIG_CHANGED,this);
-        interfaceNotifier->subscribe(NF_INTERFACE_STATE_CHANGED,this);
 //        interfaceNotifier->subscribe(NF_INTERFACE_CREATED,this);
 //        interfaceNotifier->subscribe(NF_INTERFACE_DELETED,this);
 //        interfaceNotifier->subscribe(NF_IPv6_HANDOVER_OCCURRED,this);
@@ -92,27 +92,27 @@ void Agent::initialize(int stage)
 void Agent::handleMessage(cMessage *msg)
 {
     if(msg->isSelfMessage()) {
-        EV << "Self message received: " << msg->getKind() << endl;
+//        EV << "Self message received: " << msg->getKind() << endl;
         if(msg->getKind() == MSG_START_TIME) {
             EV << "Starter msg received" << endl;
 //            EV << "Skipping session initialization by time trigger." << endl;
             createSessionInit();
         }
         else if(msg->getKind() == MSG_SESSION_INIT) {
-            EV << "CA_init_msg received" << endl;
+            EV << "A: CA_init_msg received" << endl;
             sendSessionInit(msg);
         }
         else if(msg->getKind() == MSG_SEQNO_INIT) {
-            EV << "CA_init_msg received" << endl;
+            EV << "A: CA_init_msg received" << endl;
             sendSequenceInit(msg);
         }
-        else if(msg->getKind() == MSG_L2_DISASSOCIATION) {
-            EV << "L2 disassociation timer received" << endl;
-            handleL2Disassociation(msg);
+        else if(msg->getKind() == MSG_IF_DOWN) {
+            EV << "MA: Interface down timer received" << endl;
+            handleInterfaceDownMessage(msg);
         }
-        else if(msg->getKind() == MSG_L2_ASSOCIATION) {
-            EV << "L2 association timer received" << endl;
-            handleL2Association(msg);
+        else if(msg->getKind() == MSG_IF_UP) {
+            EV << "MA: Interface up timer received" << endl;
+            handleInterfaceUpMessage(msg);
         }
 //        else if (msg->getKind() == SEND_CA_SEQ_UPDATE)
 //            resendCASequenceUpdate(msg);
@@ -170,7 +170,7 @@ Agent::~Agent() {
     while(it != expiredTimerList.end()) {
         TimerKey key = it->first;
         it++;
-        cancelExpiryTimer(key.dest,key.interfaceID,key.type);
+        cancelAndDeleteExpiryTimer(key.dest,key.interfaceID,key.type);
     }
 }
 
@@ -346,7 +346,7 @@ void Agent::processControlAgentMessage(ControlAgentHeader* agentHeader, IPv6Cont
                 if(agentHeader->isName("ma_init_ack")) { EV << "MA: Received session ack from CA. Session started.: " << endl; }
                 IPv6Address &caAddr = controlInfo->getSrcAddr();
                 InterfaceEntry *ie = ift->getInterfaceById(controlInfo->getInterfaceId());
-                cancelExpiryTimer(caAddr,ie->getInterfaceId(), TIMERKEY_SESSION_INIT);
+                cancelAndDeleteExpiryTimer(caAddr,ie->getInterfaceId(), TIMERKEY_SESSION_INIT);
                 EV << "MA: Session init timer removed. Process successfully finished." << endl;
                 createSequenceInit();
             }
@@ -359,7 +359,7 @@ void Agent::processControlAgentMessage(ControlAgentHeader* agentHeader, IPv6Cont
                     EV << "MA: Received seqno ack. SeqNo initialized." << endl;
                 IPv6Address &caAddr = controlInfo->getSrcAddr();
                 InterfaceEntry *ie = ift->getInterfaceById(controlInfo->getInterfaceId());
-                cancelExpiryTimer(caAddr,ie->getInterfaceId(), TIMERKEY_SEQNO_INIT);
+                cancelAndDeleteExpiryTimer(caAddr,ie->getInterfaceId(), TIMERKEY_SEQNO_INIT);
                 EV << "MA: Seqno init timer removed. Process successfully finished." << endl;
             }
             else { // if seqno is initialized, it should be a upper layer packet inside or seq confirmation or whatelse
@@ -380,114 +380,96 @@ InterfaceEntry *Agent::getInterface(IPv6Address destAddr, int destPort, int sour
     return ie;
 }
 
-void Agent::createL2Disassociation(int ie)
+void Agent::createInterfaceDownMessage(int id)
 {
-    EV << "MA: Create L2 disassociation timer" << endl;
-    cMessage *msg = new cMessage("L2DisassociationTimer", MSG_L2_DISASSOCIATION);
-    IPv6Address ip;
-    TimerKey key(ip.UNSPECIFIED_ADDRESS,ie,TIMERKEY_L2_DISASSOCIATION);
-    L2DisassociationTimer *l2dt = (L2DisassociationTimer*) getExpiryTimer(key, TIMERTYPE_L2_DISASSOCIATION);
-    int i;
-    for (i=0; i<ift->getNumInterfaces(); i++) {
-        if(ift->getInterface(i)->getInterfaceId() == ie) break;
+//    EV << "MA: Create interface down timer message: " << id << endl;
+    if(!cancelAndDeleteExpiryTimer(ip.UNSPECIFIED_ADDRESS, id,TIMERKEY_IF_DOWN)) // no l2 disassociation timer exists
+    {
+        IPv6Address ip;
+        TimerKey key(ip.UNSPECIFIED_ADDRESS,id,TIMERKEY_IF_DOWN);
+        InterfaceDownTimer *l2dt = (InterfaceDownTimer*) getExpiryTimer(key, TIMERTYPE_IF_DOWN);
+        int i;
+        for (i=0; i<ift->getNumInterfaces(); i++) {
+            if(ift->getInterface(i)->getInterfaceId() == id) break;
+        }
+        cMessage *msg = new cMessage("InterfaceDownTimer", MSG_IF_DOWN);
+        l2dt->ie = ift->getInterface(i);
+        l2dt->timer = msg;
+        l2dt->nextScheduledTime = simTime()+TIMEDELAY_IF_DOWN;
+        msg->setContextPointer(l2dt);
+        scheduleAt(l2dt->nextScheduledTime, msg);
     }
-    l2dt->ie = ift->getInterface(i);
-    l2dt->timer = msg;
-    l2dt->active = true;
-    l2dt->nextScheduledTime = simTime()+TIMEDELAY_L2_DISASSOCIATION;
-    msg->setContextPointer(l2dt);
-    scheduleAt(l2dt->nextScheduledTime, msg);
 }
 
-void Agent::handleL2Disassociation(cMessage *msg)
+void Agent::handleInterfaceDownMessage(cMessage *msg)
 {
-    EV << "MA: handle L2 disassociation" << endl;
-    L2DisassociationTimer *l2dt = (L2DisassociationTimer *) msg->getContextPointer();
+    EV << "MA: handle interface down message for id: " << ie->getInterfaceId() << endl;
+    InterfaceDownTimer *l2dt = (InterfaceDownTimer *) msg->getContextPointer();
     InterfaceEntry *ie = l2dt->ie;
-    ie->setCarrier(false);
     IPv6Address ip;
-    cancelExpiryTimer(ip.UNSPECIFIED_ADDRESS,ie->getInterfaceId(),TIMERKEY_L2_DISASSOCIATION);
-//    delete msg;
+    cancelExpiryTimer(ip.UNSPECIFIED_ADDRESS,ie->getInterfaceId(),TIMERKEY_IF_DOWN);
+    delete msg;
     // TODO UPDATE MAP
 }
 
-void Agent::createL2Association(int ie)
+void Agent::createInterfaceUpMessage(int id)
 {
-    EV << "MA: handle L2 association" << endl;
-    IPv6Address ip;
-    if(!cancelExpiryTimer(ip.UNSPECIFIED_ADDRESS, ie,TIMERKEY_L2_DISASSOCIATION))
-    { // no l2 disassociation timer exists
-        EV << "MA: no l2 disassociation before" << endl;
-        cMessage *msg = new cMessage("L2AssociaitonTimer", MSG_L2_ASSOCIATION);
-        TimerKey key(ip.UNSPECIFIED_ADDRESS, ie, TIMERKEY_L2_ASSOCIATION);
-        L2AssociationTimer *l2at = new L2AssociationTimer();
+//    EV << "MA: create interface up timer message" << endl;
+    if(!cancelAndDeleteExpiryTimer(ip.UNSPECIFIED_ADDRESS, id,TIMERKEY_IF_DOWN)) // no l2 disassociation timer exists
+    {
+        IPv6Address ip;
+        TimerKey key(ip.UNSPECIFIED_ADDRESS, id, TIMERKEY_IF_UP);
+        InterfaceUpTimer *l2at = new InterfaceUpTimer();
         int i;
         for (i=0; i<ift->getNumInterfaces(); i++) {
-            if(ift->getInterface(i)->getInterfaceId() == ie) break;
+            if(ift->getInterface(i)->getInterfaceId() == id) break;
         }
+        cMessage *msg = new cMessage("L2AssociaitonTimer", MSG_IF_UP);
         l2at->ie = ift->getInterface(i);
         l2at->timer = msg;
-        l2at->active = true;
-        l2at->nextScheduledTime = simTime()+TIMEDELAY_L2_ASSOCIATION;
+        l2at->nextScheduledTime = simTime()+TIMEDELAY_IF_UP;
         msg->setContextPointer(l2at);
         scheduleAt(l2at->nextScheduledTime, msg);
     }
-    else { EV << "A disassociation message been created earlier." << endl; }
 }
 
-void Agent::handleL2Association(cMessage *msg)
+void Agent::handleInterfaceUpMessage(cMessage *msg)
 {
-    EV << "MA: handle L2 association" << endl;
-    L2AssociationTimer *l2at = (L2AssociationTimer *) msg->getContextPointer();
+    EV << "MA: Handle interface up message for id:" << ie->getInterfaceId() << endl;
+    InterfaceUpTimer *l2at = (InterfaceUpTimer *) msg->getContextPointer();
     InterfaceEntry *ie = l2at->ie;
-    ie->setCarrier(true);
+
     IPv6Address ip;
-    cancelExpiryTimer(ip.UNSPECIFIED_ADDRESS,ie->getInterfaceId(),TIMERKEY_L2_ASSOCIATION);
-//    delete msg;
+    cancelExpiryTimer(ip.UNSPECIFIED_ADDRESS,ie->getInterfaceId(),TIMERKEY_IF_UP);
+    delete msg; // check context pointer
     // TODO UDPATE
 }
 
 void Agent::receiveSignal(cComponent *source, simsignal_t signalID, cObject *obj)
 {
-    if(isCA) return;
-    EV << "A: Received notification signal." << endl;
+    if(isCA) { return; } // just execute for mobile node
     Enter_Method_Silent();
-    printNotificationBanner(signalID, obj);
-    if(signalID == NF_L2_DISASSOCIATED) {
-        if(dynamic_cast<InterfaceEntry *>(obj)) {
-            createL2Disassociation(((InterfaceEntry *) obj)->getInterfaceId());
-//            EV << "Set carrier of interface to false." << endl;
-//            ((InterfaceEntry *) obj)->setCarrier(false);
-//            ((InterfaceEntry *) obj)->ipv6Data()->setReachableTime(0);
-//            EV << "ll:" << ((InterfaceEntry *) obj)->ipv6Data()->getLinkLocalAddress() << endl;
+    if(signalID == NF_INTERFACE_STATE_CHANGED) { // is triggered when carrier setting is changed
+        if(dynamic_cast<InterfaceEntryChangeDetails *>(obj)) {
+            EV << "NF_INTERFACE_STATE_CHANGED" << endl;
+            InterfaceEntry *ie = check_and_cast<const InterfaceEntryChangeDetails *>(obj)->getInterfaceEntry();
+            if(ie->isUp()) { createInterfaceUpMessage(ie->getInterfaceId()); }
+            else { createInterfaceDownMessage(ie->getInterfaceId()); }
         }
     }
-    if(signalID == NF_L2_ASSOCIATED_NEWAP) {
-        if(dynamic_cast<InterfaceEntry *>(obj)) {
-            createL2Association(((InterfaceEntry *) obj)->getInterfaceId());
-//            EV << "Set carrier of interface to false." << endl;
-//            ((InterfaceEntry *) obj)->setCarrier(true);
-        }
-    }
-    if(signalID == NF_INTERFACE_STATE_CHANGED) {
-                EV << "interface changed." << endl;
-            if(dynamic_cast<InterfaceEntry *>(obj)) {
-    //            ((InterfaceEntry *) obj)->setCarrier(true);
-            }
-        }
-    for (int i=0; i<ift->getNumInterfaces(); i++) {
-        InterfaceEntry *ie = ift->getInterface(i);
-        if(!(ie->isLoopback()))
-        {
-//            EV << "getName: " << ie->getName();
-            EV << "; Id: " << ie->getInterfaceId();
-            EV << "; Up: " << ie->isUp();
-            EV << "; Glob: " << ie->ipv6Data()->getPreferredAddress().isGlobal();
-            EV << "; Carr: " << ie->hasCarrier();
-            EV << "; Addr: " << ie->ipv6Data()->getPreferredAddress() << endl;
-            EV << "================================================================" << endl;
-        }
-    }
+//    EV << "============================================= " << endl;
+//    for (int i=0; i<ift->getNumInterfaces(); i++) {
+//        InterfaceEntry *ie = ift->getInterface(i);
+//        if(!(ie->isLoopback()))
+//        {
+////            EV << "getName: " << ie->getName();
+//            EV << "; Id: " << ie->getInterfaceId();
+//            EV << "; Up: " << ie->isUp();
+//            EV << "; Glob: " << ie->ipv6Data()->getPreferredAddress().isGlobal();
+//            EV << "; Carr: " << ie->hasCarrier();
+//            EV << "; Addr: " << ie->ipv6Data()->getPreferredAddress() << endl;
+//        }
+//    }
 }
 
 //============================ Timer =======================
@@ -513,12 +495,12 @@ Agent::ExpiryTimer *Agent::getExpiryTimer(TimerKey& key, int timerType) {
             LocationUpdateTimer *lut = (LocationUpdateTimer *) pos->second;
             cancelAndDelete(lut->timer);
             timer = lut;
-        } else if(dynamic_cast<L2DisassociationTimer *>(pos->second)) {
+        } else if(dynamic_cast<InterfaceDownTimer *>(pos->second)) {
 //            L2DisassociationTimer *l2dt = (L2DisassociationTimer *) pos->second;
 //            cancelAndDelete(l2dt->timer);
 //            timer = l2dt;
             throw cRuntimeError("ERROR Invoked L2Disassociation timer creation although one in map exists. There shouldn't be a one in the list");
-        } else if(dynamic_cast<L2AssociationTimer *>(pos->second)) {
+        } else if(dynamic_cast<InterfaceUpTimer *>(pos->second)) {
             throw cRuntimeError("ERROR Invoked L2Association timer creation although one in map exists. There shouldn't be a one in the list");
         } else { throw cRuntimeError("ERROR Received timer not known. It's not a subclass of ExpiryTimer. Therefore getExpir... throwed this exception."); }
         timer->timer = nullptr;
@@ -537,11 +519,11 @@ Agent::ExpiryTimer *Agent::getExpiryTimer(TimerKey& key, int timerType) {
             case TIMERTYPE_LOC_UPDATE:
                 timer = new LocationUpdateTimer();
                 break;
-            case TIMERTYPE_L2_DISASSOCIATION:
-                timer = new L2DisassociationTimer();
+            case TIMERTYPE_IF_DOWN:
+                timer = new InterfaceDownTimer();
                 break;
-            case TIMERTYPE_L2_ASSOCIATION:
-                timer = new L2AssociationTimer();
+            case TIMERTYPE_IF_UP:
+                timer = new InterfaceUpTimer();
                 break;
             default:
                 throw cRuntimeError("Timer is not known. Type of key is wrong, check that.");
@@ -553,7 +535,21 @@ Agent::ExpiryTimer *Agent::getExpiryTimer(TimerKey& key, int timerType) {
     return timer;
 }
 
-bool Agent::cancelExpiryTimer(const IPv6Address &dest, int interfaceId, int timerType) {
+bool Agent::cancelExpiryTimer(const IPv6Address &dest, int interfaceId, int timerType)
+{
+    TimerKey key(dest, interfaceId, timerType);
+    auto pos = expiredTimerList.find(key);
+    if(pos == expiredTimerList.end()) {
+        return false; // list is empty
+    }
+    ExpiryTimer *timerToDelete = (pos->second);
+    cancelEvent(timerToDelete->timer);
+    expiredTimerList.erase(key);
+    return true;
+}
+
+bool Agent::cancelAndDeleteExpiryTimer(const IPv6Address &dest, int interfaceId, int timerType)
+{
     TimerKey key(dest, interfaceId, timerType);
     auto pos = expiredTimerList.find(key);
     if(pos == expiredTimerList.end()) {
@@ -563,10 +559,11 @@ bool Agent::cancelExpiryTimer(const IPv6Address &dest, int interfaceId, int time
     cancelAndDelete(timerToDelete->timer);
     timerToDelete->timer = nullptr;
     expiredTimerList.erase(key);
-    EV << "Deleted timer (type): " << key.type << endl;
     delete timerToDelete;
     return true;
 }
+
+
 
 bool Agent::pendingExpiryTimer(const IPv6Address& dest, int interfaceId, int timerType) {
     TimerKey key(dest,interfaceId, timerType);
@@ -575,90 +572,3 @@ bool Agent::pendingExpiryTimer(const IPv6Address& dest, int interfaceId, int tim
 }
 
 } //namespace
-
-// ============================================================================================
-// ============================================================================================
-// ============================================================================================
-// ============================================================================================
-
-//void Agent::sendToLowerLayer(cObject *obj, const IPv6Address& destAddr, const IPv6Address& srcAddr, int interfaceId, simtime_t delayTime)
-//{
-//    EV << "Creating IPv6ControlInfo for sending to IP and appending Extension header." << endl;
-//    IPv6ControlInfo *ctrlInfo = new IPv6ControlInfo();
-//    ctrlInfo->setProtocol(IP_PROT_IPv6EXT_ID); // todo must be adjusted
-//    ctrlInfo->setDestAddr(destAddr);
-//    ctrlInfo->setSrcAddr(srcAddr);
-//    ctrlInfo->setHopLimit(255);
-//    ctrlInfo->setInterfaceId(interfaceId);
-//    IPv6ExtensionHeader *extHeader = (IPv6ExtensionHeader *) obj;
-//    ctrlInfo->addExtensionHeader(extHeader);
-//    IdentificationHeader *msg = new IdentificationHeader("Empty pckt..");
-//    msg->setControlInfo(ctrlInfo);
-//    cGate *outgate = gate("toLowerLayer");
-//    EV << "ctrlInfo: DestAddr=" << ctrlInfo->getDestAddr() << " SrcAddr=" << ctrlInfo->getSrcAddr() << " InterfaceId=" << ctrlInfo->getInterfaceId() << endl;
-//    if (delayTime > 0) {
-//        EV << "delayed sending" << endl;
-//        sendDelayed(msg, delayTime, outgate);
-//    }
-//    else {
-//        send(msg, outgate);
-//    }
-//}
-// message processing unit to be used by control agent and data agents. msg sent by mobile agent is of type extension header
-//void Agent::messageProcessingUnitMA(MobileAgentOptionHeader *optHeader, IPv6Datagram *datagram, IPv6ControlInfo *controlInfo)
-//{
-//    EV << "CA: Entered msg processing unit: parse msg of type extension hdr." << endl;
-//    if(isCA) {// check if you are ca or da
-//        IPv6Address &destAddr = datagram->getSrcAddress(); // address to be responsed
-//        IPv6Address &sourceAddr = datagram->getDestAddress(); // address address from sender
-//        if(optHeader->getIdInit() && !optHeader->getIdAck()) { // init process request
-//            EV << "CA: name of msg is as expected." << endl;
-////            std::find(newIPv6AddressList.begin(), newIPv6AddressList.end(), addr) != newIPv6AddressList.end()) // check if at any position given ip addr exists
-//            if(std::find(mobileIdList.begin(), mobileIdList.end(), optHeader->getId()) != mobileIdList.end()) {
-//                EV << "CA id already exists. check for mistakes" << endl;
-//            } else {
-//                EV << "CA: adding id to list and sending response." << endl;
-//                mobileIdList.push_back(optHeader->getId());
-//                ControlAgentOptionHeader *option = new ControlAgentOptionHeader();
-//                option->setIdInit(true);
-//                option->setIdAck(true);
-//                option->setByteLength(SIZE_AGENT_HEADER);
-////                    ControlAgentHeader *cah = new ControlAgentHeader("MA Init Ack");
-////                    cah->setIdentificationHeaderType(CONTROL_AGENT);
-////                    cah->setIdInit(true);
-////                    cah->setIdAck(true);
-////                    cah->setHeaderLength(SIZE_AGENT_HEADER);
-//                    // TODO remove below assignment from here
-////                    ift = getModuleFromPar<IInterfaceTable>(par("interfaceTableModule"), this);
-////                    InterfaceEntry *ie = ift->getInterfaceById(datagram->getInterfaceId());
-//                    sendToLowerLayer(option, destAddr, sourceAddr);
-//                }
-//            }
-//    }
-//    delete optHeader;
-//    delete datagram;
-//    delete controlInfo;
-//}
-
-//void Agent::messageProcessingUnitCA(ControlAgentOptionHeader *optHeader, IPv6Datagram *datagram, IPv6ControlInfo *controlInfo)
-//{
-//    EV << "MA: Entering msg processing unit: parse ext hdr" << endl;
-//    if(isMA) {
-//        if(optHeader->getIdInit() && optHeader->getIdAck()) { // session init
-//            if(state == INITIALIZE) {
-//                state = REGISTERED;
-//                EV << "session start confirmed. " << endl;
-//                IPv6Address &caAddr = datagram->getSrcAddress();
-//                InterfaceEntry *ie = ift->getInterfaceById(controlInfo->getInterfaceId());
-//                cancelExpiryTimer(caAddr, ie->getInterfaceId(), TIMERKEY_CA_INIT);
-//                EV << "session start confirmed and from timer removed. END. " << endl;
-//            } else {
-//                EV << "session created yet." << endl;
-//            }
-//        } else {
-//        }
-//    }
-//    delete optHeader; // delete at this point because it's not used any more
-//    delete datagram;
-//    delete controlInfo;
-//}

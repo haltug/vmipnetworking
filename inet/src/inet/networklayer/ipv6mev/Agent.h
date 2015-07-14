@@ -27,31 +27,31 @@
 namespace inet {
 
 //========== Timer key value ==========
-#define TIMERKEY_SESSION_INIT       0 // ca init key for timer module
-#define TIMERKEY_SEQNO_INIT         1
-#define TIMERKEY_L2_DISASSOCIATION  2
-#define TIMERKEY_L2_ASSOCIATION     3
+#define TIMERKEY_SESSION_INIT    0 // ca init key for timer module
+#define TIMERKEY_SEQNO_INIT      1
+#define TIMERKEY_IF_DOWN         2
+#define TIMERKEY_IF_UP           3
 
 //========== Timer type
-#define TIMERTYPE_SESSION_INIT      50
-#define TIMERTYPE_SEQNO_INIT        51
-#define TIMERTYPE_SEQ_UPDATE        52
-#define TIMERTYPE_LOC_UPDATE        53
-#define TIMERTYPE_L2_DISASSOCIATION 54
-#define TIMERTYPE_L2_ASSOCIATION    55
+#define TIMERTYPE_SESSION_INIT  50
+#define TIMERTYPE_SEQNO_INIT    51
+#define TIMERTYPE_SEQ_UPDATE    52
+#define TIMERTYPE_LOC_UPDATE    53
+#define TIMERTYPE_IF_DOWN       54
+#define TIMERTYPE_IF_UP         55
 
 //========== Message type in handleMessage() ==========
 #define MSG_START_TIME          100
 #define MSG_SESSION_INIT        101 // ca init msg type for handling
 #define MSG_SEQNO_INIT          102
-#define MSG_L2_DISASSOCIATION   103
-#define MSG_L2_ASSOCIATION      104
+#define MSG_IF_DOWN             103
+#define MSG_IF_UP               104
 
 //========== Retransmission time of messages ==========
-#define TIMEOUT_SESSION_INIT          1 // retransmission time of ca init in sec
-#define TIMEOUT_SEQNO_INIT            1
-#define TIMEDELAY_L2_DISASSOCIATION   2   // delay of ip msg handler
-#define TIMEDELAY_L2_ASSOCIATION      0.2
+#define TIMEOUT_SESSION_INIT    1 // retransmission time of ca init in sec
+#define TIMEOUT_SEQNO_INIT      1
+#define TIMEDELAY_IF_DOWN       3   // delay of ip msg handler
+#define TIMEDELAY_IF_UP         0
 
 //========== Header SIZE ===========
 #define SIZE_AGENT_HEADER        16
@@ -88,7 +88,6 @@ class INET_API Agent : public cSimpleModule, public cListener
     AgentState sessionState; // state of MA at beginning
     AgentState seqnoState; // state of MA for seq init
 
-
     IInterfaceTable *ift = nullptr; // for recognizing changes etc
 //    AddressManagement *am = nullptr; // for sliding address mechanism
     IPv6Address CA_Address; // ip address of ca
@@ -101,8 +100,28 @@ class INET_API Agent : public cSimpleModule, public cListener
     const char *ctrlAgentAddr;
     cModule *interfaceNotifier = nullptr; // listens for changes in interfacetable
 
-    typedef std::map<int, IPv6Address> InterfaceToIPv6AddressList; // not sure if type is set correct but it's stores association of dest addr of cn to data agent addr
-    InterfaceToIPv6AddressList interfaceToIPv6AddressList;
+    struct InterfaceUnit { // represents the entry of addressTable
+        bool active;
+        int priority;
+        IPv6Address careOfAddress;
+    };
+
+    typedef std::map<int, InterfaceUnit> AddressTable; // not sure if type is set correct but it's stores association of dest addr of cn to data agent addr
+    AddressTable addressTable;
+
+//    void updateAddressTable();
+
+    struct FlowBindingTable {
+        bool active;
+        int priority;
+        int interfaceId[];
+        // traffic rules
+        int destPort;
+        int sourcePort;
+        short protocol;
+        IPv6Address destAddress;
+    };
+
 
     typedef std::map<IPv6Address, IPv6Address> DirectAddressList; // IPv6address should be replaced with DataAgent <cn,da>
     DirectAddressList directAddressList;
@@ -116,10 +135,11 @@ class INET_API Agent : public cSimpleModule, public cListener
     void sendToLowerLayer(cMessage *msg, const IPv6Address& destAddr, const IPv6Address& srcAddr = IPv6Address::UNSPECIFIED_ADDRESS, int interfaceId = -1, simtime_t sendTime = 0); // resend after timer expired
     void createSequenceInit();
     void sendSequenceInit(cMessage *msg);
-    void createL2Disassociation(int ie);
-    void handleL2Disassociation(cMessage *msg);
-    void createL2Association(int ie);
-    void handleL2Association(cMessage *msg);
+
+    void createInterfaceDownMessage(int id);
+    void handleInterfaceDownMessage(cMessage *msg);
+    void createInterfaceUpMessage(int id);
+    void handleInterfaceUpMessage(cMessage *msg);
 
     void processControlAgentMessage(ControlAgentHeader *agentHdr, IPv6ControlInfo *ipCtrlInfo);
     void processMobileAgentMessages(MobileAgentHeader *agentHdr, IPv6ControlInfo *ipCtrlInfo);
@@ -138,8 +158,8 @@ class INET_API Agent : public cSimpleModule, public cListener
 //============================================= Timer configuration ===========================
     class ExpiryTimer {
     public:
+        virtual ~ExpiryTimer() {}; // TODO should delete pointers
         cMessage *timer;
-        virtual ~ExpiryTimer() {};
         IPv6Address dest;
         simtime_t ackTimeout;
         simtime_t nextScheduledTime;
@@ -160,6 +180,7 @@ class INET_API Agent : public cSimpleModule, public cListener
             interfaceID=_interfaceID;
             type=_type;
         }
+        virtual ~TimerKey() {};
         bool operator<(const TimerKey& b) const {
             if (type == b.type)
                 return interfaceID == b.interfaceID ? dest < b.dest : interfaceID < b.interfaceID;
@@ -191,17 +212,18 @@ class INET_API Agent : public cSimpleModule, public cListener
         uint lifetime;
     };
     // TimerType 54
-    class L2DisassociationTimer : public ExpiryTimer {
+    class InterfaceDownTimer : public ExpiryTimer {
     public:
         bool active = false;
     };
-    class L2AssociationTimer : public ExpiryTimer {
+    class InterfaceUpTimer : public ExpiryTimer {
     public:
         bool active = false;
     };
     ExpiryTimer *getExpiryTimer(TimerKey& key, int timerType);
     bool pendingExpiryTimer(const IPv6Address& dest, int interfaceId, int timerType);
     bool cancelExpiryTimer(const IPv6Address& dest, int interfaceId, int timerType);
+    bool cancelAndDeleteExpiryTimer(const IPv6Address& dest, int interfaceId, int timerType);
     void cancelExpiryTimers();
 //============================================= Timer configuration ===========================
 
