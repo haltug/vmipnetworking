@@ -56,21 +56,8 @@ void Agent::initialize(int stage)
         IPSocket ipSocket(gate("toLowerLayer")); // register own protocol
         ipSocket.registerProtocol(IP_PROT_IPv6EXT_ID);
         interfaceNotifier = getContainingNode(this);
-//        interfaceNotifier->subscribe(NF_L2_ASSOCIATED,this);
-//        interfaceNotifier->subscribe(NF_L2_DISASSOCIATED,this);
-//        interfaceNotifier->subscribe(NF_L2_ASSOCIATED_NEWAP,this);
-//        interfaceNotifier->subscribe(NF_INTERFACE_IPv6CONFIG_CHANGED,this);
-
-        interfaceNotifier->subscribe(NF_INTERFACE_STATE_CHANGED,this);
-        // kein Aufruf
-//        interfaceNotifier->subscribe(NF_L2_ASSOCIATED_OLDAP,this);
-//        interfaceNotifier->subscribe(NF_L2_AP_ASSOCIATED,this); // kein Aufruf
-//        interfaceNotifier->subscribe(NF_L2_AP_DISASSOCIATED,this); // kein Aufruf
-//        interfaceNotifier->subscribe(NF_INTERFACE_CONFIG_CHANGED,this);
-//        interfaceNotifier->subscribe(NF_INTERFACE_CREATED,this);
-//        interfaceNotifier->subscribe(NF_INTERFACE_DELETED,this);
-//        interfaceNotifier->subscribe(NF_IPv6_HANDOVER_OCCURRED,this);
-//        interfaceNotifier->subscribe(NF_LINK_BREAK,this);
+        interfaceNotifier->subscribe(NF_INTERFACE_STATE_CHANGED,this); // register signal listener
+        interfaceNotifier->subscribe(NF_INTERFACE_IPv6CONFIG_CHANGED,this);
     }
     if (stage == INITSTAGE_APPLICATION_LAYER) {
         if(isMA) {
@@ -382,10 +369,9 @@ InterfaceEntry *Agent::getInterface(IPv6Address destAddr, int destPort, int sour
 
 void Agent::createInterfaceDownMessage(int id)
 {
-//    EV << "MA: Create interface down timer message: " << id << endl;
+    IPv6Address ip;
     if(!cancelAndDeleteExpiryTimer(ip.UNSPECIFIED_ADDRESS, id,TIMERKEY_IF_DOWN)) // no l2 disassociation timer exists
     {
-        IPv6Address ip;
         TimerKey key(ip.UNSPECIFIED_ADDRESS,id,TIMERKEY_IF_DOWN);
         InterfaceDownTimer *l2dt = (InterfaceDownTimer*) getExpiryTimer(key, TIMERTYPE_IF_DOWN);
         int i;
@@ -399,25 +385,28 @@ void Agent::createInterfaceDownMessage(int id)
         msg->setContextPointer(l2dt);
         scheduleAt(l2dt->nextScheduledTime, msg);
     }
+    EV << "MA: Create interface down timer message: " << id << endl;
 }
 
 void Agent::handleInterfaceDownMessage(cMessage *msg)
 {
-    EV << "MA: handle interface down message for id: " << ie->getInterfaceId() << endl;
+    IPv6Address ip;
     InterfaceDownTimer *l2dt = (InterfaceDownTimer *) msg->getContextPointer();
     InterfaceEntry *ie = l2dt->ie;
-    IPv6Address ip;
+    InterfaceUnit *iu = getInterfaceUnit(ie->getInterfaceId());
+    iu->active = false;
+    iu->priority = -1;
+    EV << "MA: handle interface down message. Addr: " << iu->careOfAddress.str() << endl;
+    updateAddressTable(ie->getInterfaceId(), iu);
     cancelExpiryTimer(ip.UNSPECIFIED_ADDRESS,ie->getInterfaceId(),TIMERKEY_IF_DOWN);
     delete msg;
-    // TODO UPDATE MAP
 }
 
 void Agent::createInterfaceUpMessage(int id)
 {
-//    EV << "MA: create interface up timer message" << endl;
+    IPv6Address ip;
     if(!cancelAndDeleteExpiryTimer(ip.UNSPECIFIED_ADDRESS, id,TIMERKEY_IF_DOWN)) // no l2 disassociation timer exists
     {
-        IPv6Address ip;
         TimerKey key(ip.UNSPECIFIED_ADDRESS, id, TIMERKEY_IF_UP);
         InterfaceUpTimer *l2at = new InterfaceUpTimer();
         int i;
@@ -430,49 +419,95 @@ void Agent::createInterfaceUpMessage(int id)
         l2at->nextScheduledTime = simTime()+TIMEDELAY_IF_UP;
         msg->setContextPointer(l2at);
         scheduleAt(l2at->nextScheduledTime, msg);
+    } else {
+        EV << "Timer was configured. Is deleted." << endl;
     }
+    EV << "MA: create interface up timer message" << endl;
 }
 
 void Agent::handleInterfaceUpMessage(cMessage *msg)
 {
-    EV << "MA: Handle interface up message for id:" << ie->getInterfaceId() << endl;
+    IPv6Address ip;
     InterfaceUpTimer *l2at = (InterfaceUpTimer *) msg->getContextPointer();
     InterfaceEntry *ie = l2at->ie;
-
-    IPv6Address ip;
+    InterfaceUnit *iu = getInterfaceUnit(ie->getInterfaceId());
+    iu->active = true;
+    iu->priority = 0;
+    iu->careOfAddress = ie->ipv6Data()->getPreferredAddress();
+    EV << "MA: Handle interface up message. Addr: " << iu->careOfAddress.str() << endl;
+    updateAddressTable(ie->getInterfaceId(), iu);
     cancelExpiryTimer(ip.UNSPECIFIED_ADDRESS,ie->getInterfaceId(),TIMERKEY_IF_UP);
-    delete msg; // check context pointer
-    // TODO UDPATE
+    delete msg;
 }
 
 void Agent::receiveSignal(cComponent *source, simsignal_t signalID, cObject *obj)
 {
-    if(isCA) { return; } // just execute for mobile node
+    if(!isMA) { return; } // just execute for mobile node
     Enter_Method_Silent();
     if(signalID == NF_INTERFACE_STATE_CHANGED) { // is triggered when carrier setting is changed
+//        if(dynamic_cast<InterfaceEntryChangeDetails *>(obj)) {
+//            EV << "NF_INTERFACE_STATE_CHANGED" << endl;
+//            InterfaceEntry *ie = check_and_cast<const InterfaceEntryChangeDetails *>(obj)->getInterfaceEntry();
+//            if(ie->isUp() && ie->ipv6Data()->getPreferredAddress().isGlobal()) {
+//                createInterfaceUpMessage(ie->getInterfaceId());
+//            } else {
+//            }
+//            createInterfaceDownMessage(ie->getInterfaceId());
+//        }
+    }
+    if(signalID == NF_INTERFACE_IPv6CONFIG_CHANGED) { // is triggered when carrier setting is changed
         if(dynamic_cast<InterfaceEntryChangeDetails *>(obj)) {
-            EV << "NF_INTERFACE_STATE_CHANGED" << endl;
             InterfaceEntry *ie = check_and_cast<const InterfaceEntryChangeDetails *>(obj)->getInterfaceEntry();
+            EV << "NF_INTERFACE_IPv6CONFIG_CHANGED:" << endl; // << ie->ipv6Data()->getPreferredAddress().str() << endl;
             if(ie->isUp()) { createInterfaceUpMessage(ie->getInterfaceId()); }
             else { createInterfaceDownMessage(ie->getInterfaceId()); }
+//            createInterfaceUpMessage(ie->getInterfaceId());
+//            if(ie->isUp()) { createInterfaceUpMessage(ie->getInterfaceId()); }
+//            else {  }
         }
     }
-//    EV << "============================================= " << endl;
-//    for (int i=0; i<ift->getNumInterfaces(); i++) {
-//        InterfaceEntry *ie = ift->getInterface(i);
-//        if(!(ie->isLoopback()))
-//        {
-////            EV << "getName: " << ie->getName();
-//            EV << "; Id: " << ie->getInterfaceId();
-//            EV << "; Up: " << ie->isUp();
-//            EV << "; Glob: " << ie->ipv6Data()->getPreferredAddress().isGlobal();
-//            EV << "; Carr: " << ie->hasCarrier();
-//            EV << "; Addr: " << ie->ipv6Data()->getPreferredAddress() << endl;
-//        }
-//    }
+
 }
 
-//============================ Timer =======================
+Agent::InterfaceUnit *Agent::getInterfaceUnit(int id)
+{
+    InterfaceUnit *iu;
+    auto it = addressTable.find(id);
+    if(it != addressTable.end()) { // addressTable contains an instance of interfaceUnit
+        iu = it->second;
+        return iu;
+    } else {
+        iu = new InterfaceUnit();
+        iu->active = false;
+        iu->priority = -1;
+        return iu;
+    }
+}
+
+void Agent::updateAddressTable(int id, InterfaceUnit *iu)
+{
+    auto it = addressTable.find(id);
+    if(it != addressTable.end()) { // check if interface is provided in address table
+        if(it->first != id) throw cRuntimeError("ERROR in updateAddressTable: provided id should be same with entry");
+        (it->second)->active = iu->active;
+        (it->second)->priority = iu->priority;
+        (it->second)->careOfAddress = iu->careOfAddress;
+        if(iu->active) {    // presents an interface that has been associated
+            am.addIPv6AddressToAddressMap(mobileId, iu->careOfAddress);
+        } else { // presents an interface has been disassociated
+            am.removeIPv6AddressFromAddressMap(mobileId, iu->careOfAddress);
+        }
+    } else {
+        addressTable.insert(std::make_pair(id,iu)); // if not, include this new
+        am.addIPv6AddressToAddressMap(mobileId, iu->careOfAddress);
+        if(sessionState == INITIALIZE) { createSessionInit(); }
+    }
+}
+
+
+
+//=============================================================
+//============================ Timer ==========================
 // Returns the corresponding timer. If a timer does not exist, it is created and inserted to list.
 // If a timer exists, it is canceled and should be overwritten
 Agent::ExpiryTimer *Agent::getExpiryTimer(TimerKey& key, int timerType) {

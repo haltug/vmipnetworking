@@ -100,28 +100,25 @@ class INET_API Agent : public cSimpleModule, public cListener
     const char *ctrlAgentAddr;
     cModule *interfaceNotifier = nullptr; // listens for changes in interfacetable
 
-    struct InterfaceUnit { // represents the entry of addressTable
+    class InterfaceUnit { // represents the entry of addressTable
+    public:
         bool active;
         int priority;
         IPv6Address careOfAddress;
     };
-
-    typedef std::map<int, InterfaceUnit> AddressTable; // not sure if type is set correct but it's stores association of dest addr of cn to data agent addr
+    typedef std::map<int, InterfaceUnit *> AddressTable; // represents the address table
     AddressTable addressTable;
 
-//    void updateAddressTable();
-
-    struct FlowBindingTable {
+    struct FlowUnit {
         bool active;
+        std::vector<int> interfaceId;
         int priority;
-        int interfaceId[];
         // traffic rules
-        int destPort;
-        int sourcePort;
         short protocol;
+        int sourcePort;
+        int destPort;
         IPv6Address destAddress;
     };
-
 
     typedef std::map<IPv6Address, IPv6Address> DirectAddressList; // IPv6address should be replaced with DataAgent <cn,da>
     DirectAddressList directAddressList;
@@ -136,19 +133,23 @@ class INET_API Agent : public cSimpleModule, public cListener
     void createSequenceInit();
     void sendSequenceInit(cMessage *msg);
 
-    void createInterfaceDownMessage(int id);
-    void handleInterfaceDownMessage(cMessage *msg);
-    void createInterfaceUpMessage(int id);
-    void handleInterfaceUpMessage(cMessage *msg);
 
     void processControlAgentMessage(ControlAgentHeader *agentHdr, IPv6ControlInfo *ipCtrlInfo);
     void processMobileAgentMessages(MobileAgentHeader *agentHdr, IPv6ControlInfo *ipCtrlInfo);
 
-    /*
-         * Signal handler for cObject, override cListener function.
-         */
-    InterfaceEntry *getInterface(IPv6Address destAddr, int destPort = -1, int sourcePort = -1, short protocol = -1); //const ,
+    // functions for handling interface change
+    void createInterfaceDownMessage(int id);
+    void handleInterfaceDownMessage(cMessage *msg);
+    void createInterfaceUpMessage(int id);
+    void handleInterfaceUpMessage(cMessage *msg);
+    void updateAddressTable(int id, InterfaceUnit *iu);
     virtual void receiveSignal(cComponent *source, simsignal_t signalID, cObject *obj) override;
+    InterfaceUnit* getInterfaceUnit(int id);
+
+    /*
+     * Signal handler for cObject, override cListener function.
+     */
+    InterfaceEntry *getInterface(IPv6Address destAddr, int destPort = -1, int sourcePort = -1, short protocol = -1); //const ,
 
     // extension header processing
 //    void sendToLowerLayer(cObject *obj, const IPv6Address& destAddr, const IPv6Address& srcAddr = IPv6Address::UNSPECIFIED_ADDRESS, int interfaceId = -1, simtime_t sendTime = 0); // resend after timer expired

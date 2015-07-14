@@ -104,6 +104,7 @@ void AddressManagement::addIPv6AddressToAddressMap(uint64 id, IPv6Address& addr)
 {
     if(addressMap.count(id)) // check if id exists in map
     {
+        EV << "ADD:" << addr.str() << endl;
         SequenceTable seqTable (addressMap[id].sequenceTable); // get current sequence table
         if(!seqTable.count(addressMap[id].currentSequenceNumber)) // check if seq table with given seq number exists
             throw cRuntimeError("AddIPv6:Sequence Table with seqNo does not exist.");
@@ -128,6 +129,7 @@ void AddressManagement::removeIPv6AddressFromAddressMap(uint64 id, IPv6Address& 
 {
     if(addressMap.count(id)) // check if id exists in map
     {
+        EV << "REM:" << addr.str() << endl;
         SequenceTable seqTable (addressMap[id].sequenceTable); // get current sequence table
         if(!seqTable.count(addressMap[id].currentSequenceNumber)) // check if seq table with given seq number exists
             throw cRuntimeError("RemIPv6:Sequence Table with seqNo does not exist.");
