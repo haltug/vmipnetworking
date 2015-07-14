@@ -104,14 +104,14 @@ void AddressManagement::addIPv6AddressToAddressMap(uint64 id, IPv6Address& addr)
 {
     if(addressMap.count(id)) // check if id exists in map
     {
-        EV << "ADD:" << addr.str() << endl;
+//        EV << "ADD:" << addr.str() << endl;
         SequenceTable seqTable (addressMap[id].sequenceTable); // get current sequence table
         if(!seqTable.count(addressMap[id].currentSequenceNumber)) // check if seq table with given seq number exists
             throw cRuntimeError("AddIPv6:Sequence Table with seqNo does not exist.");
         IPv6AddressList newIPv6AddressList (seqTable[addressMap[id].currentSequenceNumber]); // copy current ipaddrList in new list
         if (std::find(newIPv6AddressList.begin(), newIPv6AddressList.end(), addr) != newIPv6AddressList.end()) // check if at any position given ip addr exists
         {
-            EV_INFO << "IP address exists in address map. Should it be inserted twice?" << endl;
+            EV_INFO << "IP address exists in address map. It will be inserted again?" << endl;
             return;
         }
         newIPv6AddressList.push_back(addr); // add new addr at the end of list
@@ -129,7 +129,7 @@ void AddressManagement::removeIPv6AddressFromAddressMap(uint64 id, IPv6Address& 
 {
     if(addressMap.count(id)) // check if id exists in map
     {
-        EV << "REM:" << addr.str() << endl;
+//        EV << "REM:" << addr.str() << endl;
         SequenceTable seqTable (addressMap[id].sequenceTable); // get current sequence table
         if(!seqTable.count(addressMap[id].currentSequenceNumber)) // check if seq table with given seq number exists
             throw cRuntimeError("RemIPv6:Sequence Table with seqNo does not exist.");

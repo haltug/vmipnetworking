@@ -62,9 +62,9 @@ void Agent::initialize(int stage)
     if (stage == INITSTAGE_APPLICATION_LAYER) {
         if(isMA) {
             startTime = par("startTime");
-            timeoutMsg = new cMessage("sessionStart");
+            cMessage *timeoutMsg = new cMessage("sessionStart");
             timeoutMsg->setKind(MSG_START_TIME);
-//            scheduleAt(startTime, timeoutMsg);
+//            scheduleAt(startTime, timeoutMsg); // delaying start
         }
     }
 
@@ -81,32 +81,34 @@ void Agent::handleMessage(cMessage *msg)
     if(msg->isSelfMessage()) {
 //        EV << "Self message received: " << msg->getKind() << endl;
         if(msg->getKind() == MSG_START_TIME) {
-            EV << "Starter msg received" << endl;
-//            EV << "Skipping session initialization by time trigger." << endl;
+//            EV << "Starter msg received" << endl;
             createSessionInit();
+            delete msg;
         }
         else if(msg->getKind() == MSG_SESSION_INIT) {
-            EV << "A: CA_init_msg received" << endl;
+//            EV << "A: CA_init_msg received" << endl;
             sendSessionInit(msg);
         }
         else if(msg->getKind() == MSG_SEQNO_INIT) {
-            EV << "A: CA_init_msg received" << endl;
+//            EV << "A: CA_init_msg received" << endl;
             sendSequenceInit(msg);
         }
         else if(msg->getKind() == MSG_IF_DOWN) {
-            EV << "MA: Interface down timer received" << endl;
+//            EV << "MA: Interface down timer received" << endl;
             handleInterfaceDownMessage(msg);
         }
         else if(msg->getKind() == MSG_IF_UP) {
-            EV << "MA: Interface up timer received" << endl;
+//            EV << "MA: Interface up timer received" << endl;
             handleInterfaceUpMessage(msg);
         }
-//        else if (msg->getKind() == SEND_CA_SEQ_UPDATE)
-//            resendCASequenceUpdate(msg);
-//        else if (msg->getKind() == SEND_CA_SESSION_REQUEST)
-//            resendCASessionRequest(msg);
-//        else if (msg->getKind() == SEND_CA_LOC_UPDATE)
-//            resendCALocationUpdate(msg);
+        else if(msg->getKind() == MSG_SEQ_UPDATE) {
+            sendSequenceUpdate(msg);
+        }
+        else if(msg->getKind() == MSG_SEQ_UPDATE_DELAYED) {
+            createSequenceUpdate();
+            delete msg;
+        }
+
         else
             throw cRuntimeError("handleMessage: Unknown timer expired. Which timer msg is unknown?");
     }
@@ -130,7 +132,7 @@ void Agent::handleMessage(cMessage *msg)
 //        }
 //    }
     else if (dynamic_cast<IdentificationHeader *> (msg)) {
-        EV << "A: Received id_header" << endl;
+//        EV << "A: Received id_header" << endl;
         IPv6ControlInfo *ctrlInfo = check_and_cast<IPv6ControlInfo *>(msg->removeControlInfo());
         IdentificationHeader *idHdr = (IdentificationHeader *) msg;
         if (dynamic_cast<ControlAgentHeader *>(idHdr)) {
@@ -182,7 +184,7 @@ void Agent::createSessionInit() {
         scheduleAt(simTime(),msg);
     } else {
         EV << "MA: Create CA_init is delayed." << endl;
-        timeoutMsg = new cMessage("sessionStart");
+        cMessage *timeoutMsg = new cMessage("sessionStart");
         timeoutMsg->setKind(MSG_START_TIME);
         scheduleAt(simTime()+TIMEOUT_SESSION_INIT, timeoutMsg);
     }
@@ -206,6 +208,73 @@ void Agent::createSequenceInit() {
     scheduleAt(sit->nextScheduledTime, msg);
 }
 
+void Agent::createSequenceUpdate() {
+    EV << "MA: Create SeqUpdateMsg" << endl;
+    if(!isMA && sessionState != REGISTERED &&  seqnoState != REGISTERED) { throw cRuntimeError("MA: Not registered at CA. Cannot run seq init."); }
+    cMessage *msg = new cMessage("sendingCAseqUpdate", MSG_SEQ_UPDATE);
+    InterfaceEntry *ie = getInterface(CA_Address);
+    if(!ie) {
+        EV << "MA: Delaying seq update. no interface provided." << endl;
+        cMessage *timeoutMsg = new cMessage("sessionStart");
+        timeoutMsg->setKind(MSG_SEQ_UPDATE_DELAYED);
+        scheduleAt(simTime()+TIMEOUT_SEQ_UPDATE, timeoutMsg);
+    } else {
+        EV << "MA: Sending seq update without delay. interface provided." << endl;
+        TimerKey key(CA_Address, -1, TIMERKEY_SEQ_UPDATE);
+        SequenceUpdateTimer *sut = (SequenceUpdateTimer *) getExpiryTimer(key, TIMERTYPE_SEQ_UPDATE);
+        sut->dest = CA_Address;
+        sut->ie = ie;
+        sut->timer = msg;
+        sut->ackTimeout = TIMEOUT_SEQ_UPDATE;
+        sut->nextScheduledTime = simTime();
+        msg->setContextPointer(sut);
+        scheduleAt(sut->nextScheduledTime, msg);
+    }
+}
+
+void Agent::sendSequenceUpdate(cMessage* msg)
+{
+    EV << "MA: Send SeqUpdate" << endl;
+    SequenceUpdateTimer *sut = (SequenceUpdateTimer *) msg->getContextPointer();
+    InterfaceEntry *ie = sut->ie;
+    const IPv6Address &dest =  CA_Address;
+    const IPv6Address &src = ie->ipv6Data()->getPreferredAddress(); // to get src ip
+    sut->nextScheduledTime = simTime() + sut->ackTimeout;
+    sut->ackTimeout = (sut->ackTimeout)*2;
+    MobileAgentHeader *mah = new MobileAgentHeader("ca_seq_upd");
+    mah->setIdInit(true);
+    mah->setIdAck(true);
+    mah->setSeqValid(true);
+    mah->setAckValid(true);
+    mah->setAddValid(true);
+    mah->setRemValid(true);
+    mah->setIpSequenceNumber(am.getCurrentSequenceNumber(mobileId));
+    mah->setIpAcknowledgementNumber(am.getLastAcknowledgemnt(mobileId));
+    AddressManagement::AddressChange ac = am.getUnacknowledgedIPv6AddressList(mobileId,am.getLastAcknowledgemnt(mobileId),am.getCurrentSequenceNumber(mobileId));
+    mah->setIpAddingField(ac.addedAddresses);
+    mah->setAddedAddressesArraySize(ac.addedAddresses);
+    if(ac.addedAddresses > 0) {
+        if(ac.addedAddresses != ac.getUnacknowledgedAddedIPv6AddressList.size()) throw cRuntimeError("MA:sendSeqUpd: value of Add list must have size of integer.");
+        for(int i=0; i<ac.addedAddresses; i++) {
+//            EV << "ID_Hdr_ADD: " << ac.getUnacknowledgedAddedIPv6AddressList.at(i) << endl;
+            mah->setAddedAddresses(i,ac.getUnacknowledgedAddedIPv6AddressList.at(i));
+        }
+    }
+    mah->setIpRemovingField(ac.removedAddresses);
+    mah->setRemovedAddressesArraySize(ac.removedAddresses);
+    if(ac.removedAddresses > 0) {
+        if(ac.removedAddresses != ac.getUnacknowledgedRemovedIPv6AddressList.size()) throw cRuntimeError("MA:sendSeqUpd: value of Rem list must have size of integer.");
+        for(int i=0; i<ac.removedAddresses; i++) {
+//            EV << "ID_Hdr_REM: " << ac.getUnacknowledgedRemovedIPv6AddressList.at(i) << endl;
+            mah->setRemovedAddresses(i,ac.getUnacknowledgedRemovedIPv6AddressList.at(i));
+        }
+    }
+    mah->setId(mobileId);
+    mah->setByteLength(SIZE_AGENT_HEADER+(SIZE_ADDING_ADDR_TO_HDR*(ac.addedAddresses+ac.removedAddresses)));
+    sendToLowerLayer(mah, dest, src);
+    scheduleAt(sut->nextScheduledTime, msg);
+}
+
 void Agent::sendSessionInit(cMessage* msg) {
     EV << "Send CA_init" << endl;
     SessionInitTimer *sit = (SessionInitTimer *) msg->getContextPointer();
@@ -216,7 +285,7 @@ void Agent::sendSessionInit(cMessage* msg) {
     sit->dest = CA_Address;
     sit->nextScheduledTime = simTime() + sit->ackTimeout;
     sit->ackTimeout = (sit->ackTimeout)*2;
-    if(CA_Address.isGlobal()) {
+    if(CA_Address.isGlobal()) { // not necessary
         MobileAgentHeader *mah = new MobileAgentHeader("ca_init");
         mah->setIdInit(true);
         mah->setIdAck(false);
@@ -240,6 +309,8 @@ void Agent::sendSequenceInit(cMessage *msg) {
     mah->setIdAck(true);
     mah->setSeqValid(true);
     mah->setAckValid(false);
+    mah->setAddValid(true);
+    mah->setRemValid(false);
     mah->setIpSequenceNumber(am.getCurrentSequenceNumber(mobileId));
     mah->setIpAcknowledgementNumber(0);
     mah->setAddedAddressesArraySize(1);
@@ -253,7 +324,7 @@ void Agent::sendSequenceInit(cMessage *msg) {
 
 
 void Agent::sendToLowerLayer(cMessage *msg, const IPv6Address& destAddr, const IPv6Address& srcAddr, int interfaceId, simtime_t delayTime) {
-    EV << "A: Creating IPv6ControlInfo to lower layer" << endl;
+//    EV << "A: Creating IPv6ControlInfo to lower layer" << endl;
     IPv6ControlInfo *ctrlInfo = new IPv6ControlInfo();
     ctrlInfo->setProtocol(IP_PROT_IPv6EXT_ID); // todo must be adjusted
     ctrlInfo->setDestAddr(destAddr);
@@ -263,7 +334,7 @@ void Agent::sendToLowerLayer(cMessage *msg, const IPv6Address& destAddr, const I
     if(ie) { ctrlInfo->setInterfaceId(ie->getInterfaceId()); }
     msg->setControlInfo(ctrlInfo);
     cGate *outgate = gate("toLowerLayer");
-    EV << "IPv6ControlInfo: DestAddr=" << ctrlInfo->getDestAddr() << " SrcAddr=" << ctrlInfo->getSrcAddr() << " InterfaceId=" << ctrlInfo->getInterfaceId() << endl;
+    EV << "ControlInfo: DestAddr=" << ctrlInfo->getDestAddr() << " SrcAddr=" << ctrlInfo->getSrcAddr() << " InterfaceId=" << ctrlInfo->getInterfaceId() << endl;
     if (delayTime > 0) {
         EV << "delayed sending" << endl;
         sendDelayed(msg, delayTime, outgate);
@@ -280,7 +351,7 @@ void Agent::processMobileAgentMessages(MobileAgentHeader* agentHeader, IPv6Contr
     {
         IPv6Address destAddr = controlInfo->getSrcAddr(); // address to be responsed
         IPv6Address sourceAddr = controlInfo->getDestAddr();
-        if(agentHeader->getIdInit() && !agentHeader->getIdAck())
+        if(agentHeader->getIdInit() && !agentHeader->getIdAck()) // check for other bits
         { // init process request
             if(agentHeader->isName("ca_init"))
                 EV << "CA: Received init message from MA." << endl;
@@ -296,7 +367,7 @@ void Agent::processMobileAgentMessages(MobileAgentHeader* agentHeader, IPv6Contr
                 // TODO remove below assignment from here
                 sendToLowerLayer(cah,destAddr, sourceAddr);
             }
-        } else if (agentHeader->getSeqValid() && !agentHeader->getAckValid()) // || agentHdr->getIdInit() && agentHdr->getIdAck()
+        } else if (agentHeader->getSeqValid() && !agentHeader->getAckValid() && agentHeader->getIdInit() && agentHeader->getIdAck()) // || agentHdr->getIdInit() && agentHdr->getIdAck()
         { // init sequence number/address management
             if(std::find(mobileIdList.begin(), mobileIdList.end(), agentHeader->getId()) != mobileIdList.end()) {
                 EV << "CA: Received sequence initialize message from MA. Inserting in AddrMgmt-Unit." << endl;
@@ -318,8 +389,55 @@ void Agent::processMobileAgentMessages(MobileAgentHeader* agentHeader, IPv6Contr
                 }
             }
             else { throw cRuntimeError("CA should initialize sequence number but cannot find id in list."); }
-        }
+        } else if(agentHeader->getSeqValid() && agentHeader->getAckValid() && agentHeader->getIdInit() && agentHeader->getIdAck()) { // all fields of header must be one
+            if(std::find(mobileIdList.begin(), mobileIdList.end(), agentHeader->getId()) != mobileIdList.end())
+            {
+//                EV << "AM_CA_prev: " << am.to_string() << endl;
+//                EV << "ID_HDR:ADD_V:" << agentHeader->getAddValid() << ";REM_V:" << agentHeader->getRemValid()
+//                        << ";ADD:" << agentHeader->getIpAddingField()
+//                        << ";REM:" << agentHeader->getIpRemovingField()
+//                        << ";ACK:" << (uint8) agentHeader->getIpAcknowledgementNumber()
+//                        << ";SEQ:" << (uint8) agentHeader->getIpSequenceNumber();
+//                for(int i=0; i<agentHeader->getAddedAddressesArraySize(); i++){
+//                    EV << ";IP_a:" << agentHeader->getAddedAddresses(i);
+//                }
+//                for(int i=0; i<agentHeader->getRemovedAddressesArraySize(); i++){
+//                    EV << ";IP_r:" << agentHeader->getRemovedAddresses(i);
+//                }
+//                EV << ";" << endl;
+                if(agentHeader->getAddValid() || agentHeader->getRemValid()) { // indicate a sequence update
+                    if(agentHeader->getIpAddingField() > 0) { // check size of field
+                        if(agentHeader->getIpAddingField() != agentHeader->getAddedAddressesArraySize()) throw cRuntimeError("CA:Hdr: field of array and field not same. Check header.");
+                        for(int i=0; i<agentHeader->getIpAddingField(); i++){
+                            am.addIPv6AddressToAddressMap(agentHeader->getId(), agentHeader->getAddedAddresses(i));
+                        }
+                    }
+                    if(agentHeader->getIpRemovingField() > 0) {
+                        if(agentHeader->getIpRemovingField() != agentHeader->getRemovedAddressesArraySize()) throw cRuntimeError("CA:Hdr: field of array and field not same. Check header.");
+                        for(int i=0; i<agentHeader->getIpRemovingField(); i++) {
+                            am.removeIPv6AddressFromAddressMap(agentHeader->getId(), agentHeader->getRemovedAddresses(i));
+                        }
+                    }
+                }
+                if(agentHeader->getIpSequenceNumber() != am.getCurrentSequenceNumber(agentHeader->getId())) {
+                    EV << "ERROR CA:Hdr: value sent is not same with value of am db" << endl;
+                } else {
+                    am.setLastAcknowledgemnt(agentHeader->getId(), agentHeader->getIpSequenceNumber());
+                }
+                if(agentHeader->getDirectAddrInit() || agentHeader->getRedirectAddrInit()) { // check if redirect address is requested
+                    throw cRuntimeError("CA:hdr: not implemented yet");
+                }
+                EV << "CA: Initialized sequence number: " << agentHeader->getIpSequenceNumber() << "; ip: " << agentHeader->getAddedAddresses(0) << endl;
+                ControlAgentHeader *cah = new ControlAgentHeader("ma_seq_update");
+                cah->setIdInit(true);
+                cah->setIdAck(true);
+                cah->setSeqValid(true);
+                cah->setIpSequenceNumber(am.getCurrentSequenceNumber(agentHeader->getId()));
+                sendToLowerLayer(cah,destAddr, sourceAddr);
+            } else { throw cRuntimeError("CA: Mobile id not known."); }
+        } else { throw cRuntimeError("CA: Message not known. Parameter bits of header are not set correctly."); }
     } else { throw cRuntimeError("Received message that is supposed to be received by control agent. check message type that has to be processed."); }
+    EV << "AM_CA: " << am.to_string() << endl;
     delete agentHeader;
     delete controlInfo;
 }
@@ -342,6 +460,7 @@ void Agent::processControlAgentMessage(ControlAgentHeader* agentHeader, IPv6Cont
         else if (agentHeader->getIdInit() && agentHeader->getIdAck() && agentHeader->getSeqValid()) {
             if(seqnoState == INITIALIZE) {
                 seqnoState = REGISTERED;
+                am.setLastAcknowledgemnt(mobileId, agentHeader->getIpSequenceNumber());
                 if(agentHeader->isName("ma_seq_ack"))
                     EV << "MA: Received seqno ack. SeqNo initialized." << endl;
                 IPv6Address &caAddr = controlInfo->getSrcAddr();
@@ -349,7 +468,15 @@ void Agent::processControlAgentMessage(ControlAgentHeader* agentHeader, IPv6Cont
                 cancelAndDeleteExpiryTimer(caAddr,ie->getInterfaceId(), TIMERKEY_SEQNO_INIT);
                 EV << "MA: Seqno init timer removed. Process successfully finished." << endl;
             }
-            else { // if seqno is initialized, it should be a upper layer packet inside or seq confirmation or whatelse
+            else {
+                if(agentHeader->isName("ma_seq_update"))
+                    EV << "MA: Received seqno update. SeqNo is up to date." << endl;
+                am.setLastAcknowledgemnt(mobileId, agentHeader->getIpSequenceNumber());
+                IPv6Address &caAddr = controlInfo->getSrcAddr();
+//                InterfaceEntry *ie = ift->getInterfaceById(controlInfo->getInterfaceId());
+                cancelAndDeleteExpiryTimer(caAddr,-1, TIMERKEY_SEQ_UPDATE); // TODO interface should be set to -1 because the ack should independent of src. fix this also at sent method.
+                EV << "MA: Seqno update timer removed. Process successfully finished." << endl;
+//                EV << "AM_MA: " << am.to_string() << endl;
             }
         }
     }
@@ -458,7 +585,7 @@ void Agent::receiveSignal(cComponent *source, simsignal_t signalID, cObject *obj
     if(signalID == NF_INTERFACE_IPv6CONFIG_CHANGED) { // is triggered when carrier setting is changed
         if(dynamic_cast<InterfaceEntryChangeDetails *>(obj)) {
             InterfaceEntry *ie = check_and_cast<const InterfaceEntryChangeDetails *>(obj)->getInterfaceEntry();
-            EV << "NF_INTERFACE_IPv6CONFIG_CHANGED:" << endl; // << ie->ipv6Data()->getPreferredAddress().str() << endl;
+//            EV << "NF_INTERFACE_IPv6CONFIG_CHANGED:" << endl; // << ie->ipv6Data()->getPreferredAddress().str() << endl;
             if(ie->isUp()) { createInterfaceUpMessage(ie->getInterfaceId()); }
             else { createInterfaceDownMessage(ie->getInterfaceId()); }
 //            createInterfaceUpMessage(ie->getInterfaceId());
@@ -497,11 +624,13 @@ void Agent::updateAddressTable(int id, InterfaceUnit *iu)
         } else { // presents an interface has been disassociated
             am.removeIPv6AddressFromAddressMap(mobileId, iu->careOfAddress);
         }
+        createSequenceUpdate();
     } else {
         addressTable.insert(std::make_pair(id,iu)); // if not, include this new
         am.addIPv6AddressToAddressMap(mobileId, iu->careOfAddress);
-        if(sessionState == INITIALIZE) { createSessionInit(); }
+        if(sessionState == UNASSOCIATED) { createSessionInit(); }
     }
+    EV << "AM_MA: " << am.to_string() << endl;
 }
 
 

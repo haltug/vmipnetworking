@@ -29,8 +29,10 @@ namespace inet {
 //========== Timer key value ==========
 #define TIMERKEY_SESSION_INIT    0 // ca init key for timer module
 #define TIMERKEY_SEQNO_INIT      1
-#define TIMERKEY_IF_DOWN         2
-#define TIMERKEY_IF_UP           3
+#define TIMERKEY_SEQ_UPDATE      2
+#define TIMERKEY_LOC_UPDATE      3
+#define TIMERKEY_IF_DOWN         4
+#define TIMERKEY_IF_UP           5
 
 //========== Timer type
 #define TIMERTYPE_SESSION_INIT  50
@@ -44,12 +46,18 @@ namespace inet {
 #define MSG_START_TIME          100
 #define MSG_SESSION_INIT        101 // ca init msg type for handling
 #define MSG_SEQNO_INIT          102
-#define MSG_IF_DOWN             103
-#define MSG_IF_UP               104
+#define MSG_SEQ_UPDATE          103
+#define MSG_SEQ_UPDATE_DELAYED  104
+#define MSG_IF_DOWN             105
+#define MSG_IF_UP               106
+#define MSG_LOC_UPDATE          107
+#define MSG_LOC_UPDATE_DELAYED  108
 
 //========== Retransmission time of messages ==========
 #define TIMEOUT_SESSION_INIT    1 // retransmission time of ca init in sec
 #define TIMEOUT_SEQNO_INIT      1
+#define TIMEOUT_SEQ_UPDATE      1
+#define TIMEOUT_LOC_UPDATE      1
 #define TIMEDELAY_IF_DOWN       3   // delay of ip msg handler
 #define TIMEDELAY_IF_UP         0
 
@@ -74,7 +82,6 @@ class INET_API Agent : public cSimpleModule, public cListener
     virtual int numInitStages() const override { return NUM_INIT_STAGES; }
     virtual void initialize(int stage) override;
     virtual void handleMessage(cMessage *msg) override;
-    cMessage *timeoutMsg = nullptr;
     simtime_t startTime;
   public:
     Agent();
@@ -132,7 +139,8 @@ class INET_API Agent : public cSimpleModule, public cListener
     void sendToLowerLayer(cMessage *msg, const IPv6Address& destAddr, const IPv6Address& srcAddr = IPv6Address::UNSPECIFIED_ADDRESS, int interfaceId = -1, simtime_t sendTime = 0); // resend after timer expired
     void createSequenceInit();
     void sendSequenceInit(cMessage *msg);
-
+    void createSequenceUpdate();
+    void sendSequenceUpdate(cMessage *msg);
 
     void processControlAgentMessage(ControlAgentHeader *agentHdr, IPv6ControlInfo *ipCtrlInfo);
     void processMobileAgentMessages(MobileAgentHeader *agentHdr, IPv6ControlInfo *ipCtrlInfo);
