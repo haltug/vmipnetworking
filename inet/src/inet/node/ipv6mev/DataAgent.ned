@@ -20,24 +20,24 @@ import inet.node.inet.NodeBase;
 //
 // TODO auto-generated type
 //
-network ControlAgent extends NodeBase
+network DataAgent extends NodeBase
 {
-     parameters:
-        @display("i=abstract/router2");
+    parameters:
+        @display("i=abstract/switch");
         xml routes = default(xml("<routingTable/>"));
         networkLayerType = "IPv6NetworkLayer";
         routingTableType = "IPv6RoutingTable";
         routingTable.routes = routes;
         forwarding = false;
-	submodules:
-	    idLayer : Agent {
-	    	parameters:
+    submodules:
+        idLayer: Agent {
+            parameters:
                 @display("p=280,208");
                 isMA = false;
-                isCA = true;
-                isDA = false;
-	    }
-	connections allowunconnected:
+                isCA = false;
+                isDA = true;
+        }
+    connections allowunconnected:
         idLayer.toLowerLayer --> networkLayer.transportIn++;
         idLayer.fromLowerLayer <-- networkLayer.transportOut++;
 }

@@ -70,10 +70,10 @@ network vehicleConnectivity
             parameters:
                 @display("p=230,300;i=device/accesspoint_s");
         }
-//        AP_2: AccessPoint {
-//            parameters:
-//                @display("p=630,300;i=device/accesspoint_s");
-//        }
+        //        AP_2: AccessPoint {
+        //            parameters:
+        //                @display("p=630,300;i=device/accesspoint_s");
+        //        }
         AP_3: AccessPoint {
             parameters:
                 @display("p=430,500;i=device/accesspoint_s");
@@ -82,17 +82,21 @@ network vehicleConnectivity
             parameters:
                 @display("p=830,500;i=device/accesspoint_s");
         }
-        HUB_1: EtherHub {
-            parameters:
-                @display("p=730,30;i=device/hub_s");
-        }
+        //        HUB_1: EtherHub {
+        //            parameters:
+        //                @display("p=730,30;i=device/hub_s");
+        //        }
         CN[total_cn]: StandardHost6 {
             parameters:
                 @display("p=1030,30");
         }
         CA: ControlAgent {
             parameters:
-                @display("p=130,30");
+                @display("p=230,30");
+        }
+        DA: DataAgent {
+            parameters:
+                @display("p=630,30");
         }
         MA[total_mn]: MobileAgent {
             parameters:
@@ -108,20 +112,22 @@ network vehicleConnectivity
         R_3.ethg$i++ <-- ethernetline <-- R_5.ethg$o++;
         R_4.ethg$o++ --> ethernetline --> R_5.ethg$i++;
         R_4.ethg$i++ <-- ethernetline <-- R_5.ethg$o++;
-		CA.ethg$o++ --> ethernetline --> R_5.ethg$i++;
+        CA.ethg$o++ --> ethernetline --> R_5.ethg$i++;
         CA.ethg$i++ <-- ethernetline <-- R_5.ethg$o++;
+        DA.ethg$o++ --> ethernetline --> R_2.ethg$i++;
+        DA.ethg$i++ <-- ethernetline <-- R_2.ethg$o++;
         AP_1.ethg$o++ --> ethernetline --> R_1.ethg$i++;
         AP_1.ethg$i++ <-- ethernetline <-- R_1.ethg$o++;
-//        AP_2.ethg$o++ --> ethernetline --> R_2.ethg$i++;
-//        AP_2.ethg$i++ <-- ethernetline <-- R_2.ethg$o++;
+        //        AP_2.ethg$o++ --> ethernetline --> R_2.ethg$i++;
+        //        AP_2.ethg$i++ <-- ethernetline <-- R_2.ethg$o++;
         AP_3.ethg$o++ --> ethernetline --> R_3.ethg$i++;
         AP_3.ethg$i++ <-- ethernetline <-- R_3.ethg$o++;
         AP_4.ethg$o++ --> ethernetline --> R_4.ethg$i++;
         AP_4.ethg$i++ <-- ethernetline <-- R_4.ethg$o++;
-        HUB_1.ethg$o++ --> ethernetline --> R_5.ethg$i++;
-        HUB_1.ethg$i++ <-- ethernetline <-- R_5.ethg$o++;
+        //        HUB_1.ethg$o++ --> ethernetline --> R_5.ethg$i++;
+        //        HUB_1.ethg$i++ <-- ethernetline <-- R_5.ethg$o++;
         for i=0..total_cn-1 {
-            CN[i].ethg$o++ --> ethernetline --> HUB_1.ethg$i++;
-            CN[i].ethg$i++ <-- ethernetline <-- HUB_1.ethg$o++;
+            CN[i].ethg$o++ --> ethernetline --> R_2.ethg$i++;
+            CN[i].ethg$i++ <-- ethernetline <-- R_2.ethg$o++;
         }
 }

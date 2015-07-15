@@ -81,10 +81,10 @@ network vehicleNetworking
 //        	parameters:
 //        	    @display("p=830,500;i=device/accesspoint_s");
 //        }
-        HUB_1: EtherHub {
-            parameters:
-                @display("p=730,30;i=device/hub_s");
-        }
+//        HUB_1: EtherHub {
+//            parameters:
+//                @display("p=730,30;i=device/hub_s");
+//        }
         CN[total_cn]: StandardHost6 {
             parameters:
                 @display("p=1030,30");
@@ -111,10 +111,10 @@ network vehicleNetworking
 //        AP_3.ethg$i++ <-- ethernetline <-- R_3.ethg$o++;
 //        AP_4.ethg$o++ --> ethernetline --> R_4.ethg$i++;
 //        AP_4.ethg$i++ <-- ethernetline <-- R_4.ethg$o++;
-        HUB_1.ethg$o++ --> ethernetline --> R_5.ethg$i++;
-        HUB_1.ethg$i++ <-- ethernetline <-- R_5.ethg$o++;
+//        HUB_1.ethg$o++ --> ethernetline --> R_5.ethg$i++;
+//        HUB_1.ethg$i++ <-- ethernetline <-- R_5.ethg$o++;
         for i=0..total_cn-1 {
-            CN[i].ethg$o++ --> ethernetline --> HUB_1.ethg$i++;
-            CN[i].ethg$i++ <-- ethernetline <-- HUB_1.ethg$o++;
+            CN[i].ethg$o++ --> ethernetline --> R_5.ethg$i++;
+            CN[i].ethg$i++ <-- ethernetline <-- R_5.ethg$o++;
         }
 }

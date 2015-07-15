@@ -87,6 +87,7 @@ module MobileAgent extends NodeBase
                 @display("p=280,208");
                 isMA = true;
                 isCA = false;
+                isDA = false;
         }
     connections allowunconnected:
         idLayer.fromLowerLayer <-- networkLayer.transportOut++;
@@ -100,7 +101,6 @@ module MobileAgent extends NodeBase
         tcp.ipOut --> idLayer.fromTCP if hasUdp;
         tcp.ipIn <-- idLayer.toTCP if hasUdp;
         
-
         for i=0..numUdpApps-1 {
             udpApp[i].udpOut --> udp.appIn++;
             udpApp[i].udpIn <-- udp.appOut++;

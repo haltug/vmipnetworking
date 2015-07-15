@@ -83,6 +83,9 @@ class INET_API Agent : public cSimpleModule, public cListener
     virtual void initialize(int stage) override;
     virtual void handleMessage(cMessage *msg) override;
     simtime_t startTime;
+    bool isMA;
+    bool isCA;
+    bool isDA;
   public:
     Agent();
     virtual ~Agent();
@@ -96,16 +99,12 @@ class INET_API Agent : public cSimpleModule, public cListener
     AgentState seqnoState; // state of MA for seq init
 
     IInterfaceTable *ift = nullptr; // for recognizing changes etc
-//    AddressManagement *am = nullptr; // for sliding address mechanism
+    cModule *interfaceNotifier = nullptr; // listens for changes in interfacetable
     IPv6Address CA_Address; // ip address of ca
+    AddressManagement am;
     uint64 mobileId = 0;
     typedef std::vector<uint64>  MobileIdList;
     MobileIdList mobileIdList;
-    bool isMA;
-    bool isCA;
-    bool isDA;
-    const char *ctrlAgentAddr;
-    cModule *interfaceNotifier = nullptr; // listens for changes in interfacetable
 
     class InterfaceUnit { // represents the entry of addressTable
     public:
@@ -116,23 +115,28 @@ class INET_API Agent : public cSimpleModule, public cListener
     typedef std::map<int, InterfaceUnit *> AddressTable; // represents the address table
     AddressTable addressTable;
 
-    struct FlowUnit {
-        bool active;
-        std::vector<int> interfaceId;
-        int priority;
-        // traffic rules
-        short protocol;
-        int sourcePort;
-        int destPort;
+    struct FlowTuple {
         IPv6Address destAddress;
+        int destPort;
+        int sourcePort;
+        short protocol;
+        bool operator<(const FlowTuple& b) const {
+            return (destAddress != b.destAddress) ? (destPort != b.destPort) : (sourcePort != b.sourcePort);
+        }
     };
 
-    typedef std::map<IPv6Address, IPv6Address> DirectAddressList; // IPv6address should be replaced with DataAgent <cn,da>
-    DirectAddressList directAddressList;
+    struct FlowUnit {
+        bool active;
+        bool cacheAddress;
+        bool locationUpdate;
+        IPv6Address dataAgent;
+        std::vector<int> interfaceId;
+    };
 
-    AddressManagement am;
-//    virtual void processLowerLayerMessage(cMessage *msg);
-//    virtual void processUpperLayerMessage(cMessage *msg);
+    typedef std::map<FlowTuple, FlowUnit> FlowTable; // IPv6address should be replaced with DataAgent <cn,da>
+    FlowTable flowTable;
+
+    FlowUnit *getFlowUnit(FlowTuple &tuple);
 
     void createSessionInit();
     void sendSessionInit(cMessage *msg); // send initialization message to CA
@@ -142,8 +146,11 @@ class INET_API Agent : public cSimpleModule, public cListener
     void createSequenceUpdate();
     void sendSequenceUpdate(cMessage *msg);
 
+//    void processIncomingTCPPacket(cMessage *msg);
+    void processIncomingUDPPacket(cMessage *msg, IPv6ControlInfo *ipCtrlInfo);
     void processControlAgentMessage(ControlAgentHeader *agentHdr, IPv6ControlInfo *ipCtrlInfo);
-    void processMobileAgentMessages(MobileAgentHeader *agentHdr, IPv6ControlInfo *ipCtrlInfo);
+    void processDataAgentMessage(DataAgentHeader *agentHdr, IPv6ControlInfo *ipCtrlInfo);
+    void processMobileAgentMessage(MobileAgentHeader *agentHdr, IPv6ControlInfo *ipCtrlInfo);
 
     // functions for handling interface change
     void createInterfaceDownMessage(int id);
@@ -154,9 +161,6 @@ class INET_API Agent : public cSimpleModule, public cListener
     virtual void receiveSignal(cComponent *source, simsignal_t signalID, cObject *obj) override;
     InterfaceUnit* getInterfaceUnit(int id);
 
-    /*
-     * Signal handler for cObject, override cListener function.
-     */
     InterfaceEntry *getInterface(IPv6Address destAddr, int destPort = -1, int sourcePort = -1, short protocol = -1); //const ,
 
     // extension header processing

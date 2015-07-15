@@ -37,7 +37,6 @@ class noncobject IPv6ExtensionHeader;
 packet IdentificationHeader
 {
     int nextHeader = IP_PROT_IPv6EXT_ID;
-    int byteLength;
 }
 
 // Identification headers are represented as IPv6 extension of destination type
@@ -51,8 +50,8 @@ packet MobileAgentHeader extends IdentificationHeader
 	   bool ackValid;
 	   bool addValid;
 	   bool remValid;
-	   bool directAddrInit;
-	   bool redirectAddrInit;
+	   bool cacheAddrInit;
+	   bool forwardAddrInit;
 	   uint8 ipSequenceNumber;
 	   uint8 ipAcknowledgementNumber;
 	   uint8 ipAddingField;
@@ -61,7 +60,7 @@ packet MobileAgentHeader extends IdentificationHeader
 	   uint64 id;
 	   IPv6Address addedAddresses[];
 	   IPv6Address removedAddresses[];
-	   IPv6Address redirectAddress;
+	   IPv6Address nodeAddress;
 }
 
 packet ControlAgentHeader extends IdentificationHeader
@@ -70,13 +69,14 @@ packet ControlAgentHeader extends IdentificationHeader
 	    bool idInit;
 	    bool idAck;
 	    bool seqValid;
-	    bool directAddrAck;
-	    bool redirectAddrAck;
+	    bool cacheAddrAck;
+	    bool forwardAddrAck;
     	uint8 ipSequenceNumber;
     	uint8 functionField1;
     	uint8 functionField2;
     	uint8 functionField3;	   
-    	IPv6Address redirectAddress[];
+    	IPv6Address nodeAddress;
+    	IPv6Address agentAddress;
 }
 
 packet DataAgentHeader extends IdentificationHeader
@@ -85,11 +85,12 @@ packet DataAgentHeader extends IdentificationHeader
 	    bool idInit;
 	    bool idAck;
 	    bool seqValid;
-	    bool directAddrAck;
-	    bool redirectAddrAck;
+	    bool cacheAddrAck;
+	    bool forwardAddrAck;
     	uint8 ipSequenceNumber;
     	uint8 functionField1;
     	uint8 functionField2;
     	uint8 functionField3;		   
-    	IPv6Address redirectAddress[];
+    	IPv6Address nodeAddress;
+    	IPv6Address agentAddress;
 }

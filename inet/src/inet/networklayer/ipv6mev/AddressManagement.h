@@ -50,6 +50,7 @@ class INET_API AddressManagement : public cSimpleModule
         uint64 mobileID; // unnecessary
         uint currentSequenceNumber;
         uint lastAcknowledgement;
+        uint activeLinks;
         SequenceTable sequenceTable;
         SimTime timestamp;
 
