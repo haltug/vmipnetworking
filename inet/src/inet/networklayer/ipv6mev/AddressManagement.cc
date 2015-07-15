@@ -156,8 +156,11 @@ AddressManagement::AddressChange AddressManagement::getUnacknowledgedIPv6Address
     if(addressMap.count(id)) // check if id exists in map
     {
        AddressChange addressChange;
-       if(ack > seq) // 61 > 1
-           seq += (uint) SEQ_FIELD_SIZE; // Modulo operation if seq and ack exceeds max SEQ_FIELD_SIZE = 64
+       if(ack > seq) {
+           EV << "AM: SEQ field smaller than ACK" << endl;
+           seq += (uint) SEQ_FIELD_SIZE;
+       }// Modulo operation if seq and ack exceeds max SEQ_FIELD_SIZE = 64
+       // 61 > 1
        for(uint idx=ack; idx<seq; idx++)
        {
            SequenceTable seqTable (addressMap[id].sequenceTable); // get current sequence table
@@ -165,6 +168,7 @@ AddressManagement::AddressChange AddressManagement::getUnacknowledgedIPv6Address
                throw cRuntimeError("Sequence table with index (seqNo) does not exist.");
            if(!seqTable.count((idx+1) % (uint) SEQ_FIELD_SIZE)) // check if seq table with given seq number exists. serves as comparison.
                throw cRuntimeError("Sequence table with index+1 (seqNo=1) does not exist.");
+
            IPv6AddressList currIPv6AddressList (seqTable[idx % (uint) SEQ_FIELD_SIZE]); // get address list of index
            IPv6AddressList nextIPv6AddressList (seqTable[(idx+1) % (uint) SEQ_FIELD_SIZE]); // get address list of index + 1
            if(currIPv6AddressList.size() < nextIPv6AddressList.size()) // added case
