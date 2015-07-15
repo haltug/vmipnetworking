@@ -48,7 +48,7 @@ void Agent::initialize(int stage)
             seqnoState = UNASSOCIATED;
             srand(123); // TODO must be changed
             mobileId = (uint64) rand(); // TODO should be placed in future
-            am.initiateAddressMap(mobileId, rand());
+            am.initiateAddressMap(mobileId, 60);
         }
         if(isCA) {}
     }
@@ -215,7 +215,7 @@ void Agent::createSequenceUpdate() {
     InterfaceEntry *ie = getInterface(CA_Address);
     if(!ie) {
         EV << "MA: Delaying seq update. no interface provided." << endl;
-        cMessage *timeoutMsg = new cMessage("sessionStart");
+        cMessage *timeoutMsg = new cMessage("sequenceDelay");
         timeoutMsg->setKind(MSG_SEQ_UPDATE_DELAYED);
         scheduleAt(simTime()+TIMEOUT_SEQ_UPDATE, timeoutMsg);
     } else {
@@ -253,6 +253,7 @@ void Agent::sendSequenceUpdate(cMessage* msg)
     AddressManagement::AddressChange ac = am.getUnacknowledgedIPv6AddressList(mobileId,am.getLastAcknowledgemnt(mobileId),am.getCurrentSequenceNumber(mobileId));
     mah->setIpAddingField(ac.addedAddresses);
     mah->setAddedAddressesArraySize(ac.addedAddresses);
+//    EV << "SIZE_1:" << ac.addedAddresses << ";" << ac.removedAddresses << endl;
     if(ac.addedAddresses > 0) {
         if(ac.addedAddresses != ac.getUnacknowledgedAddedIPv6AddressList.size()) throw cRuntimeError("MA:sendSeqUpd: value of Add list must have size of integer.");
         for(int i=0; i<ac.addedAddresses; i++) {
