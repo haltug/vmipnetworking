@@ -127,7 +127,8 @@ class INET_API Agent : public cSimpleModule, public cListener
 
     struct FlowUnit {
         bool active;
-        bool cacheAddress;
+        bool cacheAddress; // specifiy if address should be cached
+        bool cachingActive;   // presents if address has been cached by data agent
         bool locationUpdate;
         IPv6Address dataAgent;
         std::vector<int> interfaceId;

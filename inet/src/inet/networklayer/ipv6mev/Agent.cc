@@ -363,7 +363,7 @@ void Agent::sendToLowerLayer(cMessage *msg, const IPv6Address& destAddr, const I
     }
 }
 
-void Agent::processIncomingUDPPacket(cMessage *msg, IPv6ControlInfo *ipCtrlInfo)
+void Agent::processIncomingUDPPacket(cMessage *msg, IPv6ControlInfo *controlInfo)
 {
     EV << "MA: processing incoming message from UDP " << endl;
     if(isMA)
@@ -375,7 +375,66 @@ void Agent::processIncomingUDPPacket(cMessage *msg, IPv6ControlInfo *ipCtrlInfo)
             tuple.destAddress = controlInfo->getDestAddr();
             tuple.sourcePort = udpPacket->getSourcePort();
             tuple.destPort = udpPacket->getDestinationPort();
-            // lookup for flow tuple
+            MobileAgentHeader *mah = new MobileAgentHeader("udp_id");
+            uint64 ADDED_CONFIG = 0;
+            FlowUnit *funit = getFlowUnit(tuple);
+            if(funit->cacheAddress) { // check if address should be cached. It should be cached.
+                if(!funit->cachingActive) { // first message to data agent.
+                    mah->setCacheAddrInit(true);
+                    mah->setForwardAddrInit(false);
+                    mah->setNodeAddress(tuple.destAddress);
+                    ADDED_CONFIG += SIZE_ADDING_ADDR_TO_HDR;
+                } else {
+                    mah->setCacheAddrInit(false);
+                    mah->setForwardAddrInit(false);
+//                    mah->setNodeAddress(); is not set since address is cached
+                }
+            } else { // no data agent cache desired
+                mah->setCacheAddrInit(false);
+                mah->setForwardAddrInit(true);
+                mah->setNodeAddress(tuple.destAddress);
+                ADDED_CONFIG += SIZE_ADDING_ADDR_TO_HDR;
+            }
+            mah->setNextHeader(IP_PROT_UDP);
+            mah->setIdInit(true);
+            mah->setIdAck(true);
+            mah->setSeqValid(true);
+            mah->setAckValid(true);
+            mah->setAddValid(true);
+            mah->setRemValid(true);
+            mah->setIpSequenceNumber(am.getCurrentSequenceNumber(mobileId));
+            mah->setIpAcknowledgementNumber(am.getLastAcknowledgemnt(mobileId));
+            uint ack = am.getLastAcknowledgemnt(mobileId);
+            uint seq = am.getCurrentSequenceNumber(mobileId);
+            AddressManagement::AddressChange ac = am.getUnacknowledgedIPv6AddressList(mobileId,ack,seq);
+            mah->setIpAddingField(ac.addedAddresses);
+            mah->setAddedAddressesArraySize(ac.addedAddresses);
+            if(ac.addedAddresses > 0) {
+                if(ac.addedAddresses != ac.getUnacknowledgedAddedIPv6AddressList.size()) throw cRuntimeError("MA:sendSeqUpd: value of Add list must have size of integer.");
+                for(int i=0; i<ac.addedAddresses; i++) {
+                    mah->setAddedAddresses(i,ac.getUnacknowledgedAddedIPv6AddressList.at(i));
+                }
+            }
+            mah->setIpRemovingField(ac.removedAddresses);
+            mah->setRemovedAddressesArraySize(ac.removedAddresses);
+            if(ac.removedAddresses > 0) {
+                if(ac.removedAddresses != ac.getUnacknowledgedRemovedIPv6AddressList.size()) throw cRuntimeError("MA:sendSeqUpd: value of Rem list must have size of integer.");
+                for(int i=0; i<ac.removedAddresses; i++) {
+                    mah->setRemovedAddresses(i,ac.getUnacknowledgedRemovedIPv6AddressList.at(i));
+                }
+            }
+            mah->setId(mobileId);
+            mah->setByteLength(SIZE_AGENT_HEADER+(SIZE_ADDING_ADDR_TO_HDR*(ac.addedAddresses+ac.removedAddresses))+ADDED_CONFIG);
+            for(auto i = funit->interfaceId.begin(); i != funit->interfaceId.end(); i++ ) { // send over all links at same time
+//                controlInfo->setDestinationAddress(tuple.destAddress);
+                controlInfo->setInterfaceId(i); // just override existing entries
+                controlInfo->setProtocol(IP_PROT_IPv6EXT_ID);
+                mah->setControlInfo(controlInfo->dup()); // make copy before setting param
+                mah->encapsulate(udpPacket->dup());
+                sendToLowerLayer(mah, dest, src);
+            }
+            delete udpPacket;
+            delete controlInfo;
 
         } else { throw cRuntimeError("MA: Incoming message should be UPD packet."); }
     }
@@ -384,8 +443,22 @@ void Agent::processIncomingUDPPacket(cMessage *msg, IPv6ControlInfo *ipCtrlInfo)
 
 Agent::FlowUnit *Agent::getFlowUnit(FlowTuple &tuple)
 {
-    FlowUnit *fu;
-    if
+    auto i = flowTable.find(tuple);
+    FlowUnit *fu = nullptr;
+    if (i == flowTable.end()) {
+        fu = &flowTable[tuple];
+        // send here CA request
+        fu->active = false;
+        fu->cacheAddress = false; // should be determined by CA
+        fu->cachingActive = false; // should be set by CA
+        fu->dataAgent = tuple.destAddress.UNSPECIFIED_ADDRESS; // should be set by CA
+        fu->interfaceId.push_back(-1);
+        fu->locationUpdate = false;
+    }
+    else {
+        fu = &(i->second);
+    }
+    return fu;
 }
 
 void Agent::processDataAgentMessage(DataAgentHeader* agentHeader, IPv6ControlInfo* ipCtrlInfo)
