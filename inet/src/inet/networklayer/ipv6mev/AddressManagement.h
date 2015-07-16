@@ -37,7 +37,6 @@ class INET_API AddressManagement : public cSimpleModule
     virtual ~AddressManagement();
     static const int SEQ_FIELD_SIZE = 256;
 
-  public:
     // A list of IPv6 addresses stored as vector
     typedef std::vector<IPv6Address> IPv6AddressList;
     // A map containing a list of IPv6 addresses (IPv6AddressList) and
@@ -55,26 +54,6 @@ class INET_API AddressManagement : public cSimpleModule
         SimTime timestamp;
 
     };
-    // A map that contains all elements of vehicle agents
-    typedef std::map<uint64,AddressMapEntry> AddressMap;
-    // The address map variable
-    AddressMap addressMap;
-//    friend std::ostream& operator<<(std::ostream& os, const AddressManagement& am);
-
-    uint initiateAddressMap(uint64 id, int seed); // for VA
-    bool insertNewId(uint64 id, uint seqno, IPv6Address& addr); // for CA+DA
-    void addIPv6AddressToAddressMap(uint64 id, IPv6Address& addr);
-    void removeIPv6AddressFromAddressMap(uint64 id, IPv6Address& addr);
-//    void addIPv6AddressToAddressMap(L3Address& id, IPv6AddressList& addr);
-//    void removeIPv6AddressfromAddressMap(L3Address& id, IPv6AddressList& addr);
-
-    // returns the last sequence number
-    uint getCurrentSequenceNumber(const uint64 id) const;
-    // returns the last ack number
-    uint getLastAcknowledgemnt(uint64 id) const;
-    void setLastAcknowledgemnt(uint64 id, uint seqno);
-    bool isLastSequenceNumberAcknowledged(uint64 id) const;
-    bool isIdInListgiven(uint64 id)  const;
 
     struct AddressChange
     {
@@ -84,6 +63,28 @@ class INET_API AddressManagement : public cSimpleModule
         IPv6AddressList getUnacknowledgedRemovedIPv6AddressList;
     };
     AddressChange getUnacknowledgedIPv6AddressList(uint64 id, uint ack, uint seq);
+    AddressChange getAddessEntriesOfSequenceNumber(uint64 id, uint seq);
+
+    // A map that contains all elements of vehicle agents
+    typedef std::map<uint64,AddressMapEntry> AddressMap;
+    // The address map variable
+    AddressMap addressMap;
+//    friend std::ostream& operator<<(std::ostream& os, const AddressManagement& am);
+    const AddressMap getAddressMap() { return addressMap; }
+
+    uint initiateAddressMap(uint64 id, int seed); // for VA
+    bool insertNewId(uint64 id, uint seqno, IPv6Address& addr); // for CA+DA
+    void addIPv6AddressToAddressMap(uint64 id, IPv6Address& addr); // for adding of new ip by MA and CA. a new value increments the seqNo
+    void removeIPv6AddressFromAddressMap(uint64 id, IPv6Address& addr); // for removing existing ip in last seq entry
+    void insertSequenceTableToAddressMap(uint64 id, IPv6AddressList& addr, uint seq); // insert a complete seqTable to address map
+
+    // returns the last sequence number
+    uint getCurrentSequenceNumber(const uint64 id) const;
+    // returns the last ack number
+    uint getLastAcknowledgemnt(uint64 id) const;
+    void setLastAcknowledgemnt(uint64 id, uint seqno);
+    bool isLastSequenceNumberAcknowledged(uint64 id) const;
+    bool isIdInitialized(uint64 id)  const;
 
     // prints given parameter in string form
     std::string to_string() const;

@@ -150,6 +150,18 @@ void AddressManagement::removeIPv6AddressFromAddressMap(uint64 id, IPv6Address& 
         throw cRuntimeError("ID is not found in AddressMap. Create entry for ID.");
     }
 }
+void AddressManagement::insertSequenceTableToAddressMap(uint64 id, IPv6AddressList &addr, uint seq)
+{
+    if(addressMap.count(id)) { // check if id exists in map
+        addressMap[id].currentSequenceNumber = seq;
+        addressMap[id].lastAcknowledgement = seq;
+        addressMap[id].sequenceTable.insert(std::make_pair(seq,addr));
+        addressMap[id].timestamp = simTime(); // set a current timestamp
+    } else {
+        throw cRuntimeError("ID is not found in AddressMap. Create entry for ID.");
+    }
+}
+
 // Returns the change of IPv6 addresses as lists from ack up to the seq
 AddressManagement::AddressChange AddressManagement::getUnacknowledgedIPv6AddressList(uint64 id, uint ack, uint seq)
 {
@@ -207,6 +219,24 @@ AddressManagement::AddressChange AddressManagement::getUnacknowledgedIPv6Address
     }
 }
 
+AddressManagement::AddressChange AddressManagement::getAddessEntriesOfSequenceNumber(uint64 id, uint seq)
+{
+    if(addressMap.count(id)) { // check if id exists in map
+       AddressChange addressChange;
+       SequenceTable seqTable (addressMap[id].sequenceTable); // get current sequence table
+       if(!seqTable.count(seq)) // check if seq table with given seq number exists
+           throw cRuntimeError("Sequence table with index (seqNo) does not exist.");
+       IPv6AddressList currIPv6AddressList (seqTable[seq]); // get address list of index
+       addressChange.addedAddresses = currIPv6AddressList.size();
+       addressChange.getUnacknowledgedAddedIPv6AddressList = currIPv6AddressList;
+       addressChange.getUnacknowledgedRemovedIPv6AddressList;
+       addressChange.removedAddresses = 0;
+       return addressChange;
+    } else {
+        throw cRuntimeError("ID is not found in AddressMap. Create entry for ID.");
+    }
+}
+
 uint AddressManagement::getCurrentSequenceNumber(const uint64 id) const
 {
     if(addressMap.count(id)) // check if id exists in map
@@ -248,7 +278,7 @@ bool AddressManagement::isLastSequenceNumberAcknowledged(uint64 id) const
     }
 }
 
-bool AddressManagement::isIdInListgiven(uint64 id) const
+bool AddressManagement::isIdInitialized(uint64 id) const
 {
     return addressMap.count(id);
 }

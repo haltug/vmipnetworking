@@ -33,6 +33,8 @@ namespace inet {
 #define TIMERKEY_LOC_UPDATE      3
 #define TIMERKEY_IF_DOWN         4
 #define TIMERKEY_IF_UP           5
+#define TIMERKEY_FLOW_REQ        6
+#define TIMERKEY_MA_INIT         7
 
 //========== Timer type
 #define TIMERTYPE_SESSION_INIT  50
@@ -41,6 +43,8 @@ namespace inet {
 #define TIMERTYPE_LOC_UPDATE    53
 #define TIMERTYPE_IF_DOWN       54
 #define TIMERTYPE_IF_UP         55
+#define TIMERTYPE_FLOW_REQ      56
+#define TIMERTYPE_MA_INIT       57
 
 //========== Message type in handleMessage() ==========
 #define MSG_START_TIME          100
@@ -52,6 +56,11 @@ namespace inet {
 #define MSG_IF_UP               106
 #define MSG_LOC_UPDATE          107
 #define MSG_LOC_UPDATE_DELAYED  108
+#define MSG_FLOW_REQ            109
+#define MSG_UDP_RETRANSMIT      110
+#define MSG_MA_INIT             111
+#define MSG_MA_INIT_DELAY       112
+#define MSG_AGENT_UPDATE        113
 
 //========== Retransmission time of messages ==========
 #define TIMEOUT_SESSION_INIT    1 // retransmission time of ca init in sec
@@ -60,6 +69,10 @@ namespace inet {
 #define TIMEOUT_LOC_UPDATE      1
 #define TIMEDELAY_IF_DOWN       3   // delay of ip msg handler
 #define TIMEDELAY_IF_UP         0
+#define TIMEDELAY_FLOW_REQ      1 // unit is [s]
+#define TIMEDELAY_MA_INIT       1 // unit is [s]
+#define MAX_PKT_LIFETIME        30 // specifies retransmission attempts until pkt is discarded
+//#define TIMEOUT_FLOW_REQ        1
 
 //========== Header SIZE ===========
 #define SIZE_AGENT_HEADER        16
@@ -92,8 +105,8 @@ class INET_API Agent : public cSimpleModule, public cListener
 
     enum AgentState {
         UNASSOCIATED = 0,
-        INITIALIZE   = 1,
-        REGISTERED   = 2
+        INITIALIZING = 1,
+        ASSOCIATED   = 2
     };
     AgentState sessionState; // state of MA at beginning
     AgentState seqnoState; // state of MA for seq init
@@ -105,6 +118,8 @@ class INET_API Agent : public cSimpleModule, public cListener
     uint64 mobileId = 0;
     typedef std::vector<uint64>  MobileIdList;
     MobileIdList mobileIdList;
+    typedef std::vector<IPv6Address> NodeAddressList;
+    NodeAddressList nodeAddressList;
 
     class InterfaceUnit { // represents the entry of addressTable
     public:
@@ -119,25 +134,40 @@ class INET_API Agent : public cSimpleModule, public cListener
         IPv6Address destAddress;
         int destPort;
         int sourcePort;
+        int lifetime;
         short protocol;
         bool operator<(const FlowTuple& b) const {
             return (destAddress != b.destAddress) ? (destPort != b.destPort) : (sourcePort != b.sourcePort);
         }
     };
 
+    enum FlowState {
+        UNREGISTERED = 0,
+        REGISTERING  = 1,
+        REGISTERED   = 2
+    };
+
     struct FlowUnit {
+        FlowState state;
         bool active;
         bool cacheAddress; // specifiy if address should be cached
         bool cachingActive;   // presents if address has been cached by data agent
         bool locationUpdate;
-        IPv6Address dataAgent;
-        std::vector<int> interfaceId;
+        bool loadSharing;
+
+        IPv6Address dataAgent; // defines the address of data agent
     };
 
     typedef std::map<FlowTuple, FlowUnit> FlowTable; // IPv6address should be replaced with DataAgent <cn,da>
     FlowTable flowTable;
 
+    typedef std::map<IPv6Address,IPv6Address> AddressAssociation; // destinationAddress -> agentAddress
+    AddressAssociation addressAssociation;
+
     FlowUnit *getFlowUnit(FlowTuple &tuple);
+    FlowUnit *getFlowSetting(FlowTuple &tuple);
+    bool isAddressAssociated(IPv6Address &dest);
+    IPv6Address *getAssociatedAddress(IPv6Address &dest);
 
     void createSessionInit();
     void sendSessionInit(cMessage *msg); // send initialization message to CA
@@ -146,6 +176,20 @@ class INET_API Agent : public cSimpleModule, public cListener
     void sendSequenceInit(cMessage *msg);
     void createSequenceUpdate();
     void sendSequenceUpdate(cMessage *msg);
+    void createFlowRequest(FlowTuple &tuple);
+    void sendFlowRequest(cMessage *msg);
+
+    // CA function
+    void createAgentInit(uint64 mobileId); // used by CA
+    void sendAgentInit(cMessage *msg); // used by CA to init DA
+    void createAgentUpdate(uint64 mobileId); // used by CA to update all its specific data agents
+    void sendAgentUpdate(cMessage *msg);
+    void sendSequenceUpdateAck(uint64 mobileId); // confirm to MA its new
+
+    void createSequenceUpdateNotificaiton(uint64 mobileId);
+    void sendSequenceUpdateNotification(cMessage *msg); // used by DA to notify CA of changes
+    void sendCorrespondentNodeMessage(cMessage *msg); // forwards message to CN
+    void sendMobileAgentMessage(); // forwards messages to MA
 
 //    void processIncomingTCPPacket(cMessage *msg);
     void processIncomingUDPPacket(cMessage *msg, IPv6ControlInfo *ipCtrlInfo);
@@ -209,6 +253,7 @@ class INET_API Agent : public cSimpleModule, public cListener
     class SessionInitTimer : public ExpiryTimer {
     public:
         uint lifetime;
+        uint64 id;
     };
     // TimerType 51
     class SequenceInitTimer : public ExpiryTimer {
@@ -218,7 +263,7 @@ class INET_API Agent : public cSimpleModule, public cListener
     // TimerType 52
     class SequenceUpdateTimer : public ExpiryTimer {
     public:
-        uint lifetime;
+        uint64 id;
     };
     // TimerType 53
     class LocationUpdateTimer : public ExpiryTimer {
@@ -233,6 +278,14 @@ class INET_API Agent : public cSimpleModule, public cListener
     class InterfaceUpTimer : public ExpiryTimer {
     public:
         bool active = false;
+    };
+    class FlowRequestTimer : public ExpiryTimer {
+    public:
+        FlowTuple *tuple;
+    };
+    class MobileInitTimer : public ExpiryTimer {
+    public:
+        uint64 id;
     };
     ExpiryTimer *getExpiryTimer(TimerKey& key, int timerType);
     bool pendingExpiryTimer(const IPv6Address& dest, int interfaceId, int timerType);

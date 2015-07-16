@@ -98,8 +98,8 @@ module MobileAgent extends NodeBase
             tcpApp[i].tcpIn <-- tcp.appOut++;
         }
 
-        tcp.ipOut --> idLayer.fromTCP if hasUdp;
-        tcp.ipIn <-- idLayer.toTCP if hasUdp;
+//        tcp.ipOut --> idLayer.fromTCP if hasUdp;
+//        tcp.ipIn <-- idLayer.toTCP if hasUdp;
         
         for i=0..numUdpApps-1 {
             udpApp[i].udpOut --> udp.appIn++;
