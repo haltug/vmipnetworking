@@ -71,7 +71,7 @@ namespace inet {
 #define TIMEDELAY_IF_UP         0
 #define TIMEDELAY_FLOW_REQ      1 // unit is [s]
 #define TIMEDELAY_MA_INIT       1 // unit is [s]
-#define MAX_PKT_LIFETIME        30 // specifies retransmission attempts until pkt is discarded
+#define MAX_PKT_LIFETIME        30 // specifies retransmission attempts until pkt is discarded for udp tcp
 //#define TIMEOUT_FLOW_REQ        1
 
 //========== Header SIZE ===========
@@ -116,10 +116,8 @@ class INET_API Agent : public cSimpleModule, public cListener
     IPv6Address CA_Address; // ip address of ca
     AddressManagement am;
     uint64 mobileId = 0;
-    typedef std::vector<uint64>  MobileIdList;
-    MobileIdList mobileIdList;
-    typedef std::vector<IPv6Address> NodeAddressList;
-    NodeAddressList nodeAddressList;
+    std::vector<uint64>  mobileIdList; // lists all id of mobile nodes
+    std::vector<IPv6Address> nodeAddressList; // lists all agents
 
     class InterfaceUnit { // represents the entry of addressTable
     public:
@@ -169,9 +167,10 @@ class INET_API Agent : public cSimpleModule, public cListener
     bool isAddressAssociated(IPv6Address &dest);
     IPv6Address *getAssociatedAddress(IPv6Address &dest);
 
+    void sendToLowerLayer(cMessage *msg, const IPv6Address& destAddr, const IPv6Address& srcAddr = IPv6Address::UNSPECIFIED_ADDRESS, int interfaceId = -1, simtime_t sendTime = 0); // resend after timer expired
+
     void createSessionInit();
     void sendSessionInit(cMessage *msg); // send initialization message to CA
-    void sendToLowerLayer(cMessage *msg, const IPv6Address& destAddr, const IPv6Address& srcAddr = IPv6Address::UNSPECIFIED_ADDRESS, int interfaceId = -1, simtime_t sendTime = 0); // resend after timer expired
     void createSequenceInit();
     void sendSequenceInit(cMessage *msg);
     void createSequenceUpdate();
@@ -185,17 +184,26 @@ class INET_API Agent : public cSimpleModule, public cListener
     void createAgentUpdate(uint64 mobileId); // used by CA to update all its specific data agents
     void sendAgentUpdate(cMessage *msg);
     void sendSequenceUpdateAck(uint64 mobileId); // confirm to MA its new
+    void sendSessionInitResponse(IPv6Address dest, IPv6Address source);
+    void sendSequenceInitResponse(IPv6Address dest, IPv6Address source, uint64 mobileId);
+    void sendSequenceUpdateResponse(IPv6Address destAddr, IPv6Address sourceAddr, uint64 mobileId);
+    void sendFlowRequestResponse(IPv6Address destAddr, IPv6Address sourceAddr, uint64 mobileId, IPv6Address nodeAddr, IPv6Address agentAddr);
 
+    // DA function
     void createSequenceUpdateNotificaiton(uint64 mobileId);
     void sendSequenceUpdateNotification(cMessage *msg); // used by DA to notify CA of changes
     void sendCorrespondentNodeMessage(cMessage *msg); // forwards message to CN
     void sendMobileAgentMessage(); // forwards messages to MA
+    void sendAgentInitResponse(IPv6Address destAddr, IPv6Address sourceAddr, uint64 mobileId);
+    void sendAgentUpdateResponse(IPv6Address destAddr, IPv6Address sourceAddr, uint64 mobileId);
 
-//    void processIncomingTCPPacket(cMessage *msg);
-    void processIncomingUDPPacket(cMessage *msg, IPv6ControlInfo *ipCtrlInfo);
+    // Header processing
+    void processMobileAgentMessage(MobileAgentHeader *agentHdr, IPv6ControlInfo *ipCtrlInfo);
     void processControlAgentMessage(ControlAgentHeader *agentHdr, IPv6ControlInfo *ipCtrlInfo);
     void processDataAgentMessage(DataAgentHeader *agentHdr, IPv6ControlInfo *ipCtrlInfo);
-    void processMobileAgentMessage(MobileAgentHeader *agentHdr, IPv6ControlInfo *ipCtrlInfo);
+
+    void processIncomingUDPPacket(cMessage *msg, IPv6ControlInfo *ipCtrlInfo);
+//    void processIncomingTCPPacket(cMessage *msg);
 
     // functions for handling interface change
     void createInterfaceDownMessage(int id);
@@ -207,7 +215,7 @@ class INET_API Agent : public cSimpleModule, public cListener
     InterfaceUnit* getInterfaceUnit(int id);
 
     InterfaceEntry *getInterface(IPv6Address destAddr, int destPort = -1, int sourcePort = -1, short protocol = -1); //const ,
-
+    InterfaceEntry *getAnyInterface();
     // extension header processing
 //    void sendToLowerLayer(cObject *obj, const IPv6Address& destAddr, const IPv6Address& srcAddr = IPv6Address::UNSPECIFIED_ADDRESS, int interfaceId = -1, simtime_t sendTime = 0); // resend after timer expired
 //    void messageProcessingUnitMA(MobileAgentOptionHeader *optHeader, IPv6Datagram *datagram, IPv6ControlInfo *controlInfo);
@@ -227,22 +235,38 @@ class INET_API Agent : public cSimpleModule, public cListener
     public:
         int type;
         int interfaceID;
+        uint64 mobileId;
         IPv6Address dest;
         TimerKey(IPv6Address _dest, int _interfaceID, int _type) {
             dest=_dest;
             interfaceID=_interfaceID;
             type=_type;
+            mobileId=0;
+        }
+        TimerKey(IPv6Address _dest, int _interfaceID, int _type, uint64 _mobileId) {
+            dest=_dest;
+            interfaceID=_interfaceID;
+            type=_type;
+            mobileId=_mobileId;
         }
         TimerKey(int _interfaceID,int _type) { // could lead to a failure because of the operator overload!!!
             dest=dest.UNSPECIFIED_ADDRESS;
             interfaceID=_interfaceID;
             type=_type;
+            mobileId=0;
         }
         virtual ~TimerKey() {};
         bool operator<(const TimerKey& b) const {
-            if (type == b.type)
-                return interfaceID == b.interfaceID ? dest < b.dest : interfaceID < b.interfaceID;
-            else
+            if(type == b.type) {
+                if(interfaceID == b.interfaceID) {
+                    if(dest == b.dest) {
+                        return mobileId < b.mobileId;
+                    } else
+                        return dest < b.dest;
+                } else
+                    return interfaceID < b.interfaceID;
+
+            } else
                 return type < b.type;
         }
     };
@@ -288,9 +312,9 @@ class INET_API Agent : public cSimpleModule, public cListener
         uint64 id;
     };
     ExpiryTimer *getExpiryTimer(TimerKey& key, int timerType);
-    bool pendingExpiryTimer(const IPv6Address& dest, int interfaceId, int timerType);
-    bool cancelExpiryTimer(const IPv6Address& dest, int interfaceId, int timerType);
-    bool cancelAndDeleteExpiryTimer(const IPv6Address& dest, int interfaceId, int timerType);
+    bool pendingExpiryTimer(const IPv6Address& dest, int interfaceId, int timerType, uint64 id = 0);
+    bool cancelExpiryTimer(const IPv6Address& dest, int interfaceId, int timerType, uint64 id = 0);
+    bool cancelAndDeleteExpiryTimer(const IPv6Address& dest, int interfaceId, int timerType, uint64 id = 0);
     void cancelExpiryTimers();
 //============================================= Timer configuration ===========================
 

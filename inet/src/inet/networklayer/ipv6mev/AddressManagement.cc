@@ -155,7 +155,10 @@ void AddressManagement::insertSequenceTableToAddressMap(uint64 id, IPv6AddressLi
     if(addressMap.count(id)) { // check if id exists in map
         addressMap[id].currentSequenceNumber = seq;
         addressMap[id].lastAcknowledgement = seq;
-        addressMap[id].sequenceTable.insert(std::make_pair(seq,addr));
+        if(addr.size() > 0)
+            addressMap[id].sequenceTable.insert(std::make_pair(seq,addr));
+        else
+            throw cRuntimeError("Size must greater as 0.");
         addressMap[id].timestamp = simTime(); // set a current timestamp
     } else {
         throw cRuntimeError("ID is not found in AddressMap. Create entry for ID.");
@@ -229,7 +232,7 @@ AddressManagement::AddressChange AddressManagement::getAddessEntriesOfSequenceNu
        IPv6AddressList currIPv6AddressList (seqTable[seq]); // get address list of index
        addressChange.addedAddresses = currIPv6AddressList.size();
        addressChange.getUnacknowledgedAddedIPv6AddressList = currIPv6AddressList;
-       addressChange.getUnacknowledgedRemovedIPv6AddressList;
+//       addressChange.getUnacknowledgedRemovedIPv6AddressList;
        addressChange.removedAddresses = 0;
        return addressChange;
     } else {
@@ -281,6 +284,43 @@ bool AddressManagement::isLastSequenceNumberAcknowledged(uint64 id) const
 bool AddressManagement::isIdInitialized(uint64 id) const
 {
     return addressMap.count(id);
+}
+
+bool AddressManagement::isIpRegistered(uint64 id, IPv6Address& dest, uint seq)
+{
+    auto it = addressMap.find(id);
+    if(it != addressMap.end()) {
+        SequenceTable seqTab = it->second.sequenceTable;
+        auto it2 = seqTab.find(seq);
+        if(it2 != seqTab.end()) {
+            IPv6AddressList ipList = it2->second;
+            if(std::find(ipList.begin(), ipList.end(), dest) != ipList.end()) {
+                return true;
+            } else {
+                return false;
+            }
+        } else {
+            throw cRuntimeError("Sequence does not exist in sequence table of adressMap. check that");
+        }
+    } else {
+        throw cRuntimeError("ID is not found in AddressMap. Create entry for ID.");
+    }
+}
+
+AddressManagement::IPv6AddressList AddressManagement::getCurrentAddressList(uint64 id)
+{
+    auto it = addressMap.find(id);
+    if(it != addressMap.end()) {
+        SequenceTable seqTab = it->second.sequenceTable;
+        auto it2 = seqTab.find(it->second.currentSequenceNumber);
+        if(it2 != seqTab.end()) {
+            return it2->second;
+        } else {
+            throw cRuntimeError("Sequence does not exist in sequence table of adressMap. check that");
+        }
+    } else {
+        throw cRuntimeError("ID is not found in AddressMap. Create entry for ID or check the parameter.");
+    }
 }
 
 // Prints all IPv6 Addresses in IPv6AddressList

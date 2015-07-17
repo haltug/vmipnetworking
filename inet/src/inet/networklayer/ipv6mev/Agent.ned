@@ -24,6 +24,7 @@ simple Agent
         @display("i=block/join");
         string interfaceTableModule;
         string controlAgentAddress = default("");  // server address (may be symbolic)
+        string dataAgentAddress = default("");
         double startTime @unit(s) = default(5s);
         bool isMA = default(false);
         bool isCA = default(false);

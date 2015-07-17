@@ -52,7 +52,6 @@ class INET_API AddressManagement : public cSimpleModule
         uint activeLinks;
         SequenceTable sequenceTable;
         SimTime timestamp;
-
     };
 
     struct AddressChange
@@ -85,6 +84,8 @@ class INET_API AddressManagement : public cSimpleModule
     void setLastAcknowledgemnt(uint64 id, uint seqno);
     bool isLastSequenceNumberAcknowledged(uint64 id) const;
     bool isIdInitialized(uint64 id)  const;
+    bool isIpRegistered(uint64 id, IPv6Address& dest, uint seq);
+    IPv6AddressList getCurrentAddressList(uint64 id);
 
     // prints given parameter in string form
     std::string to_string() const;

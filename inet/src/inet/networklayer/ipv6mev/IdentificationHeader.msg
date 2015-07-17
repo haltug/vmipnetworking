@@ -71,12 +71,14 @@ packet ControlAgentHeader extends IdentificationHeader
 	    bool seqValid;
 	    bool cacheAddrAck;
 	    bool forwardAddrAck;
+	    bool idValid;
     	uint8 ipSequenceNumber;
     	uint8 functionField1;
     	uint8 functionField2;
     	uint8 functionField3;	   
     	IPv6Address nodeAddress;
     	IPv6Address agentAddress;
+    	uint64 id;
 }
 
 packet DataAgentHeader extends IdentificationHeader
@@ -87,10 +89,12 @@ packet DataAgentHeader extends IdentificationHeader
 	    bool seqValid;
 	    bool cacheAddrAck;
 	    bool forwardAddrAck;
+	    bool idValid;
     	uint8 ipSequenceNumber;
     	uint8 functionField1;
     	uint8 functionField2;
     	uint8 functionField3;		   
     	IPv6Address nodeAddress;
     	IPv6Address agentAddress;
+    	uint64 id;
 }
