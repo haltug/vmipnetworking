@@ -18,6 +18,7 @@
 
 #include <map>
 #include <vector>
+
 #include "inet/common/INETDefs.h"
 #include "inet/networklayer/contract/ipv6/IPv6Address.h"
 #include "inet/networklayer/ipv6mev/IdentificationHeader.h"
@@ -92,18 +93,9 @@ class AddressManagement;
 /**
  * TODO - Generated class
  */
-class INET_API Agent : public cSimpleModule, public cListener
+class INET_API Agent : public cSimpleModule
 {
-  protected:
-    virtual int numInitStages() const override { return NUM_INIT_STAGES; }
-    virtual void initialize(int stage) override;
-    virtual void handleMessage(cMessage *msg) override;
-    simtime_t startTime;
-    bool isMA;
-    bool isCA;
-    bool isDA;
   public:
-    Agent();
     virtual ~Agent();
 
     enum AgentState {
@@ -114,22 +106,17 @@ class INET_API Agent : public cSimpleModule, public cListener
     AgentState sessionState; // state of MA at beginning
     AgentState seqnoState; // state of MA for seq init
 
-    IInterfaceTable *ift = nullptr; // for recognizing changes etc
-    cModule *interfaceNotifier = nullptr; // listens for changes in interfacetable
-    IPv6Address CA_Address; // ip address of ca
+    IPv6Address caAddress; // ip address of ca
     AddressManagement am;
-    uint64 mobileId = 0;
-    std::vector<uint64>  mobileIdList; // lists all id of mobile nodes
-    std::vector<IPv6Address> nodeAddressList; // lists all agents
 
-    class InterfaceUnit { // represents the entry of addressTable
-    public:
-        bool active;
-        int priority;
-        IPv6Address careOfAddress;
+    std::vector<uint64>  mobileIdList; // lists all id of mobile nodes
+    std::vector<IPv6Address> nodeAddressList; // lists all data agents
+
+    enum FlowState {
+        UNREGISTERED = 0,
+        REGISTERING  = 1,
+        REGISTERED   = 2
     };
-    typedef std::map<int, InterfaceUnit *> AddressTable; // represents the address table
-    AddressTable addressTable;
 
     struct FlowTuple {
         IPv6Address destAddress;
@@ -140,12 +127,6 @@ class INET_API Agent : public cSimpleModule, public cListener
         bool operator<(const FlowTuple& b) const {
             return (destAddress != b.destAddress) ? (destPort != b.destPort) : (sourcePort != b.sourcePort);
         }
-    };
-
-    enum FlowState {
-        UNREGISTERED = 0,
-        REGISTERING  = 1,
-        REGISTERED   = 2
     };
 
     struct FlowUnit {
@@ -166,63 +147,8 @@ class INET_API Agent : public cSimpleModule, public cListener
     AddressAssociation addressAssociation;
 
     FlowUnit *getFlowUnit(FlowTuple &tuple);
-    FlowUnit *getFlowSetting(FlowTuple &tuple);
-    bool isAddressAssociated(IPv6Address &dest);
     IPv6Address *getAssociatedAddress(IPv6Address &dest);
-
-    void sendToLowerLayer(cMessage *msg, const IPv6Address& destAddr, const IPv6Address& srcAddr = IPv6Address::UNSPECIFIED_ADDRESS, int interfaceId = -1, simtime_t sendTime = 0); // resend after timer expired
-
-    void createSessionInit();
-    void sendSessionInit(cMessage *msg); // send initialization message to CA
-    void createSequenceInit();
-    void sendSequenceInit(cMessage *msg);
-    void createSequenceUpdate();
-    void sendSequenceUpdate(cMessage *msg);
-    void createFlowRequest(FlowTuple &tuple);
-    void sendFlowRequest(cMessage *msg);
-
-    // CA function
-    void createAgentInit(uint64 mobileId); // used by CA
-    void sendAgentInit(cMessage *msg); // used by CA to init DA
-    void createAgentUpdate(uint64 mobileId); // used by CA to update all its specific data agents
-    void sendAgentUpdate(cMessage *msg);
-    void sendSequenceUpdateAck(uint64 mobileId); // confirm to MA its new
-    void sendSessionInitResponse(IPv6Address dest, IPv6Address source);
-    void sendSequenceInitResponse(IPv6Address dest, IPv6Address source, uint64 mobileId);
-    void sendSequenceUpdateResponse(IPv6Address destAddr, IPv6Address sourceAddr, uint64 mobileId);
-    void sendFlowRequestResponse(IPv6Address destAddr, IPv6Address sourceAddr, uint64 mobileId, IPv6Address nodeAddr, IPv6Address agentAddr);
-
-    // DA function
-    void createSequenceUpdateNotificaiton(uint64 mobileId);
-    void sendSequenceUpdateNotification(cMessage *msg); // used by DA to notify CA of changes
-    void sendCorrespondentNodeMessage(cMessage *msg); // forwards message to CN
-    void sendMobileAgentMessage(); // forwards messages to MA
-    void sendAgentInitResponse(IPv6Address destAddr, IPv6Address sourceAddr, uint64 mobileId);
-    void sendAgentUpdateResponse(IPv6Address destAddr, IPv6Address sourceAddr, uint64 mobileId);
-
-    // Header processing
-    void processMobileAgentMessage(MobileAgentHeader *agentHdr, IPv6ControlInfo *ipCtrlInfo);
-    void processControlAgentMessage(ControlAgentHeader *agentHdr, IPv6ControlInfo *ipCtrlInfo);
-    void processDataAgentMessage(DataAgentHeader *agentHdr, IPv6ControlInfo *ipCtrlInfo);
-
-    void processIncomingUDPPacket(cMessage *msg, IPv6ControlInfo *ipCtrlInfo);
-//    void processIncomingTCPPacket(cMessage *msg);
-
-    // functions for handling interface change
-    void createInterfaceDownMessage(int id);
-    void handleInterfaceDownMessage(cMessage *msg);
-    void createInterfaceUpMessage(int id);
-    void handleInterfaceUpMessage(cMessage *msg);
-    void updateAddressTable(int id, InterfaceUnit *iu);
-    virtual void receiveSignal(cComponent *source, simsignal_t signalID, cObject *obj) override;
-    InterfaceUnit* getInterfaceUnit(int id);
-
-    InterfaceEntry *getInterface(IPv6Address destAddr, int destPort = -1, int sourcePort = -1, short protocol = -1); //const ,
-    InterfaceEntry *getAnyInterface();
-    // extension header processing
-//    void sendToLowerLayer(cObject *obj, const IPv6Address& destAddr, const IPv6Address& srcAddr = IPv6Address::UNSPECIFIED_ADDRESS, int interfaceId = -1, simtime_t sendTime = 0); // resend after timer expired
-//    void messageProcessingUnitMA(MobileAgentOptionHeader *optHeader, IPv6Datagram *datagram, IPv6ControlInfo *controlInfo);
-//    void messageProcessingUnitCA(ControlAgentOptionHeader *optHeader, IPv6Datagram *datagram, IPv6ControlInfo *controlInfo);
+    bool isAddressAssociated(IPv6Address &dest);
 
 //============================================= Timer configuration ===========================
     class ExpiryTimer {

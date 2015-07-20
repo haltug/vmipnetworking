@@ -15,19 +15,65 @@
 
 #ifndef __INET_MOBILEAGENT_H_
 #define __INET_MOBILEAGENT_H_
+#include "inet/networklayer/ipv6mev/Agent.h"
 
-#include <omnetpp.h>
+#include <map>
+#include <vector>
+#include "inet/common/INETDefs.h"
+#include "inet/networklayer/contract/ipv6/IPv6Address.h"
+#include "inet/networklayer/ipv6mev/IdentificationHeader.h"
+#include "inet/networklayer/ipv6mev/AddressManagement.h"
+#include "inet/networklayer/common/InterfaceEntry.h"
 
 namespace inet {
 
 /**
  * TODO - Generated class
  */
-class MobileAgent : public cSimpleModule
+class MobileAgent : public cListener, public Agent
 {
   protected:
-    virtual void initialize() override;
+    virtual int numInitStages() const override { return NUM_INIT_STAGES; }
+    virtual void initialize(int stage) override;
     virtual void handleMessage(cMessage *msg) override;
+    IInterfaceTable *ift = nullptr; // for recognizing changes etc
+    cModule *interfaceNotifier = nullptr; // listens for changes in interfacetable
+    uint64 mobileId = 0;
+    class InterfaceUnit { // represents the entry of addressTable
+    public:
+        bool active;
+        int priority;
+        IPv6Address careOfAddress;
+    };
+    typedef std::map<int, InterfaceUnit *> AddressTable; // represents the address table
+    AddressTable addressTable;
+  public:
+    void createSessionInit();
+    void sendSessionInit(cMessage *msg); // send initialization message to CA
+    void createSequenceInit();
+    void sendSequenceInit(cMessage *msg);
+    void createSequenceUpdate();
+    void sendSequenceUpdate(cMessage *msg);
+    void createFlowRequest(FlowTuple &tuple);
+    void sendFlowRequest(cMessage *msg);
+//  PACKET PROCESSING
+    void processDataAgentMessage(DataAgentHeader *agentHdr, IPv6ControlInfo *ipCtrlInfo);
+    void processControlAgentMessage(ControlAgentHeader *agentHdr, IPv6ControlInfo *ipCtrlInfo);
+    void processIncomingUDPPacket(cMessage *msg, IPv6ControlInfo *ipCtrlInfo);
+    //    void processIncomingTCPPacket(cMessage *msg);
+//  INTERFACE LISTENER FUNCTIONS
+    void createInterfaceDownMessage(int id);
+    void handleInterfaceDownMessage(cMessage *msg);
+    void createInterfaceUpMessage(int id);
+    void handleInterfaceUpMessage(cMessage *msg);
+    void updateAddressTable(int id, InterfaceUnit *iu);
+    virtual void receiveSignal(cComponent *source, simsignal_t signalID, cObject *obj) override;
+    InterfaceUnit* getInterfaceUnit(int id);
+// INTERFACE
+    InterfaceEntry *getInterface(IPv6Address destAddr = IPv6Address(), int destPort = -1, int sourcePort = -1, short protocol = -1); //const ,
+    InterfaceEntry *getAnyInterface();
+    void sendToLowerLayer(cMessage *msg, const IPv6Address& destAddr, const IPv6Address& srcAddr = IPv6Address::UNSPECIFIED_ADDRESS, int interfaceId = -1, simtime_t sendTime = 0); // resend after timer expired
+
 };
 
 } //namespace

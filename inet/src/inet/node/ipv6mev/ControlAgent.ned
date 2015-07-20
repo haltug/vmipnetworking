@@ -15,7 +15,7 @@
 
 package inet.node.ipv6mev;
 
-import inet.networklayer.ipv6mev.Agent;
+import inet.networklayer.ipv6mev.ControlAgent;
 import inet.node.inet.NodeBase;
 //
 // TODO auto-generated type
@@ -30,12 +30,9 @@ network ControlAgent extends NodeBase
         routingTable.routes = routes;
         forwarding = false;
 	submodules:
-	    idLayer : Agent {
+	    idLayer : ControlAgent {
 	    	parameters:
                 @display("p=280,208");
-                isMA = false;
-                isCA = true;
-                isDA = false;
 	    }
 	connections allowunconnected:
         idLayer.toLowerLayer --> networkLayer.transportIn++;

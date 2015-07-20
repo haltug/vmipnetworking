@@ -20,7 +20,7 @@ import inet.applications.contract.ISCTPApp;
 import inet.applications.contract.ITCPApp;
 import inet.applications.contract.ITunApp;
 import inet.applications.contract.IUDPApp;
-import inet.networklayer.ipv6mev.Agent;
+import inet.networklayer.ipv6mev.MobileAgent;
 import inet.node.inet.NodeBase;
 import inet.transportlayer.contract.ISCTP;
 import inet.transportlayer.contract.ITCP;
@@ -82,12 +82,9 @@ module MobileAgent extends NodeBase
             parameters:
                 @display("p=564,269,row,60");
         }
-        idLayer: Agent {
+        idLayer: MobileAgent {
             parameters:
                 @display("p=280,208");
-                isMA = true;
-                isCA = false;
-                isDA = false;
         }
     connections allowunconnected:
         idLayer.fromLowerLayer <-- networkLayer.transportOut++;

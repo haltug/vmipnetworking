@@ -18,9 +18,19 @@ package inet.networklayer.ipv6mev;
 //
 // TODO auto-generated module
 //
-simple MobileAgent extends Agent
+simple MobileAgent
 {
-	parameters:
-        string id;
-        string caAddress;
+    parameters:
+        @display("i=block/join");
+        string interfaceTableModule;
+        string controlAgentAddress = default("");  // server address (may be symbolic)
+        double startTime @unit(s) = default(5s);
+        *.interfaceTableModule = default(absPath(interfaceTableModule));
+	gates:
+	    input fromLowerLayer;
+	    output toLowerLayer;
+	    input fromTCP;
+	    output toTCP;
+	    input fromUDP;
+	    output toUDP;
 }

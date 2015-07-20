@@ -15,16 +15,16 @@
 
 #ifndef __INET_CONTROLAGENT_H_
 #define __INET_CONTROLAGENT_H_
+#include "inet/networklayer/ipv6mev/Agent.h"
 
-#include <omnetpp.h>
-#include <vector>
 #include <map>
-
+#include <vector>
 #include "inet/common/INETDefs.h"
 #include "inet/networklayer/contract/ipv6/IPv6Address.h"
-#include "inet/networklayer/common/L3Address.h"
-#include "inet/networklayer/ipv6tunneling/IPv6Tunneling.h"
-#include "inet/networklayer/icmpv6/IPv6NeighbourDiscovery.h"
+#include "inet/networklayer/ipv6mev/IdentificationHeader.h"
+#include "inet/networklayer/ipv6mev/AddressManagement.h"
+#include "inet/networklayer/common/InterfaceEntry.h"
+
 
 
 namespace inet {
@@ -32,55 +32,33 @@ namespace inet {
 /**
  * TODO - Generated class
  */
-class ControlAgent : public cSimpleModule
+class ControlAgent : public Agent
 {
-  protected:
-    IInterfaceTable *ift;
-    IPv6RoutingTable *rt6;
-    IPv6NeighbourDiscovery *ipv6nd;
-
-    struct TargetToAgentAddressMapping
-    {
-        IPv6Address CN_Address;
-        IPv6Address DA_Address;
-
-        TargetToAgentAddressMapping(IPv6Address _cn, IPv6Address _da)
-        {
-            CN_Address = _cn;
-            DA_Address = _da;
-        }
-    };
-
-    typedef std::vector<TargetToAgentAddressMapping> TargetToAgentMappingList;
-    typedef std::map<L3Address,TargetToAgentMappingList> TargetToAgentListOfVehicle;
-    TargetToAgentListOfVehicle targetToAgentListOfVehicle;
-
-    typedef std::vector<IPv6Address> DataAgentList;
-    typedef std::map<L3Address, DataAgentList> ActiveDataAgentList;
-    ActiveDataAgentList activeDataAgentList;
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
   protected:
-    virtual void initialize();
-    virtual void handleMessage(cMessage *msg);
+    virtual int numInitStages() const override { return NUM_INIT_STAGES; }
+    virtual void initialize(int stage) override;
+    virtual void handleMessage(cMessage *msg) override;
+    IInterfaceTable *ift = nullptr; // for recognizing changes etc
+    std::vector<uint64>  mobileIdList; // lists all id of mobile nodes
+    std::vector<IPv6Address> nodeAddressList; // lists all data agents
+  public:
+    // CA function
+    void createAgentInit(uint64 mobileId); // used by CA
+    void sendAgentInit(cMessage *msg); // used by CA to init DA
+    void createAgentUpdate(uint64 mobileId); // used by CA to update all its specific data agents
+    void sendAgentUpdate(cMessage *msg);
+    void sendSequenceUpdateAck(uint64 mobileId); // confirm to MA its new
+    void sendSessionInitResponse(IPv6Address dest, IPv6Address source);
+    void sendSequenceInitResponse(IPv6Address dest, IPv6Address source, uint64 mobileId);
+    void sendSequenceUpdateResponse(IPv6Address destAddr, IPv6Address sourceAddr, uint64 mobileId);
+    void sendFlowRequestResponse(IPv6Address destAddr, IPv6Address sourceAddr, uint64 mobileId, IPv6Address nodeAddr, IPv6Address agentAddr);
+    void processMobileAgentMessage(MobileAgentHeader *agentHdr, IPv6ControlInfo *ipCtrlInfo);
+    void processDataAgentMessage(DataAgentHeader *agentHdr, IPv6ControlInfo *ipCtrlInfo);
+    // INTERFACE
+    InterfaceEntry *getInterface(IPv6Address destAddr = IPv6Address(), int destPort = -1, int sourcePort = -1, short protocol = -1); //const ,
+    void sendToLowerLayer(cMessage *msg, const IPv6Address& destAddr, const IPv6Address& srcAddr = IPv6Address::UNSPECIFIED_ADDRESS, int interfaceId = -1, simtime_t sendTime = 0); // resend after timer expired
+
 };
 
 } //namespace

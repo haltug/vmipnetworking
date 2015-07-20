@@ -16,18 +16,40 @@
 #ifndef __INET_DATAAGENT_H_
 #define __INET_DATAAGENT_H_
 
-#include <omnetpp.h>
+#include "inet/networklayer/ipv6mev/Agent.h"
+
+#include <map>
+#include <vector>
+#include "inet/common/INETDefs.h"
+#include "inet/networklayer/contract/ipv6/IPv6Address.h"
+#include "inet/networklayer/ipv6mev/IdentificationHeader.h"
+#include "inet/networklayer/ipv6mev/AddressManagement.h"
+#include "inet/networklayer/common/InterfaceEntry.h"
 
 namespace inet {
 
 /**
  * TODO - Generated class
  */
-class DataAgent : public cSimpleModule
+class DataAgent : public Agent
 {
   protected:
-    virtual void initialize();
-    virtual void handleMessage(cMessage *msg);
+    virtual int numInitStages() const override { return NUM_INIT_STAGES; }
+    virtual void initialize(int stage) override;
+    virtual void handleMessage(cMessage *msg) override;
+    IInterfaceTable *ift = nullptr; // for recognizing changes etc
+  public:
+    void createSequenceUpdateNotificaiton(uint64 mobileId);
+    void sendSequenceUpdateNotification(cMessage *msg); // used by DA to notify CA of changes
+    void sendCorrespondentNodeMessage(cMessage *msg); // forwards message to CN
+    void sendMobileAgentMessage(); // forwards messages to MA
+    void sendAgentInitResponse(IPv6Address destAddr, IPv6Address sourceAddr, uint64 mobileId);
+    void sendAgentUpdateResponse(IPv6Address destAddr, IPv6Address sourceAddr, uint64 mobileId);
+    void processMobileAgentMessage(MobileAgentHeader *agentHdr, IPv6ControlInfo *ipCtrlInfo);
+    void processControlAgentMessage(ControlAgentHeader *agentHdr, IPv6ControlInfo *ipCtrlInfo);
+    // INTERFACE
+    InterfaceEntry *getInterface(IPv6Address destAddr = IPv6Address(), int destPort = -1, int sourcePort = -1, short protocol = -1); //const ,
+    void sendToLowerLayer(cMessage *msg, const IPv6Address& destAddr, const IPv6Address& srcAddr = IPv6Address::UNSPECIFIED_ADDRESS, int interfaceId = -1, simtime_t sendTime = 0); // resend after timer expired
 };
 
 } //namespace

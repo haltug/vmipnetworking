@@ -20,4 +20,12 @@ package inet.networklayer.ipv6mev;
 //
 simple DataAgent
 {
+    parameters:
+        @display("i=block/join");
+        string interfaceTableModule;
+        string controlAgentAddress = default("");  // server address (may be symbolic)
+        *.interfaceTableModule = default(absPath(interfaceTableModule));
+	gates:
+	    input fromLowerLayer;
+	    output toLowerLayer;
 }
