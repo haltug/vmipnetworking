@@ -35,6 +35,7 @@ namespace inet {
 #define TIMERKEY_IF_UP           5
 #define TIMERKEY_FLOW_REQ        6
 #define TIMERKEY_MA_INIT         7
+#define TIMERKEY_SEQ_UPDATE_NOT  8
 
 //========== Timer type
 #define TIMERTYPE_SESSION_INIT  50
@@ -45,6 +46,7 @@ namespace inet {
 #define TIMERTYPE_IF_UP         55
 #define TIMERTYPE_FLOW_REQ      56
 #define TIMERTYPE_MA_INIT       57
+#define TIMERTYPE_SEQ_UPDATE_NOT 58
 
 //========== Message type in handleMessage() ==========
 #define MSG_START_TIME          100
@@ -61,6 +63,7 @@ namespace inet {
 #define MSG_MA_INIT             111
 #define MSG_MA_INIT_DELAY       112
 #define MSG_AGENT_UPDATE        113
+#define MSG_SEQ_UPDATE_NOTIFY   114
 
 //========== Retransmission time of messages ==========
 #define TIMEOUT_SESSION_INIT    1 // retransmission time of ca init in sec
@@ -236,36 +239,49 @@ class INET_API Agent : public cSimpleModule, public cListener
         int type;
         int interfaceID;
         uint64 mobileId;
+        uint seqNo;
         IPv6Address dest;
         TimerKey(IPv6Address _dest, int _interfaceID, int _type) {
             dest=_dest;
             interfaceID=_interfaceID;
             type=_type;
             mobileId=0;
+            seqNo=0;
         }
         TimerKey(IPv6Address _dest, int _interfaceID, int _type, uint64 _mobileId) {
             dest=_dest;
             interfaceID=_interfaceID;
             type=_type;
             mobileId=_mobileId;
+            seqNo=0;
         }
-        TimerKey(int _interfaceID,int _type) { // could lead to a failure because of the operator overload!!!
+        TimerKey(IPv6Address _dest, int _interfaceID, int _type, uint64 _mobileId, uint _seqNo) {
+            dest=_dest;
+            interfaceID=_interfaceID;
+            type=_type;
+            mobileId=_mobileId;
+            seqNo=_seqNo;
+        }
+        TimerKey(int _interfaceID,int _type) {
             dest=dest.UNSPECIFIED_ADDRESS;
             interfaceID=_interfaceID;
             type=_type;
             mobileId=0;
+            seqNo=0;
         }
         virtual ~TimerKey() {};
         bool operator<(const TimerKey& b) const {
             if(type == b.type) {
                 if(interfaceID == b.interfaceID) {
                     if(dest == b.dest) {
-                        return mobileId < b.mobileId;
+                        if(mobileId == b.mobileId) {
+                            return seqNo < b.seqNo;
+                        } else
+                            return mobileId < b.mobileId;
                     } else
                         return dest < b.dest;
                 } else
                     return interfaceID < b.interfaceID;
-
             } else
                 return type < b.type;
         }
@@ -310,6 +326,12 @@ class INET_API Agent : public cSimpleModule, public cListener
     class MobileInitTimer : public ExpiryTimer {
     public:
         uint64 id;
+    };
+    class UpdateNotifierTimer : public ExpiryTimer {
+    public:
+        uint64 id;
+        uint seq;
+        uint ack;
     };
     ExpiryTimer *getExpiryTimer(TimerKey& key, int timerType);
     bool pendingExpiryTimer(const IPv6Address& dest, int interfaceId, int timerType, uint64 id = 0);
