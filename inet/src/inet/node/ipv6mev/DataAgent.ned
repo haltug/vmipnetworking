@@ -37,4 +37,8 @@ network DataAgent extends NodeBase
     connections allowunconnected:
         idLayer.toLowerLayer --> networkLayer.transportIn++;
         idLayer.fromLowerLayer <-- networkLayer.transportOut++;
+        idLayer.udpOut --> networkLayer.transportIn++;
+        idLayer.udpIn <-- networkLayer.transportOut++;
+        idLayer.tcpOut --> networkLayer.transportIn++;
+        idLayer.tcpIn <-- networkLayer.transportOut++;
 }

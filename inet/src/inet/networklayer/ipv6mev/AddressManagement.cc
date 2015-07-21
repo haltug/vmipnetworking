@@ -222,7 +222,7 @@ AddressManagement::AddressChange AddressManagement::getUnacknowledgedIPv6Address
     }
 }
 
-AddressManagement::AddressChange AddressManagement::getAddessEntriesOfSequenceNumber(uint64 id, uint seq)
+AddressManagement::AddressChange AddressManagement::getAddressEntriesOfSequenceNumber(uint64 id, uint seq)
 {
     if(addressMap.count(id)) { // check if id exists in map
        AddressChange addressChange;

@@ -110,7 +110,7 @@ Agent::ExpiryTimer *Agent::getExpiryTimer(TimerKey& key, int timerType) {
             timer = mit;
         } else if(dynamic_cast<UpdateNotifierTimer *>(pos->second)) {
             UpdateNotifierTimer *unt = (UpdateNotifierTimer *) pos->second;
-            cancelAndDelete(unt->timer);
+//            cancelAndDelete(unt->timer); // is explicitly removed by createSeqUpdate functions.
             timer = unt;
         } else if(dynamic_cast<InterfaceDownTimer *>(pos->second)) {
             throw cRuntimeError("ERROR Invoked InterfaceDownTimer timer creation although one in map exists. There shouldn't be an entry in the list");
@@ -158,36 +158,68 @@ Agent::ExpiryTimer *Agent::getExpiryTimer(TimerKey& key, int timerType) {
     return timer;
 }
 
-bool Agent::cancelExpiryTimer(const IPv6Address &dest, int interfaceId, int timerType, uint64 id)
-{
-    TimerKey key(dest, interfaceId, timerType, id);
-    auto pos = expiredTimerList.find(key);
-    if(pos == expiredTimerList.end()) {
-        return false; // list is empty
+bool Agent::cancelExpiryTimer(const IPv6Address &dest, int interfaceId, int timerType, uint64 id, uint seq, uint ack)
+{   // remove based on seq and ack numbering
+    if(ack > seq) throw cRuntimeError("CancelAndDeleteTimer: Ack cannot be greater as seq.");
+    if(ack == seq) {
+        TimerKey key(dest, interfaceId, timerType, id, seq);
+        auto pos = expiredTimerList.find(key);
+        if(pos == expiredTimerList.end()) {
+            return false; // list is empty
+        }
+        ExpiryTimer *timerToDelete = (pos->second);
+        cancelEvent(timerToDelete->timer);
+        expiredTimerList.erase(key);
+        return true;
+    } else {
+        bool timerExists = false;
+        for(uint i=ack; i<=seq; i++) {
+            TimerKey key(dest, interfaceId, timerType, id, i);
+            auto pos = expiredTimerList.find(key);
+            if(pos == expiredTimerList.end()) continue;
+            ExpiryTimer *timerToDelete = (pos->second);
+            cancelEvent(timerToDelete->timer);
+            expiredTimerList.erase(key);
+            timerExists = true;
+        }
+        return timerExists;
     }
-    ExpiryTimer *timerToDelete = (pos->second);
-    cancelEvent(timerToDelete->timer);
-    expiredTimerList.erase(key);
-    return true;
 }
 
-bool Agent::cancelAndDeleteExpiryTimer(const IPv6Address &dest, int interfaceId, int timerType, uint64 id)
-{
-    TimerKey key(dest, interfaceId, timerType, id);
-    auto pos = expiredTimerList.find(key);
-    if(pos == expiredTimerList.end()) {
-        return false; // list is empty
+bool Agent::cancelAndDeleteExpiryTimer(const IPv6Address &dest, int interfaceId, int timerType, uint64 id, uint seq, uint ack)
+{   // remove based on seq and ack numbering
+    if(ack > seq) throw cRuntimeError("CancelAndDeleteTimer: Ack cannot be greater as seq.");
+    if(ack == seq) {
+        TimerKey key(dest, interfaceId, timerType, id, seq);
+        auto pos = expiredTimerList.find(key);
+        if(pos == expiredTimerList.end()) {
+            return false; // list is empty
+        }
+        ExpiryTimer *timerToDelete = (pos->second);
+        cancelAndDelete(timerToDelete->timer);
+        timerToDelete->timer = nullptr;
+        expiredTimerList.erase(key);
+        delete timerToDelete;
+        return true;
+    } else {
+        bool timerExists = false;
+        for(uint i=ack; i<=seq; i++) {
+            TimerKey key(dest, interfaceId, timerType, id, i);
+            auto pos = expiredTimerList.find(key);
+            if(pos == expiredTimerList.end()) continue;
+            ExpiryTimer *timerToDelete = (pos->second);
+            cancelAndDelete(timerToDelete->timer);
+            timerToDelete->timer = nullptr;
+            expiredTimerList.erase(key);
+            delete timerToDelete;
+            timerExists = true;
+        }
+        return timerExists;
     }
-    ExpiryTimer *timerToDelete = (pos->second);
-    cancelAndDelete(timerToDelete->timer);
-    timerToDelete->timer = nullptr;
-    expiredTimerList.erase(key);
-    delete timerToDelete;
-    return true;
 }
 // if a timer exists, returns true
-bool Agent::pendingExpiryTimer(const IPv6Address& dest, int interfaceId, int timerType, uint64 id) {
-    TimerKey key(dest,interfaceId, timerType, id);
+bool Agent::pendingExpiryTimer(const IPv6Address& dest, int interfaceId, int timerType, uint64 id, uint seq) {
+    TimerKey key(dest,interfaceId, timerType, id, seq);
     auto pos = expiredTimerList.find(key);
     return pos != expiredTimerList.end();
 }

@@ -39,17 +39,19 @@ class DataAgent : public Agent
     virtual void handleMessage(cMessage *msg) override;
     IInterfaceTable *ift = nullptr; // for recognizing changes etc
   public:
-    void createSequenceUpdateNotificaiton(uint64 mobileId);
+    void createSequenceUpdateNotificaiton(uint64 mobileId, uint seq);
     void sendSequenceUpdateNotification(cMessage *msg); // used by DA to notify CA of changes
-    void sendCorrespondentNodeMessage(cMessage *msg); // forwards message to CN
-    void sendMobileAgentMessage(); // forwards messages to MA
-    void sendAgentInitResponse(IPv6Address destAddr, IPv6Address sourceAddr, uint64 mobileId);
-    void sendAgentUpdateResponse(IPv6Address destAddr, IPv6Address sourceAddr, uint64 mobileId);
+    void forwardMessageToNode(cMessage *msg, short protocol); // forwards message to CN
+    void forwardMessageToAgent(); // forwards messages to MA
+
+    void sendAgentInitResponse(IPv6Address destAddr, IPv6Address sourceAddr, uint64 mobileId, uint seq);
+    void sendAgentUpdateResponse(IPv6Address destAddr, IPv6Address sourceAddr, uint64 mobileId, uint seq);
+
     void processMobileAgentMessage(MobileAgentHeader *agentHdr, IPv6ControlInfo *ipCtrlInfo);
     void processControlAgentMessage(ControlAgentHeader *agentHdr, IPv6ControlInfo *ipCtrlInfo);
     // INTERFACE
     InterfaceEntry *getInterface(IPv6Address destAddr = IPv6Address(), int destPort = -1, int sourcePort = -1, short protocol = -1); //const ,
-    void sendToLowerLayer(cMessage *msg, const IPv6Address& destAddr, const IPv6Address& srcAddr = IPv6Address::UNSPECIFIED_ADDRESS, int interfaceId = -1, simtime_t sendTime = 0); // resend after timer expired
+    void sendToLowerLayer(cMessage *msg, const IPv6Address& destAddr, simtime_t sendTime = 0); // resend after timer expired
 };
 
 } //namespace

@@ -28,4 +28,8 @@ simple DataAgent
 	gates:
 	    input fromLowerLayer;
 	    output toLowerLayer;
+	    input udpIn;
+	    output udpOut;
+        input tcpIn;
+        output tcpOut;
 }

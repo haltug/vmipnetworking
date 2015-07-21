@@ -52,7 +52,7 @@ class MobileAgent : public cListener, public Agent
     void sendSessionInit(cMessage *msg); // send initialization message to CA
     void createSequenceInit();
     void sendSequenceInit(cMessage *msg);
-    void createSequenceUpdate();
+    void createSequenceUpdate(uint64 mobileId, uint seq, uint ack);
     void sendSequenceUpdate(cMessage *msg);
     void createFlowRequest(FlowTuple &tuple);
     void sendFlowRequest(cMessage *msg);

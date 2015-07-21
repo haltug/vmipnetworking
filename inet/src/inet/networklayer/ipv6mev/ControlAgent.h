@@ -46,13 +46,14 @@ class ControlAgent : public Agent
     // CA function
     void createAgentInit(uint64 mobileId); // used by CA
     void sendAgentInit(cMessage *msg); // used by CA to init DA
-    void createAgentUpdate(uint64 mobileId); // used by CA to update all its specific data agents
+
+    void createAgentUpdate(uint64 mobileId, uint seq); // used by CA to update all its specific data agents
     void sendAgentUpdate(cMessage *msg);
     void sendSequenceUpdateAck(uint64 mobileId); // confirm to MA its new
     void sendSessionInitResponse(IPv6Address dest, IPv6Address source);
-    void sendSequenceInitResponse(IPv6Address dest, IPv6Address source, uint64 mobileId);
-    void sendSequenceUpdateResponse(IPv6Address destAddr, IPv6Address sourceAddr, uint64 mobileId);
-    void sendFlowRequestResponse(IPv6Address destAddr, IPv6Address sourceAddr, uint64 mobileId, IPv6Address nodeAddr, IPv6Address agentAddr);
+    void sendSequenceInitResponse(IPv6Address dest, IPv6Address source, uint64 mobileId, uint seq);
+    void sendSequenceUpdateResponse(IPv6Address destAddr, IPv6Address sourceAddr, uint64 mobileId, uint seq);
+    void sendFlowRequestResponse(IPv6Address destAddr, IPv6Address sourceAddr, uint64 mobileId, uint seq, IPv6Address nodeAddr, IPv6Address agentAddr);
     void processMobileAgentMessage(MobileAgentHeader *agentHdr, IPv6ControlInfo *ipCtrlInfo);
     void processDataAgentMessage(DataAgentHeader *agentHdr, IPv6ControlInfo *ipCtrlInfo);
     // INTERFACE

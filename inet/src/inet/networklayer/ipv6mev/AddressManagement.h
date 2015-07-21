@@ -62,7 +62,7 @@ class INET_API AddressManagement : public cSimpleModule
         IPv6AddressList getUnacknowledgedRemovedIPv6AddressList;
     };
     AddressChange getUnacknowledgedIPv6AddressList(uint64 id, uint ack, uint seq);
-    AddressChange getAddessEntriesOfSequenceNumber(uint64 id, uint seq);
+    AddressChange getAddressEntriesOfSequenceNumber(uint64 id, uint seq);
 
     // A map that contains all elements of vehicle agents
     typedef std::map<uint64,AddressMapEntry> AddressMap;

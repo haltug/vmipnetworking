@@ -119,13 +119,26 @@ class INET_API Agent : public cSimpleModule
     };
 
     struct FlowTuple {
+        uint64 id;
+        short protocol;
         IPv6Address destAddress;
         int destPort;
         int sourcePort;
         int lifetime;
-        short protocol;
         bool operator<(const FlowTuple& b) const {
-            return (destAddress != b.destAddress) ? (destPort != b.destPort) : (sourcePort != b.sourcePort);
+            if(destAddress == b.destAddress) {
+                if(destPort == b.destPort) {
+                    if(sourcePort == b.sourcePort) {
+                        if(protocol == b.protocol) {
+                            return id < b.id;
+                        } else
+                            return protocol < b.protocol;
+                    } else
+                        return sourcePort < b.sourcePort;
+                } else
+                    return destPort < b.destPort;
+            } else
+                return destAddress < b.destAddress;
         }
     };
 
@@ -137,7 +150,10 @@ class INET_API Agent : public cSimpleModule
         bool locationUpdate;
         bool loadSharing;
 
+        uint64 id;
         IPv6Address dataAgent; // defines the address of data agent
+        IPv6Address mobileAgent; // defines the current return address. if MA send over this path, DA will return over same one.
+        IPv6Address nodeAddress; // defines the address of correspondent node
     };
 
     typedef std::map<FlowTuple, FlowUnit> FlowTable; // IPv6address should be replaced with DataAgent <cn,da>
@@ -146,9 +162,9 @@ class INET_API Agent : public cSimpleModule
     typedef std::map<IPv6Address,IPv6Address> AddressAssociation; // destinationAddress -> agentAddress
     AddressAssociation addressAssociation;
 
+    bool isAddressAssociated(IPv6Address &dest);
     FlowUnit *getFlowUnit(FlowTuple &tuple);
     IPv6Address *getAssociatedAddress(IPv6Address &dest);
-    bool isAddressAssociated(IPv6Address &dest);
 
 //============================================= Timer configuration ===========================
     class ExpiryTimer {
@@ -165,35 +181,37 @@ class INET_API Agent : public cSimpleModule
         int type;
         int interfaceID;
         uint64 mobileId;
-        uint seqNo;
+        uint seq;
+        uint ack;
         IPv6Address dest;
+//        IPv6Address flowRequest; // add later
         TimerKey(IPv6Address _dest, int _interfaceID, int _type) {
             dest=_dest;
             interfaceID=_interfaceID;
             type=_type;
             mobileId=0;
-            seqNo=0;
+            seq=0;
         }
         TimerKey(IPv6Address _dest, int _interfaceID, int _type, uint64 _mobileId) {
             dest=_dest;
             interfaceID=_interfaceID;
             type=_type;
             mobileId=_mobileId;
-            seqNo=0;
+            seq=0;
         }
-        TimerKey(IPv6Address _dest, int _interfaceID, int _type, uint64 _mobileId, uint _seqNo) {
+        TimerKey(IPv6Address _dest, int _interfaceID, int _type, uint64 _mobileId, uint _seq) {
             dest=_dest;
             interfaceID=_interfaceID;
             type=_type;
             mobileId=_mobileId;
-            seqNo=_seqNo;
+            seq=_seq;
         }
         TimerKey(int _interfaceID,int _type) {
             dest=dest.UNSPECIFIED_ADDRESS;
             interfaceID=_interfaceID;
             type=_type;
             mobileId=0;
-            seqNo=0;
+            seq=0;
         }
         virtual ~TimerKey() {};
         bool operator<(const TimerKey& b) const {
@@ -201,7 +219,7 @@ class INET_API Agent : public cSimpleModule
                 if(interfaceID == b.interfaceID) {
                     if(dest == b.dest) {
                         if(mobileId == b.mobileId) {
-                            return seqNo < b.seqNo;
+                            return seq < b.seq;
                         } else
                             return mobileId < b.mobileId;
                     } else
@@ -218,18 +236,19 @@ class INET_API Agent : public cSimpleModule
     // TimerType 50
     class SessionInitTimer : public ExpiryTimer {
     public:
-        uint lifetime;
         uint64 id;
     };
     // TimerType 51
     class SequenceInitTimer : public ExpiryTimer {
     public:
-        uint lifetime;
+        uint64 id;
     };
     // TimerType 52
     class SequenceUpdateTimer : public ExpiryTimer {
     public:
         uint64 id;
+        uint seq;
+        uint ack;
     };
     // TimerType 53
     class LocationUpdateTimer : public ExpiryTimer {
@@ -258,11 +277,13 @@ class INET_API Agent : public cSimpleModule
         uint64 id;
         uint seq;
         uint ack;
+        simtime_t liftime;
+        bool active = false;
     };
     ExpiryTimer *getExpiryTimer(TimerKey& key, int timerType);
-    bool pendingExpiryTimer(const IPv6Address& dest, int interfaceId, int timerType, uint64 id = 0);
-    bool cancelExpiryTimer(const IPv6Address& dest, int interfaceId, int timerType, uint64 id = 0);
-    bool cancelAndDeleteExpiryTimer(const IPv6Address& dest, int interfaceId, int timerType, uint64 id = 0);
+    bool pendingExpiryTimer(const IPv6Address& dest, int interfaceId, int timerType, uint64 id = 0, uint seq = 0);
+    bool cancelExpiryTimer(const IPv6Address& dest, int interfaceId, int timerType, uint64 id = 0, uint seq = 0, uint ack = 0);
+    bool cancelAndDeleteExpiryTimer(const IPv6Address& dest, int interfaceId, int timerType, uint64 id = 0, uint seq = 0, uint ack = 0);
     void cancelExpiryTimers();
 //============================================= Timer configuration ===========================
 
