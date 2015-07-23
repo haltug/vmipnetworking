@@ -92,7 +92,7 @@ network vehicleConnectivity
         }
         CA: ControlAgent {
             parameters:
-                @display("p=230,30");
+                @display("p=140,30");
         }
         DA: DataAgent {
             parameters:

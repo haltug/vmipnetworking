@@ -32,6 +32,7 @@ namespace inet {
  */
 class MobileAgent : public cListener, public Agent
 {
+    virtual ~MobileAgent() {};
   protected:
     virtual int numInitStages() const override { return NUM_INIT_STAGES; }
     virtual void initialize(int stage) override;

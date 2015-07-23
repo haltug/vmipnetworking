@@ -26,14 +26,14 @@
 
 namespace inet {
 
-Agent::~Agent() {
-    auto it = expiredTimerList.begin();
-    while(it != expiredTimerList.end()) {
-        TimerKey key = it->first;
-        it++;
-        cancelAndDeleteExpiryTimer(key.dest,key.interfaceID,key.type);
-    }
-}
+//Agent::~Agent() {
+//    auto it = expiredTimerList.begin();
+//    while(it != expiredTimerList.end()) {
+//        TimerKey key = it->first;
+//        it++;
+//        cancelAndDeleteExpiryTimer(key.dest,key.interfaceID,key.type);
+//    }
+//}
 
 // ==============================================================================
 // ==============================================================================
@@ -50,6 +50,8 @@ Agent::FlowUnit *Agent::getFlowUnit(FlowTuple &tuple)
         fu->dataAgent = tuple.destAddress.UNSPECIFIED_ADDRESS; // should be set by CA
         fu->loadSharing = false;
         fu->locationUpdate = false;
+        fu->id = 0;
+        fu->lifetime = 0;
     }
     else {
         fu = &(i->second);
@@ -75,6 +77,23 @@ bool Agent::isAddressAssociated(IPv6Address &dest)
     return (i != addressAssociation.end());
 }
 
+IPv6Address *Agent::getAssociatedAddressInv(IPv6Address &dest)
+{
+    auto i = addressAssociationInv.find(dest);
+    IPv6Address *ip;
+    if (i == addressAssociationInv.end()) {
+        ip = nullptr;
+    } else {
+        ip = &(i->second);
+    }
+    return ip;
+}
+
+bool Agent::isAddressAssociatedInv(IPv6Address &dest)
+{
+    auto i = addressAssociationInv.find(dest);
+    return (i != addressAssociationInv.end());
+}
 //=========================================================================================================
 //=========================================================================================================
 //============================ Timer ==========================

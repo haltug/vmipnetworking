@@ -29,9 +29,6 @@
 #include "inet/networklayer/ipv6/IPv6InterfaceData.h"
 #include "inet/transportlayer/udp/UDPPacket.h"
 
-#include "inet/common/NotifierConsts.h"
-#include "inet/common/lifecycle/NodeStatus.h"
-
 namespace inet {
 
 Define_Module(ControlAgent);
@@ -374,6 +371,7 @@ void ControlAgent::processMobileAgentMessage(MobileAgentHeader* agentHeader, IPv
                         const char *dataAgentAddr;
                         dataAgentAddr = par("dataAgentAddress");
                         L3AddressResolver().tryResolve(dataAgentAddr, daAddr);
+                        EV << "CA: Received flow request. Responsing with node addr: " << nodeAddress << " agent: " << daAddr.toIPv6() << endl;
                         sendFlowRequestResponse(destAddr, sourceAddr, agentHeader->getId(), am.getCurrentSequenceNumber(agentHeader->getId()), nodeAddress, daAddr.toIPv6());
                     }
             } else { throw cRuntimeError("CA: Mobile id not known."); }

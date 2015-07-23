@@ -115,9 +115,13 @@ void MobileAgent::handleMessage(cMessage *msg)
             throw cRuntimeError("handleMessage: Unknown timer expired. Which timer msg is unknown?");
     }
     else if(msg->arrivedOn("fromUDP")) {
-        EV << "A: Received fromUDP" << endl;
-        IPv6ControlInfo *controlInfo = check_and_cast<IPv6ControlInfo *>(msg->removeControlInfo());
-        processIncomingUDPPacket(msg, controlInfo);
+        cObject *ctrl = msg->removeControlInfo();
+        if (dynamic_cast<IPv6ControlInfo *>(ctrl) != nullptr) {
+            EV << "MA: Received packet fromUDP" << endl;
+            IPv6ControlInfo *controlInfo = (IPv6ControlInfo *) ctrl;
+            processIncomingUDPPacket(msg, controlInfo);
+        }
+        else { EV << "MA: Received udp packet but not with ipv6 ctrl info." << endl; }
     }
     else if(msg->arrivedOn("fromLowerLayer")) {
         if (dynamic_cast<IdentificationHeader *> (msg)) {
@@ -320,7 +324,7 @@ void MobileAgent::createFlowRequest(FlowTuple &tuple) {
     TimerKey key(caAddress, -1, TIMERKEY_FLOW_REQ);
     FlowRequestTimer *frt = (FlowRequestTimer *) getExpiryTimer(key, TIMERTYPE_FLOW_REQ);
     frt->dest = caAddress;
-    frt->tuple = &tuple;
+    frt->tuple = tuple;
     frt->timer = msg;
     frt->ackTimeout = TIMEDELAY_FLOW_REQ;
     InterfaceEntry *ie = getInterface(caAddress);
@@ -348,7 +352,7 @@ void MobileAgent::sendFlowRequest(cMessage *msg) {
             return;
         }
     }
-    const IPv6Address nodeAddress = frt->tuple->destAddress;
+    const IPv6Address nodeAddress = frt->tuple.destAddress;
     const IPv6Address &dest =  frt->dest;
     const IPv6Address &src = frt->ie->ipv6Data()->getPreferredAddress(); // to get src ip
     MobileAgentHeader *mah = new MobileAgentHeader("ca_flow_req");
@@ -396,6 +400,7 @@ void MobileAgent::processControlAgentMessage(ControlAgentHeader* agentHeader, IP
                 IPv6Address cn = agentHeader->getNodeAddress();
                 IPv6Address ag = agentHeader->getAgentAddress();
                 addressAssociation.insert(std::make_pair(cn,ag));
+                addressAssociationInv.insert(std::make_pair(ag,cn));
                 cancelAndDeleteExpiryTimer(caAddress,-1, TIMERKEY_FLOW_REQ);
                 EV << "MA: Flow request responsed by CA. Request process successfully established." << endl;
             } else { // it's a sequence update
@@ -415,23 +420,32 @@ void MobileAgent::processControlAgentMessage(ControlAgentHeader* agentHeader, IP
 
 void MobileAgent::processDataAgentMessage(DataAgentHeader* agentHeader, IPv6ControlInfo* controlInfo)
 {
+//    EV << "MA: incoming UDP packet" << endl;
     if(agentHeader->getIdInit() && agentHeader->getIdAck() && agentHeader->getSeqValid() && (agentHeader->getNextHeader() == IP_PROT_UDP)) {
+//        EV << "MA: incoming UDP packet with correct header flags" << endl;
         cPacket *packet = agentHeader->decapsulate();
         if (dynamic_cast<UDPPacket *>(packet) != nullptr) {
             UDPPacket *udpPacket =  (UDPPacket *) packet;
+            IPv6Address *nodeAddress;
+            IPv6Address agentAddress = controlInfo->getSourceAddress().toIPv6();
+            if(isAddressAssociatedInv(agentAddress))
+                nodeAddress = getAssociatedAddressInv(agentAddress);
+            else
+                throw cRuntimeError("MA: DA-address is not associated with node address");
             FlowTuple tuple;
-            tuple.destPort = udpPacket->getDestinationPort();
-            tuple.sourcePort = udpPacket->getSourcePort();
-            tuple.id = mobileId;
             tuple.protocol = IP_PROT_UDP;
+            tuple.destPort = udpPacket->getSourcePort();
+            tuple.sourcePort = udpPacket->getDestinationPort();
+            tuple.destAddress = *nodeAddress;
             FlowUnit *funit = getFlowUnit(tuple);
             if(funit->state == UNREGISTERED) {
-                throw cRuntimeError("MA: No match for incomint UDP packet");
+                throw cRuntimeError("MA: No match for incoming UDP packet");
             } else {
                 funit->state = REGISTERED;
             }
             IPv6Address fakeIp(0,mobileId);
-            fakeIp.setPrefix(IPv6Address::ID_PREFIX,8);
+//            fakeIp.setPrefix(IPv6Address::ID_PREFIX,8);
+//            EV << "MA:procDAmsg IPv6: " << fakeIp.str() << endl;
             IPv6ControlInfo *ipControlInfo = new IPv6ControlInfo();
             ipControlInfo->setProtocol(IP_PROT_UDP);
             ipControlInfo->setSrcAddr(funit->nodeAddress);
@@ -445,9 +459,11 @@ void MobileAgent::processDataAgentMessage(DataAgentHeader* agentHeader, IPv6Cont
             send(udpPacket, outgate);
         } else { throw cRuntimeError("MA:procDAmsg: UDP packet could not be cast."); }
 
-    } else if(agentHeader->getIdInit() && agentHeader->getIdAck() && agentHeader->getSeqValid() && (agentHeader->getNextHeader() == IP_PROT_UDP)) {
+    } else
+        if(agentHeader->getIdInit() && agentHeader->getIdAck() && agentHeader->getSeqValid() && (agentHeader->getNextHeader() == IP_PROT_UDP)) {
         // process here incoming TCP packets
-    }
+        throw cRuntimeError("MA:procDAmsg: NO TCP YET.");
+    } else { throw cRuntimeError("MA:procDAmsg: UDP packet not declared in header."); }
     delete agentHeader;
     delete controlInfo;
 }
@@ -456,30 +472,38 @@ void MobileAgent::processIncomingUDPPacket(cMessage *msg, IPv6ControlInfo *contr
 {
 //        IPv6Address src = controlInfo->getSrcAddr(); // can be used as check in second round
     if (dynamic_cast<UDPPacket *>(msg) != nullptr) {
+//        EV << "MA:udpIn: processsing udp pkt." << endl;
         UDPPacket *udpPacket =  (UDPPacket *) msg;
         FlowTuple tuple;
-        tuple.destAddress = controlInfo->getDestAddr();
-        tuple.sourcePort = udpPacket->getSourcePort();
-        tuple.destPort = udpPacket->getDestinationPort();
         tuple.protocol = IP_PROT_UDP;
-        tuple.id = mobileId;
-        udpPacket->getKind();
+        tuple.destPort = udpPacket->getDestinationPort();
+        tuple.sourcePort = udpPacket->getSourcePort();
+        tuple.destAddress = controlInfo->getDestAddr();
         FlowUnit *funit = getFlowUnit(tuple);
         if(funit->state == UNREGISTERED) {
-            tuple.lifetime = MAX_PKT_LIFETIME;
+            funit->lifetime = MAX_PKT_LIFETIME;
             funit->state = REGISTERING; // TODO check code below
             createFlowRequest(tuple); // invoking flow initialization and delaying pkt by sending in queue of this object (hint: scheduleAt with delay)
             udpPacket->setKind(MSG_UDP_RETRANSMIT);
             udpPacket->setControlInfo(controlInfo); // appending own
-            scheduleAt(simTime()+TIMEDELAY_FLOW_REQ, udpPacket);
+            EV << "MA:udpIn: delaying process, creating flow request." << endl;
+            scheduleAt(simTime()+TIMEDELAY_PKT_PROCESS, udpPacket);
             return;
         } else if(funit->state == REGISTERING) {
-            tuple.lifetime--;
-            if(tuple.lifetime < 1) { delete msg; delete controlInfo; return;} // TODO discarding all packets of tuple
+            EV << "MA:udpIn starting registering process of first udp packet: "<< funit->lifetime << endl;
+            funit->lifetime--;
+            if(funit->lifetime < 1) {
+                EV << "MA:udpIn: deleting udp packet because of exceeding lifetime." << endl;
+                delete msg;
+                delete controlInfo;
+                return;
+            } // TODO discarding all packets of tuple
             if(isAddressAssociated(tuple.destAddress)) {
-                tuple.lifetime = MAX_PKT_LIFETIME;
+                EV << "MA:udpIn: creating address association. only done one time actually." << endl;
+                funit->lifetime = MAX_PKT_LIFETIME;
                 IPv6Address *ag = getAssociatedAddress(tuple.destAddress);
                 if(ag) {
+                    EV << "MA:udpIn: creating flow unit." << endl;
                     funit->state = REGISTERED;
                     funit->active = true;
                     funit->dataAgent = *ag;
@@ -487,19 +511,23 @@ void MobileAgent::processIncomingUDPPacket(cMessage *msg, IPv6ControlInfo *contr
                     funit->cachingActive = false; // specify if data agent has cached the addr
                     funit->loadSharing = false;
                     funit->locationUpdate = false;
+                    funit->nodeAddress = tuple.destAddress;
+                    funit->id = mobileId;
                 } else {
                     throw cRuntimeError("MA:UDPin: getAssociatedAddr fetched empty pointer instead of address.");
                 }
             } else {
+                EV << "MA:udpIn sending udp packet in queue, such that it can be processed in next round" << endl;
                 udpPacket->setKind(MSG_UDP_RETRANSMIT);
                 udpPacket->setControlInfo(controlInfo); // appending own
-                scheduleAt(simTime()+TIMEDELAY_FLOW_REQ, udpPacket);
+                scheduleAt(simTime()+TIMEDELAY_PKT_PROCESS, udpPacket);
                 return;
             }
         } else if(funit->state == REGISTERED) {
-            tuple.lifetime = MAX_PKT_LIFETIME;
+            funit->lifetime = MAX_PKT_LIFETIME;
             // what should here be done?
         } else { throw cRuntimeError("MA:UDPin: Not known state of flow. What should be done?"); }
+//        EV << "MA:udpIn: flow is registered. starting sending process." << endl;
         MobileAgentHeader *mah = new MobileAgentHeader("udp_id");
         uint64 ADDED_CONFIG = 0;
         if(funit->cacheAddress) { // check if address should be cached. It should be cached.
@@ -557,10 +585,11 @@ void MobileAgent::processIncomingUDPPacket(cMessage *msg, IPv6ControlInfo *contr
             throw cRuntimeError("MA: Load sharing not implemented yet.");
         } else {
             controlInfo->setInterfaceId(getInterface(funit->dataAgent)->getInterfaceId()); // just override existing entries
+            controlInfo->setSourceAddress(getInterface(funit->dataAgent)->ipv6Data()->getPreferredAddress());
             mah->setControlInfo(controlInfo); // make copy before setting param
             cGate *outgate = gate("toLowerLayer");
             EV << "UDP2IP: Dest=" << controlInfo->getDestAddr() << " Src=" << controlInfo->getSrcAddr() << " If=" << controlInfo->getInterfaceId() << " Pkt=" << mah->getByteLength() << endl;
-            send(msg, outgate);
+            send(mah, outgate);
         }
     } else { throw cRuntimeError("MA: Incoming message should be UPD packet."); }
 }
@@ -708,6 +737,7 @@ InterfaceEntry *MobileAgent::getInterface(IPv6Address destAddr, int destPort, in
 
 void MobileAgent::sendToLowerLayer(cMessage *msg, const IPv6Address& destAddr, const IPv6Address& srcAddr, int interfaceId, simtime_t delayTime) {
 //    EV << "A: Creating IPv6ControlInfo to lower layer" << endl;
+
     IPv6ControlInfo *ctrlInfo = new IPv6ControlInfo();
     ctrlInfo->setProtocol(IP_PROT_IPv6EXT_ID); // todo must be adjusted
     ctrlInfo->setDestAddr(destAddr);

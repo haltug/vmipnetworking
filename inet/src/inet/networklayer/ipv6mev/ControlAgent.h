@@ -34,7 +34,7 @@ namespace inet {
  */
 class ControlAgent : public Agent
 {
-
+    virtual ~ControlAgent() {};
   protected:
     virtual int numInitStages() const override { return NUM_INIT_STAGES; }
     virtual void initialize(int stage) override;

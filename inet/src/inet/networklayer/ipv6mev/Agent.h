@@ -74,6 +74,7 @@ namespace inet {
 #define TIMEDELAY_IF_DOWN       3   // delay of ip msg handler
 #define TIMEDELAY_IF_UP         0
 #define TIMEDELAY_FLOW_REQ      1 // unit is [s]
+#define TIMEDELAY_PKT_PROCESS   0.5
 #define TIMEDELAY_MA_INIT       1 // unit is [s]
 #define MAX_PKT_LIFETIME        30 // specifies retransmission attempts until pkt is discarded for udp tcp
 //#define TIMEOUT_FLOW_REQ        1
@@ -96,7 +97,7 @@ class AddressManagement;
 class INET_API Agent : public cSimpleModule
 {
   public:
-    virtual ~Agent();
+    virtual ~Agent() {};
 
     enum AgentState {
         UNASSOCIATED = 0,
@@ -119,20 +120,15 @@ class INET_API Agent : public cSimpleModule
     };
 
     struct FlowTuple {
-        uint64 id;
         short protocol;
-        IPv6Address destAddress;
         int destPort;
         int sourcePort;
-        int lifetime;
+        IPv6Address destAddress;
         bool operator<(const FlowTuple& b) const {
             if(destAddress == b.destAddress) {
                 if(destPort == b.destPort) {
                     if(sourcePort == b.sourcePort) {
-                        if(protocol == b.protocol) {
-                            return id < b.id;
-                        } else
-                            return protocol < b.protocol;
+                        return protocol < b.protocol;
                     } else
                         return sourcePort < b.sourcePort;
                 } else
@@ -149,6 +145,7 @@ class INET_API Agent : public cSimpleModule
         bool cachingActive;   // presents if address has been cached by data agent
         bool locationUpdate;
         bool loadSharing;
+        int  lifetime;
 
         uint64 id;
         IPv6Address dataAgent; // defines the address of data agent
@@ -159,12 +156,15 @@ class INET_API Agent : public cSimpleModule
     typedef std::map<FlowTuple, FlowUnit> FlowTable; // IPv6address should be replaced with DataAgent <cn,da>
     FlowTable flowTable;
 
-    typedef std::map<IPv6Address,IPv6Address> AddressAssociation; // destinationAddress -> agentAddress
+    typedef std::map<IPv6Address,IPv6Address> AddressAssociation; // nodeAddress -> agentAddress
     AddressAssociation addressAssociation;
+    AddressAssociation addressAssociationInv;
 
-    bool isAddressAssociated(IPv6Address &dest);
     FlowUnit *getFlowUnit(FlowTuple &tuple);
     IPv6Address *getAssociatedAddress(IPv6Address &dest);
+    bool isAddressAssociated(IPv6Address &dest);
+    IPv6Address *getAssociatedAddressInv(IPv6Address &dest);
+    bool isAddressAssociatedInv(IPv6Address &dest);
 
 //============================================= Timer configuration ===========================
     class ExpiryTimer {
@@ -266,7 +266,7 @@ class INET_API Agent : public cSimpleModule
     };
     class FlowRequestTimer : public ExpiryTimer {
     public:
-        FlowTuple *tuple;
+        FlowTuple tuple;
     };
     class MobileInitTimer : public ExpiryTimer {
     public:
@@ -280,6 +280,7 @@ class INET_API Agent : public cSimpleModule
         simtime_t liftime;
         bool active = false;
     };
+    // TODO should it be declared as virtual?
     ExpiryTimer *getExpiryTimer(TimerKey& key, int timerType);
     bool pendingExpiryTimer(const IPv6Address& dest, int interfaceId, int timerType, uint64 id = 0, uint seq = 0);
     bool cancelExpiryTimer(const IPv6Address& dest, int interfaceId, int timerType, uint64 id = 0, uint seq = 0, uint ack = 0);
