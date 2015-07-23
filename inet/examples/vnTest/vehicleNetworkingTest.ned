@@ -13,7 +13,7 @@
 // along with this program.  If not, see http://www.gnu.org/licenses/.
 // 
 
-package inet.examples.ipv6mev;
+package inet.examples.vnTest;
 
 import inet.linklayer.ethernet.EtherHub;
 import inet.physicallayer.ieee80211.packetlevel.Ieee80211ScalarRadioMedium;
@@ -28,7 +28,7 @@ channel ethernetline extends ned.DatarateChannel
         datarate = 100Mbps;
 }
 
-network vehicleNetworking
+network vnTest
 {
     parameters:
         double total_mn;

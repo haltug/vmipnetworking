@@ -65,6 +65,7 @@ namespace inet {
 #define MSG_MA_INIT_DELAY       112
 #define MSG_AGENT_UPDATE        113
 #define MSG_SEQ_UPDATE_NOTIFY   114
+#define MSG_TCP_RETRANSMIT      115
 
 //========== Retransmission time of messages ==========
 #define TIMEOUT_SESSION_INIT    1 // retransmission time of ca init in sec

@@ -61,7 +61,7 @@ class MobileAgent : public cListener, public Agent
     void processDataAgentMessage(DataAgentHeader *agentHdr, IPv6ControlInfo *ipCtrlInfo);
     void processControlAgentMessage(ControlAgentHeader *agentHdr, IPv6ControlInfo *ipCtrlInfo);
     void processIncomingUDPPacket(cMessage *msg, IPv6ControlInfo *ipCtrlInfo);
-    //    void processIncomingTCPPacket(cMessage *msg);
+    void processIncomingTCPPacket(cMessage *msg, IPv6ControlInfo *ipCtrlInfo);
 //  INTERFACE LISTENER FUNCTIONS
     void createInterfaceDownMessage(int id);
     void handleInterfaceDownMessage(cMessage *msg);

@@ -28,6 +28,7 @@
 #include "inet/networklayer/ipv6/IPv6ExtensionHeaders.h"
 #include "inet/networklayer/ipv6/IPv6InterfaceData.h"
 #include "inet/transportlayer/udp/UDPPacket.h"
+#include "inet/transportlayer/tcp_common/TCPSegment.h"
 
 namespace inet {
 
@@ -290,10 +291,49 @@ void DataAgent::processMobileAgentMessage(MobileAgentHeader* agentHeader, IPv6Co
                             EV << "Forwarding pkt from MA to Node: Dest=" << ipControlInfo->getDestAddr() << " Src=" << ipControlInfo->getSrcAddr() << " If=" << ipControlInfo->getInterfaceId() << endl;
                         } else { throw cRuntimeError("DA:procMAmsg: UDP packet could not processed. FlowUnit unknown."); }
                     } else { throw cRuntimeError("DA:procMAmsg: UDP packet could not be cast."); }
-
-
                 } else if(agentHeader->getNextHeader() == IP_PROT_TCP) {
-                    // process here TCP packets from mobile agent
+                    uint64 mobileId = agentHeader->getId();
+                    const IPv6Address mobileAddress = controlInfo->getSourceAddress().toIPv6();
+                    const IPv6Address nodeAddress = agentHeader->getNodeAddress();
+                    EV << "DA: Received TCP packet from MA. MA: "<< mobileAddress << " Node: "<< nodeAddress << endl;
+                    if(!(agentHeader->getForwardAddrInit() && nodeAddress.isGlobal())) throw cRuntimeError("DA: procTCP: nodeAddress not in header.");
+                    bool activateCache = agentHeader->getCacheAddrInit();
+                    cPacket *packet = agentHeader->decapsulate(); // decapsulate(remove) agent header
+                    if (dynamic_cast<tcp::TCPSegment *>(packet) != nullptr) {
+                        tcp::TCPSegment *tcpseg =  (tcp::TCPSegment *) packet;
+                        FlowTuple tuple;
+                        tuple.protocol = IP_PROT_TCP;
+                        tuple.destPort = tcpseg->getDestinationPort();
+                        tuple.sourcePort = tcpseg->getSourcePort();
+                        tuple.destAddress = nodeAddress;
+                        EV << "DA: Creating TCP FlowTuple ADDR:" << tuple.destAddress << " DP:" << tuple.destPort << " SP:"<< tuple.sourcePort << endl;
+                        FlowUnit *funit = getFlowUnit(tuple);
+                        if(funit->state == UNREGISTERED) {
+                            EV << "DA: Init flow unit with first packet: "<< mobileAddress << endl;
+                            funit->state = REGISTERED;
+                            funit->active = true;
+                            funit->id = mobileId;
+                            funit->cacheAddress = activateCache;
+                            funit->mobileAgent = mobileAddress;
+                            funit->nodeAddress = nodeAddress;
+                            // other fields are not initialized.
+                        }
+                        if (funit->state == REGISTERED) {
+                            EV << "DA: flow unit exists. Preparing TCP packet transmission: "<< mobileAddress << endl;
+                            funit->mobileAgent = mobileAddress; // just update return address
+                            InterfaceEntry *ie = getInterface();
+                            IPv6ControlInfo *ipControlInfo = new IPv6ControlInfo();
+                            ipControlInfo->setProtocol(IP_PROT_TCP);
+                            ipControlInfo->setSrcAddr(ie->ipv6Data()->getPreferredAddress());
+                            ipControlInfo->setDestAddr(funit->nodeAddress);
+                            ipControlInfo->setInterfaceId(ie->getInterfaceId());
+                            ipControlInfo->setHopLimit(255);
+                            tcpseg->setControlInfo(ipControlInfo);
+                            cGate *outgate = gate("toLowerLayer");
+                            send(tcpseg, outgate);
+                            EV << "Forwarding pkt from MA to Node: Dest=" << ipControlInfo->getDestAddr() << " Src=" << ipControlInfo->getSrcAddr() << " If=" << ipControlInfo->getInterfaceId() << endl;
+                        } else { throw cRuntimeError("DA:procMAmsg: TCP packet could not processed. FlowUnit unknown."); }
+                    } else { throw cRuntimeError("DA:procMAmsg: TCP packet could not be cast."); }
                 } else { throw cRuntimeError("DA:procMAmsg: header declaration not known."); }
             } else { throw cRuntimeError("DA:procMAmsg: DA is not initialized with given ID."); }
         } else { throw cRuntimeError("DA: Received message is from CA but has wrong header parameter."); }
@@ -350,7 +390,43 @@ void DataAgent::proccessRegularNodeMessage(cMessage *msg, short protocol) {
         } else { throw cRuntimeError("DA:forward: could not cast to UDPPacket."); }
 
     } else if (protocol == IP_PROT_TCP) {
-
+        if (dynamic_cast<tcp::TCPSegment *>(msg) != nullptr) {
+            tcp::TCPSegment *tcpseg =  (tcp::TCPSegment *) msg;
+            tuple.protocol = IP_PROT_TCP;
+            tuple.destPort = tcpseg->getSourcePort();
+            tuple.sourcePort = tcpseg->getDestinationPort();
+            tuple.destAddress = controlInfo->getSourceAddress().toIPv6();
+            EV << "DA: Received regular message from Node, ADDR:" << tuple.destAddress << " DP:" << tuple.destPort << " SP:"<< tuple.sourcePort << endl;
+            FlowUnit *funit = getFlowUnit(tuple);
+            if(funit->state == REGISTERED && funit->active) {
+                DataAgentHeader *dah = new DataAgentHeader("ma_tcp");
+                dah->setIdInit(true);
+                dah->setIdAck(true);
+                dah->setSeqValid(true);
+                dah->setIdValid(true);
+                dah->setNextHeader(IP_PROT_TCP);
+                dah->setIpSequenceNumber(am.getCurrentSequenceNumber(funit->id));
+//                bool ipAddressExists = false;
+                AddressManagement::AddressChange ac = am.getAddressEntriesOfSequenceNumber(funit->id,am.getCurrentSequenceNumber(funit->id));
+//                if(ac.addedAddresses > 0) { // check if address is yet available
+//                    for(int i=0; i<ac.addedAddresses; i++) {
+//                        EV << "DA: checking availability of ip addr." << endl;
+//                        if(ac.getUnacknowledgedAddedIPv6AddressList.at(i) == funit->mobileAgent)
+//                            ipAddressExists = true;
+//                    }
+//                    if(!ipAddressExists) { // if not available use another ip address
+//                        EV << "DA: replacing ip addr:"<< am.to_string() << endl;
+//                        for(int i=0; i<ac.addedAddresses; i++) {
+//                            funit->mobileAgent = ac.getUnacknowledgedAddedIPv6AddressList.at(i);
+//                            break;
+//                        }
+//                    }
+//                }
+                dah->encapsulate(tcpseg);
+                EV << "DA: Forwarding regular UDP packet: "<< funit->mobileAgent << " agent: "<< funit->dataAgent << " node:"<< funit->nodeAddress <<" Id2: " << funit->id  <<endl;
+                sendToLowerLayer(dah,funit->mobileAgent);
+            } else {  throw cRuntimeError("DA:forward: could not find tuple of incoming tcp packet."); }
+        } else { throw cRuntimeError("DA:forward: could not cast to UDPPacket."); }
     }
     delete controlInfo;
 }
@@ -377,7 +453,7 @@ void DataAgent::sendToLowerLayer(cMessage *msg, const IPv6Address& destAddr, sim
     }
     msg->setControlInfo(ctrlInfo);
     cGate *outgate = gate("toLowerLayer");
-    EV << "ControlInfo: Dest=" << ctrlInfo->getDestAddr() << " Src=" << ctrlInfo->getSrcAddr() << " If=" << ctrlInfo->getInterfaceId() << endl;
+    EV << "DA2IP: Dest=" << ctrlInfo->getDestAddr() << " Src=" << ctrlInfo->getSrcAddr() << " If=" << ctrlInfo->getInterfaceId() << endl;
     if (delayTime > 0) {
         EV << "delayed sending" << endl;
         sendDelayed(msg, delayTime, outgate);
