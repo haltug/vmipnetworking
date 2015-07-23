@@ -206,6 +206,13 @@ std::string IPv6Address::str() const
     return os.str();
 }
 
+std::string IPv6Address::str_interfaceId() const
+{
+    std::stringstream os;
+    os << getInterfaceId();
+    return os.str();
+}
+
 IPv6Address::Scope IPv6Address::getScope() const
 {
     //Mask the given IPv6 address with the different mask types
@@ -333,6 +340,12 @@ IPv6Address IPv6Address::getSuffix(int prefixLength) const
     // Now we mask each IPv6 address segment, inverse it
     // and create a new IPv6 Address!
     return IPv6Address(d[0] & ~mask[0], d[1] & ~mask[1], d[2] & ~mask[2], d[3] & ~mask[3]);
+}
+
+uint64 IPv6Address::getInterfaceId() const
+{
+    uint64 id = (uint64) d[2] << 32 | (uint64) d[3];
+    return id;
 }
 
 const IPv6Address& IPv6Address::setPrefix(const IPv6Address& fromAddr, int prefixLength)

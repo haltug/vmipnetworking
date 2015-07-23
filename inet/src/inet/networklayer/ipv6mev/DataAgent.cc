@@ -423,7 +423,7 @@ void DataAgent::proccessRegularNodeMessage(cMessage *msg, short protocol) {
 //                    }
 //                }
                 dah->encapsulate(tcpseg);
-                EV << "DA: Forwarding regular UDP packet: "<< funit->mobileAgent << " agent: "<< funit->dataAgent << " node:"<< funit->nodeAddress <<" Id2: " << funit->id  <<endl;
+                EV << "DA: Forwarding regular TCP packet: "<< funit->mobileAgent << " agent: "<< funit->dataAgent << " node:"<< funit->nodeAddress <<" Id2: " << funit->id  <<endl;
                 sendToLowerLayer(dah,funit->mobileAgent);
             } else {  throw cRuntimeError("DA:forward: could not find tuple of incoming tcp packet."); }
         } else { throw cRuntimeError("DA:forward: could not cast to UDPPacket."); }
@@ -453,7 +453,7 @@ void DataAgent::sendToLowerLayer(cMessage *msg, const IPv6Address& destAddr, sim
     }
     msg->setControlInfo(ctrlInfo);
     cGate *outgate = gate("toLowerLayer");
-    EV << "DA2IP: Dest=" << ctrlInfo->getDestAddr() << " Src=" << ctrlInfo->getSrcAddr() << " If=" << ctrlInfo->getInterfaceId() << endl;
+    EV << "DA2IP: Dest=" << ctrlInfo->getDestAddr() << " Src=" << ctrlInfo->getSrcAddr() << " If=" << ctrlInfo->getInterfaceId() << " IfId=" << ctrlInfo->getDestAddr().str_interfaceId() << endl;
     if (delayTime > 0) {
         EV << "delayed sending" << endl;
         sendDelayed(msg, delayTime, outgate);

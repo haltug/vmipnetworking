@@ -237,6 +237,16 @@ class INET_API IPv6Address
     IPv6Address getSuffix(int prefixLength) const;
 
     /**
+     * Returns the 64 lsb of the IPv6Address.
+     */
+    uint64 getInterfaceId() const;
+
+    /**
+     * Prints the interface Id of the IPv6Address.
+     */
+    std::string str_interfaceId() const;
+
+    /**
      * Overwrites the first prefixLength bits of the address with
      * the bits from the address passed as argument.
      * Return value is the object itself.

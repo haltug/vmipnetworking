@@ -457,7 +457,8 @@ void MobileAgent::processDataAgentMessage(DataAgentHeader* agentHeader, IPv6Cont
                 } else {
                     funit->state = REGISTERED;
                 }
-                IPv6Address fakeIp(29<<56,mobileId);
+                IPv6Address fakeIp;
+                fakeIp.set(0x1D << 24, 0, (mobileId >> 32) & 0xFFFFFFFF, mobileId & 0xFFFFFFFF);
                 EV << "MA:IPv6: " << fakeIp.str() << endl;
                 IPv6ControlInfo *ipControlInfo = new IPv6ControlInfo();
                 ipControlInfo->setProtocol(IP_PROT_UDP);
@@ -493,7 +494,8 @@ void MobileAgent::processDataAgentMessage(DataAgentHeader* agentHeader, IPv6Cont
                     } else {
                         funit->state = REGISTERED;
                     }
-                    IPv6Address fakeIp(29<<56,mobileId);
+                    IPv6Address fakeIp;
+                    fakeIp.set(0x1D << 24, 0, (mobileId >> 32) & 0xFFFFFFFF, mobileId & 0xFFFFFFFF);
                     EV << "MA:IPv6: " << fakeIp.str() << endl;
                     IPv6ControlInfo *ipControlInfo = new IPv6ControlInfo();
                     ipControlInfo->setProtocol(IP_PROT_TCP);
