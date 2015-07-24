@@ -43,14 +43,20 @@ class DataAgent : public Agent
     void createSequenceUpdateNotificaiton(uint64 mobileId, uint seq);
     void sendSequenceUpdateNotification(cMessage *msg); // used by DA to notify CA of changes
 
-    void sendAgentInitResponse(IPv6Address destAddr, uint64 mobileId, uint seq, uint ack);
-    void sendAgentUpdateResponse(IPv6Address destAddr, uint64 mobileId, uint seq, uint ack);
+    void sendAgentInitResponse(IPv6Address destAddr, uint64 mobileId, uint seq);
+    void sendAgentUpdateResponse(IPv6Address destAddr, uint64 mobileId, uint seq);
 
     void processAgentMessage(IdentificationHeader *agentHeader, IPv6ControlInfo *ipCtrlInfo);
-    void proccessNodeMessage(cMessage *msg, short protocol); // forwards message to CN
+    void performAgentInit(IdentificationHeader *agentHeader, IPv6Address destAddr);
+    void performAgentUpdate(IdentificationHeader *agentHeader, IPv6Address destAddr);
+    void performSeqUpdate(IdentificationHeader *agentHeader);
+    void processUdpFromAgent(IdentificationHeader *agentHeader, IPv6Address destAddr);
+    void processTcpFromAgent(IdentificationHeader *agentHeader, IPv6Address destAddr);
+    void processUdpFromNode(cMessage *msg);
+    void processTcpFromNode(cMessage *msg);
 
     // INTERFACE
-    InterfaceEntry *getInterface(IPv6Address destAddr = IPv6Address(), int destPort = -1, int sourcePort = -1, short protocol = -1); //const ,
+    InterfaceEntry *getInterface(); //const ,
     void sendToLowerLayer(cMessage *msg, const IPv6Address& destAddr, simtime_t sendTime = 0); // resend after timer expired
 };
 

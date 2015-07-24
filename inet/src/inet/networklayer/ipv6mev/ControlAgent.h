@@ -36,12 +36,12 @@ class ControlAgent : public Agent
 {
     virtual ~ControlAgent() {};
   protected:
-    virtual int numInitStages() const override { return NUM_INIT_STAGES; }
-    virtual void initialize(int stage) override;
-    virtual void handleMessage(cMessage *msg) override;
     IInterfaceTable *ift = nullptr; // for recognizing changes etc
     std::vector<uint64>  mobileIdList; // lists all id of mobile nodes
     std::vector<IPv6Address> agentAddressList; // lists all data agents
+    virtual int numInitStages() const override { return NUM_INIT_STAGES; }
+    virtual void initialize(int stage) override;
+    virtual void handleMessage(cMessage *msg) override;
   public:
     // CA FUNCTION
     void createAgentInit(uint64 mobileId); // used by CA
@@ -60,6 +60,7 @@ class ControlAgent : public Agent
     void initializeSequence(IdentificationHeader *agentHeader, IPv6Address destAddr);
     void performSeqUpdate(IdentificationHeader *agentHeader, IPv6Address destAddr);
     void performFlowRequest(IdentificationHeader *agentHeader, IPv6Address destAddr);
+    void performAgentInitResponse(IdentificationHeader *agentHeader, IPv6Address sourceAddr);
     void performAgentUpdateResponse(IdentificationHeader *agentHeader, IPv6Address sourceAddr);
 
     // INTERFACE
