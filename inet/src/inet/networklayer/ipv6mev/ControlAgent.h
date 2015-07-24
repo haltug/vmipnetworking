@@ -41,24 +41,30 @@ class ControlAgent : public Agent
     virtual void handleMessage(cMessage *msg) override;
     IInterfaceTable *ift = nullptr; // for recognizing changes etc
     std::vector<uint64>  mobileIdList; // lists all id of mobile nodes
-    std::vector<IPv6Address> nodeAddressList; // lists all data agents
+    std::vector<IPv6Address> agentAddressList; // lists all data agents
   public:
-    // CA function
+    // CA FUNCTION
     void createAgentInit(uint64 mobileId); // used by CA
     void sendAgentInit(cMessage *msg); // used by CA to init DA
-
     void createAgentUpdate(uint64 mobileId, uint seq); // used by CA to update all its specific data agents
     void sendAgentUpdate(cMessage *msg);
+
     void sendSequenceUpdateAck(uint64 mobileId); // confirm to MA its new
-    void sendSessionInitResponse(IPv6Address dest, IPv6Address source);
-    void sendSequenceInitResponse(IPv6Address dest, IPv6Address source, uint64 mobileId, uint seq);
-    void sendSequenceUpdateResponse(IPv6Address destAddr, IPv6Address sourceAddr, uint64 mobileId, uint seq);
-    void sendFlowRequestResponse(IPv6Address destAddr, IPv6Address sourceAddr, uint64 mobileId, uint seq, IPv6Address nodeAddr, IPv6Address agentAddr);
-    void processMobileAgentMessage(MobileAgentHeader *agentHdr, IPv6ControlInfo *ipCtrlInfo);
-    void processDataAgentMessage(DataAgentHeader *agentHdr, IPv6ControlInfo *ipCtrlInfo);
+    void sendSessionInitResponse(IPv6Address dest);
+    void sendSequenceInitResponse(IPv6Address dest, uint64 mobileId, uint seq);
+    void sendSequenceUpdateResponse(IPv6Address destAddr, uint64 mobileId, uint seq);
+    void sendFlowRequestResponse(IPv6Address destAddr, uint64 mobileId, uint seq, IPv6Address nodeAddr, IPv6Address agentAddr);
+    // MSG PROCESSING
+    void processAgentMessage(IdentificationHeader *agentHeader, IPv6ControlInfo *ipCtrlInfo);
+    void initializeSession(IdentificationHeader *agentHeader, IPv6Address destAddr);
+    void initializeSequence(IdentificationHeader *agentHeader, IPv6Address destAddr);
+    void performSeqUpdate(IdentificationHeader *agentHeader, IPv6Address destAddr);
+    void performFlowRequest(IdentificationHeader *agentHeader, IPv6Address destAddr);
+    void performAgentUpdateResponse(IdentificationHeader *agentHeader, IPv6Address sourceAddr);
+
     // INTERFACE
-    InterfaceEntry *getInterface(IPv6Address destAddr = IPv6Address(), int destPort = -1, int sourcePort = -1, short protocol = -1); //const ,
-    void sendToLowerLayer(cMessage *msg, const IPv6Address& destAddr, const IPv6Address& srcAddr = IPv6Address::UNSPECIFIED_ADDRESS, int interfaceId = -1, simtime_t sendTime = 0); // resend after timer expired
+    InterfaceEntry *getInterface(); //const ,
+    void sendToLowerLayer(cMessage *msg, const IPv6Address& destAddr, simtime_t sendTime = 0);
 
 };
 

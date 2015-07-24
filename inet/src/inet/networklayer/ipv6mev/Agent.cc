@@ -44,12 +44,9 @@ Agent::FlowUnit *Agent::getFlowUnit(FlowTuple &tuple)
     if (i == flowTable.end()) {
         fu = &flowTable[tuple];
         fu->state = UNREGISTERED;
-        fu->active = false;
-        fu->cacheAddress = false; // should be determined by CA
-        fu->cachingActive = false; // should be set by CA
-        fu->dataAgent = tuple.destAddress.UNSPECIFIED_ADDRESS; // should be set by CA
-        fu->loadSharing = false;
-        fu->locationUpdate = false;
+        fu->isFlowActive = false;
+        fu->isAddressCached = false; // should be determined by CA
+        fu->dataAgent = IPv6Address::UNSPECIFIED_ADDRESS; // should be set by CA
         fu->id = 0;
         fu->lifetime = 0;
     }
@@ -94,6 +91,46 @@ bool Agent::isAddressAssociatedInv(IPv6Address &dest)
     auto i = addressAssociationInv.find(dest);
     return (i != addressAssociationInv.end());
 }
+
+IdentificationHeader *Agent::getAgentHeader(short type, short protocol, uint seq, uint ack, uint64 id) {
+    IdentificationHeader *ih = new IdentificationHeader();
+    ih->setNextHeader(protocol);
+    ih->setByteLength(SIZE_AGENT_HEADER);
+    if(type == 1) {
+        ih->setIsMobileAgent(true);
+        ih->setIsControlAgent(false);
+        ih->setIsDataAgent(false);
+    } else if (type == 2) {
+        ih->setIsMobileAgent(false);
+        ih->setIsControlAgent(true);
+        ih->setIsDataAgent(false);
+    } else if (type == 3) {
+        ih->setIsMobileAgent(false);
+        ih->setIsControlAgent(false);
+        ih->setIsDataAgent(true);
+    } else { throw cRuntimeError("HeaderConfig: Agent type not known"); }
+    ih->setIsIdInitialized(false);
+    ih->setIsIdAcked(false);
+    ih->setIsSeqValid(false);
+    ih->setIsAckValid(false);
+    ih->setIsIpModified(false);
+
+    ih->setIpSequenceNumber(seq);
+    ih->setIpAcknowledgementNumber(ack);
+    ih->setIpAddingField(0);
+    ih->setIpRemovingField(0);
+
+    ih->setIsWithAgentAddr(false);
+    ih->setIsWithNodeAddr(false);
+    ih->setIsWithReturnAddr(false);
+    ih->setIsReturnAddrCached(false);
+
+    ih->setFunctionField(0);
+    ih->setId(id);
+    ih->setIPaddressesArraySize(0);
+    return ih;
+}
+
 //=========================================================================================================
 //=========================================================================================================
 //============================ Timer ==========================

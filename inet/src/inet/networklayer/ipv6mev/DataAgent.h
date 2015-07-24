@@ -35,20 +35,20 @@ class DataAgent : public Agent
 {
     virtual ~DataAgent() {};
   protected:
+    IInterfaceTable *ift = nullptr; // for recognizing changes etc
     virtual int numInitStages() const override { return NUM_INIT_STAGES; }
     virtual void initialize(int stage) override;
     virtual void handleMessage(cMessage *msg) override;
-    IInterfaceTable *ift = nullptr; // for recognizing changes etc
   public:
     void createSequenceUpdateNotificaiton(uint64 mobileId, uint seq);
     void sendSequenceUpdateNotification(cMessage *msg); // used by DA to notify CA of changes
 
-    void sendAgentInitResponse(IPv6Address destAddr, IPv6Address sourceAddr, uint64 mobileId, uint seq);
-    void sendAgentUpdateResponse(IPv6Address destAddr, IPv6Address sourceAddr, uint64 mobileId, uint seq);
+    void sendAgentInitResponse(IPv6Address destAddr, uint64 mobileId, uint seq, uint ack);
+    void sendAgentUpdateResponse(IPv6Address destAddr, uint64 mobileId, uint seq, uint ack);
 
-    void processMobileAgentMessage(MobileAgentHeader *agentHdr, IPv6ControlInfo *ipCtrlInfo);
-    void processControlAgentMessage(ControlAgentHeader *agentHdr, IPv6ControlInfo *ipCtrlInfo);
-    void proccessRegularNodeMessage(cMessage *msg, short protocol); // forwards message to CN
+    void processAgentMessage(IdentificationHeader *agentHeader, IPv6ControlInfo *ipCtrlInfo);
+    void proccessNodeMessage(cMessage *msg, short protocol); // forwards message to CN
+
     // INTERFACE
     InterfaceEntry *getInterface(IPv6Address destAddr = IPv6Address(), int destPort = -1, int sourcePort = -1, short protocol = -1); //const ,
     void sendToLowerLayer(cMessage *msg, const IPv6Address& destAddr, simtime_t sendTime = 0); // resend after timer expired

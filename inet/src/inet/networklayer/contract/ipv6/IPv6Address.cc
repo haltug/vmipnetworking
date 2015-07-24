@@ -344,7 +344,9 @@ IPv6Address IPv6Address::getSuffix(int prefixLength) const
 
 uint64 IPv6Address::getInterfaceId() const
 {
-    uint64 id = (uint64) d[2] << 32 | (uint64) d[3];
+    uint64 id = (uint64) d[2];
+    id = id << 32;
+    id = id | (uint64) d[3];
     return id;
 }
 

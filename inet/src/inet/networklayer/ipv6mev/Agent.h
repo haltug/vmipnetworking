@@ -125,11 +125,15 @@ class INET_API Agent : public cSimpleModule
         int destPort;
         int sourcePort;
         IPv6Address destAddress;
+        uint64 interfaceId;
         bool operator<(const FlowTuple& b) const {
             if(destAddress == b.destAddress) {
                 if(destPort == b.destPort) {
                     if(sourcePort == b.sourcePort) {
-                        return protocol < b.protocol;
+                        if(interfaceId == b.interfaceId) {
+                            return protocol < b.protocol;
+                        } else
+                            return interfaceId < b.interfaceId;
                     } else
                         return sourcePort < b.sourcePort;
                 } else
@@ -141,11 +145,10 @@ class INET_API Agent : public cSimpleModule
 
     struct FlowUnit {
         FlowState state;
-        bool active;
-        bool cacheAddress; // specifiy if address should be cached
-        bool cachingActive;   // presents if address has been cached by data agent
-        bool locationUpdate;
-        bool loadSharing;
+        bool isFlowActive;
+        bool isAddressCached; // specifiy if address should be cached
+//        bool locationUpdate;
+//        bool loadSharing;
         int  lifetime;
 
         uint64 id;
@@ -166,6 +169,12 @@ class INET_API Agent : public cSimpleModule
     bool isAddressAssociated(IPv6Address &dest);
     IPv6Address *getAssociatedAddressInv(IPv6Address &dest);
     bool isAddressAssociatedInv(IPv6Address &dest);
+    /**
+     * All fields are by default false. Type: MA=1, CA=2, DA=3
+     */
+    IdentificationHeader *getAgentHeader(short type, short protocol, uint seq, uint ack, uint64 id);
+    // Interface Id of DA or local id of MA/CA
+    uint64 agentId;
 
 //============================================= Timer configuration ===========================
     class ExpiryTimer {

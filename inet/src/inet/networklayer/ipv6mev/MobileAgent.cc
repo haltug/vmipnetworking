@@ -245,7 +245,7 @@ void MobileAgent::sendSequenceInit(cMessage *msg) {
     mah->setAddValid(true);
     mah->setRemValid(false);
     mah->setNextHeader(IP_PROT_NONE);
-    mah->setIpSequenceNumber(am.getCurrentSequenceNumber(mobileId));
+    mah->setIpSequenceNumber(am.getSeqNo(mobileId));
     mah->setIpAddingField(1);
     mah->setIpRemovingField(0);
     mah->setIpAcknowledgementNumber(0);
@@ -301,25 +301,25 @@ void MobileAgent::sendSequenceUpdate(cMessage* msg) {
     mah->setAddValid(true);
     mah->setRemValid(true);
     mah->setNextHeader(IP_PROT_NONE);
-    mah->setIpSequenceNumber(am.getCurrentSequenceNumber(mobileId));
-    mah->setIpAcknowledgementNumber(am.getLastAcknowledgemnt(mobileId));
+    mah->setIpSequenceNumber(am.getSeqNo(mobileId));
+    mah->setIpAcknowledgementNumber(am.getAckNo(mobileId));
     uint ack = sut->ack;
     uint seq = sut->seq;
-    AddressManagement::AddressChange ac = am.getUnacknowledgedIPv6AddressList(mobileId,ack,seq);
+    AddressManagement::AddressChange ac = am.getAddressChange(mobileId,ack,seq);
     mah->setIpAddingField(ac.addedAddresses);
     mah->setAddedAddressesArraySize(ac.addedAddresses);
     if(ac.addedAddresses > 0) {
-        if(ac.addedAddresses != ac.getUnacknowledgedAddedIPv6AddressList.size()) throw cRuntimeError("MA:sendSeqUpd: value of Add list must have size of integer.");
+        if(ac.addedAddresses != ac.getAddedIPv6AddressList.size()) throw cRuntimeError("MA:sendSeqUpd: value of Add list must have size of integer.");
         for(int i=0; i<ac.addedAddresses; i++) {
-            mah->setAddedAddresses(i,ac.getUnacknowledgedAddedIPv6AddressList.at(i));
+            mah->setAddedAddresses(i,ac.getAddedIPv6AddressList.at(i));
         }
     }
     mah->setIpRemovingField(ac.removedAddresses);
     mah->setRemovedAddressesArraySize(ac.removedAddresses);
     if(ac.removedAddresses > 0) {
-        if(ac.removedAddresses != ac.getUnacknowledgedRemovedIPv6AddressList.size()) throw cRuntimeError("MA:sendSeqUpd: value of Rem list must have size of integer.");
+        if(ac.removedAddresses != ac.getRemovedIPv6AddressList.size()) throw cRuntimeError("MA:sendSeqUpd: value of Rem list must have size of integer.");
         for(int i=0; i<ac.removedAddresses; i++) {
-            mah->setRemovedAddresses(i,ac.getUnacknowledgedRemovedIPv6AddressList.at(i));
+            mah->setRemovedAddresses(i,ac.getRemovedIPv6AddressList.at(i));
         }
     }
     mah->setByteLength(SIZE_AGENT_HEADER+(SIZE_ADDING_ADDR_TO_HDR*(ac.addedAddresses+ac.removedAddresses)));
@@ -418,8 +418,8 @@ void MobileAgent::processControlAgentMessage(ControlAgentHeader* agentHeader, IP
                 cancelAndDeleteExpiryTimer(caAddress,-1, TIMERKEY_FLOW_REQ);
                 EV << "MA: Flow request responsed by CA. Request process successfully established." << endl;
             } else { // it's a sequence update
-                if(agentHeader->getIpSequenceNumber() > am.getLastAcknowledgemnt(mobileId)) {
-                    cancelAndDeleteExpiryTimer(caAddress,-1, TIMERKEY_SEQ_UPDATE, mobileId, agentHeader->getIpSequenceNumber(), am.getLastAcknowledgemnt(mobileId));
+                if(agentHeader->getIpSequenceNumber() > am.getAckNo(mobileId)) {
+                    cancelAndDeleteExpiryTimer(caAddress,-1, TIMERKEY_SEQ_UPDATE, mobileId, agentHeader->getIpSequenceNumber(), am.getAckNo(mobileId));
                     am.setLastAcknowledgemnt(mobileId, agentHeader->getIpSequenceNumber());
                     EV << "MA: Received CA ack. Seqno update timer removed if there were one. Seq update process successfully finished." << endl;
                 } else {
@@ -601,25 +601,25 @@ void MobileAgent::processIncomingUDPPacket(cMessage *msg, IPv6ControlInfo *contr
         mah->setAckValid(true);
         mah->setAddValid(true);
         mah->setRemValid(true);
-        mah->setIpSequenceNumber(am.getCurrentSequenceNumber(mobileId));
-        mah->setIpAcknowledgementNumber(am.getLastAcknowledgemnt(mobileId));
-        uint ack = am.getLastAcknowledgemnt(mobileId);
-        uint seq = am.getCurrentSequenceNumber(mobileId);
-        AddressManagement::AddressChange ac = am.getUnacknowledgedIPv6AddressList(mobileId,ack,seq);
+        mah->setIpSequenceNumber(am.getSeqNo(mobileId));
+        mah->setIpAcknowledgementNumber(am.getAckNo(mobileId));
+        uint ack = am.getAckNo(mobileId);
+        uint seq = am.getSeqNo(mobileId);
+        AddressManagement::AddressChange ac = am.getAddressChange(mobileId,ack,seq);
         mah->setIpAddingField(ac.addedAddresses);
         mah->setAddedAddressesArraySize(ac.addedAddresses);
         if(ac.addedAddresses > 0) {
-            if(ac.addedAddresses != ac.getUnacknowledgedAddedIPv6AddressList.size()) throw cRuntimeError("MA:sendSeqUpd: value of Add list must have size of integer.");
+            if(ac.addedAddresses != ac.getAddedIPv6AddressList.size()) throw cRuntimeError("MA:sendSeqUpd: value of Add list must have size of integer.");
             for(int i=0; i<ac.addedAddresses; i++) {
-                mah->setAddedAddresses(i,ac.getUnacknowledgedAddedIPv6AddressList.at(i));
+                mah->setAddedAddresses(i,ac.getAddedIPv6AddressList.at(i));
             }
         }
         mah->setIpRemovingField(ac.removedAddresses);
         mah->setRemovedAddressesArraySize(ac.removedAddresses);
         if(ac.removedAddresses > 0) {
-            if(ac.removedAddresses != ac.getUnacknowledgedRemovedIPv6AddressList.size()) throw cRuntimeError("MA:sendSeqUpd: value of Rem list must have size of integer.");
+            if(ac.removedAddresses != ac.getRemovedIPv6AddressList.size()) throw cRuntimeError("MA:sendSeqUpd: value of Rem list must have size of integer.");
             for(int i=0; i<ac.removedAddresses; i++) {
-                mah->setRemovedAddresses(i,ac.getUnacknowledgedRemovedIPv6AddressList.at(i));
+                mah->setRemovedAddresses(i,ac.getRemovedIPv6AddressList.at(i));
             }
         }
         mah->setId(mobileId);
@@ -727,25 +727,25 @@ void MobileAgent::processIncomingTCPPacket(cMessage *msg, IPv6ControlInfo *contr
         mah->setAckValid(true);
         mah->setAddValid(true);
         mah->setRemValid(true);
-        mah->setIpSequenceNumber(am.getCurrentSequenceNumber(mobileId));
-        mah->setIpAcknowledgementNumber(am.getLastAcknowledgemnt(mobileId));
-        uint ack = am.getLastAcknowledgemnt(mobileId);
-        uint seq = am.getCurrentSequenceNumber(mobileId);
-        AddressManagement::AddressChange ac = am.getUnacknowledgedIPv6AddressList(mobileId,ack,seq);
+        mah->setIpSequenceNumber(am.getSeqNo(mobileId));
+        mah->setIpAcknowledgementNumber(am.getAckNo(mobileId));
+        uint ack = am.getAckNo(mobileId);
+        uint seq = am.getSeqNo(mobileId);
+        AddressManagement::AddressChange ac = am.getAddressChange(mobileId,ack,seq);
         mah->setIpAddingField(ac.addedAddresses);
         mah->setAddedAddressesArraySize(ac.addedAddresses);
         if(ac.addedAddresses > 0) {
-            if(ac.addedAddresses != ac.getUnacknowledgedAddedIPv6AddressList.size()) throw cRuntimeError("MA:sendSeqTCP: value of Add list must have size of integer.");
+            if(ac.addedAddresses != ac.getAddedIPv6AddressList.size()) throw cRuntimeError("MA:sendSeqTCP: value of Add list must have size of integer.");
             for(int i=0; i<ac.addedAddresses; i++) {
-                mah->setAddedAddresses(i,ac.getUnacknowledgedAddedIPv6AddressList.at(i));
+                mah->setAddedAddresses(i,ac.getAddedIPv6AddressList.at(i));
             }
         }
         mah->setIpRemovingField(ac.removedAddresses);
         mah->setRemovedAddressesArraySize(ac.removedAddresses);
         if(ac.removedAddresses > 0) {
-            if(ac.removedAddresses != ac.getUnacknowledgedRemovedIPv6AddressList.size()) throw cRuntimeError("MA:sendSeqTCP: value of Rem list must have size of integer.");
+            if(ac.removedAddresses != ac.getRemovedIPv6AddressList.size()) throw cRuntimeError("MA:sendSeqTCP: value of Rem list must have size of integer.");
             for(int i=0; i<ac.removedAddresses; i++) {
-                mah->setRemovedAddresses(i,ac.getUnacknowledgedRemovedIPv6AddressList.at(i));
+                mah->setRemovedAddresses(i,ac.getRemovedIPv6AddressList.at(i));
             }
         }
         mah->setId(mobileId);
@@ -882,20 +882,20 @@ void MobileAgent::updateAddressTable(int id, InterfaceUnit *iu)
         (it->second)->priority = iu->priority;
         (it->second)->careOfAddress = iu->careOfAddress;
         if(iu->active) {    // presents an interface that has been associated
-            am.addIPv6AddressToAddressMap(mobileId, iu->careOfAddress);
+            am.addIpToMap(mobileId, iu->careOfAddress);
         } else { // presents an interface has been disassociated
-            am.removeIPv6AddressFromAddressMap(mobileId, iu->careOfAddress);
+            am.removeIpFromMap(mobileId, iu->careOfAddress);
         }
-        createSequenceUpdate(mobileId, am.getCurrentSequenceNumber(mobileId), am.getLastAcknowledgemnt(mobileId));
+        createSequenceUpdate(mobileId, am.getSeqNo(mobileId), am.getAckNo(mobileId));
     } else {
         addressTable.insert(std::make_pair(id,iu)); // if not, include this new
-        am.addIPv6AddressToAddressMap(mobileId, iu->careOfAddress);
+        am.addIpToMap(mobileId, iu->careOfAddress);
         if(sessionState == UNASSOCIATED) { createSessionInit(); } // first address is initialzed with session init
-        else if(seqnoState == ASSOCIATED) { createSequenceUpdate(mobileId, am.getCurrentSequenceNumber(mobileId), am.getLastAcknowledgemnt(mobileId)); } // next address must be updated by seq update
+        else if(seqnoState == ASSOCIATED) { createSequenceUpdate(mobileId, am.getSeqNo(mobileId), am.getAckNo(mobileId)); } // next address must be updated by seq update
         else if(seqnoState == INITIALIZING) { throw cRuntimeError("ERROR updateAddressTable: not inserted interface id should be added when the seqnoState is registered."); }
     }
 //    EV << "AM_MA: " << am.to_string() << endl;
-    EV << "AM_MA: " << am.getLastAcknowledgemnt(mobileId) << endl  << " -> " << am.getCurrentSequenceNumber(mobileId);
+    EV << "AM_MA: " << am.getAckNo(mobileId) << endl  << " -> " << am.getSeqNo(mobileId);
 }
 
 InterfaceEntry *MobileAgent::getInterface(IPv6Address destAddr, int destPort, int sourcePort, short protocol) { // const IPv6Address &destAddr,

@@ -36,65 +36,32 @@ class noncobject IPv6ExtensionHeader;
 // extends IPv6ExtensionHeader TODO
 packet IdentificationHeader
 {
-    int nextHeader = IP_PROT_IPv6EXT_ID;
+    short nextHeader = IP_PROT_IPv6EXT_ID;
+	byteLength = 16; // first 8 octet (64 bit = 8 byte) is not included but it is here declared for simplicity reason
+    // Flag field 1
+	bool isMobileAgent;
+	bool isControlAgent;
+	bool isDataAgent;
+	bool isIdInitialized;
+    bool isIdAcked;
+    bool isSeqValid;
+    bool isAckValid;
+    bool isIpModified;
+	// 
+	uint8 ipSequenceNumber;
+	uint8 ipAcknowledgementNumber;
+	uint8 ipAddingField;
+	uint8 ipRemovingField;
+	//  flag field 2
+	bool isWithAgentAddr;
+	bool isWithNodeAddr;
+	bool isWithReturnAddr;
+	bool isReturnAddrCached;
+	//
+	uint8 functionField;
+	uint64 id;
+	IPv6Address iPaddresses[];
+	   
+    
 }
 
-// Identification headers are represented as IPv6 extension of destination type
-// 
-packet MobileAgentHeader extends IdentificationHeader 
-{
-	   byteLength = 16;
-	   bool idInit;
-	   bool idAck;
-	   bool seqValid;
-	   bool ackValid;
-	   bool addValid;
-	   bool remValid;
-	   bool cacheAddrInit;
-	   bool forwardAddrInit;
-	   uint8 ipSequenceNumber;
-	   uint8 ipAcknowledgementNumber;
-	   uint8 ipAddingField;
-	   uint8 ipRemovingField;
-	   uint8 functionField;
-	   uint64 id;
-	   IPv6Address addedAddresses[];
-	   IPv6Address removedAddresses[];
-	   IPv6Address nodeAddress;
-}
-
-packet ControlAgentHeader extends IdentificationHeader
-{
-	    byteLength = 8;
-	    bool idInit;
-	    bool idAck;
-	    bool seqValid;
-	    bool cacheAddrAck;
-	    bool forwardAddrAck;
-	    bool idValid;
-    	uint8 ipSequenceNumber;
-    	uint8 functionField1;
-    	uint8 functionField2;
-    	uint8 functionField3;	   
-    	IPv6Address nodeAddress;
-    	IPv6Address agentAddress;
-    	uint64 id;
-}
-
-packet DataAgentHeader extends IdentificationHeader
-{
-	    byteLength = 8;
-	    bool idInit;
-	    bool idAck;
-	    bool seqValid;
-	    bool cacheAddrAck;
-	    bool forwardAddrAck;
-	    bool idValid;
-    	uint8 ipSequenceNumber;
-    	uint8 functionField1;
-    	uint8 functionField2;
-    	uint8 functionField3;		   
-    	IPv6Address nodeAddress;
-    	IPv6Address agentAddress;
-    	uint64 id;
-}

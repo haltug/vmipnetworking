@@ -100,7 +100,7 @@ bool AddressManagement::insertNewId(uint64 id, uint seqno, IPv6Address& addr)
     }
 }
 // Adds an IPv6 address in list of id
-void AddressManagement::addIPv6AddressToAddressMap(uint64 id, IPv6Address& addr)
+void AddressManagement::addIpToMap(uint64 id, IPv6Address& addr)
 {
     if(addressMap.count(id)) // check if id exists in map
     {
@@ -125,7 +125,7 @@ void AddressManagement::addIPv6AddressToAddressMap(uint64 id, IPv6Address& addr)
     }
 }
 // Removes an IPv6 addresses in list of id. TODO SEQ exceeds max size of 64
-void AddressManagement::removeIPv6AddressFromAddressMap(uint64 id, IPv6Address& addr)
+void AddressManagement::removeIpFromMap(uint64 id, IPv6Address& addr)
 {
     if(addressMap.count(id)) // check if id exists in map
     {
@@ -150,7 +150,7 @@ void AddressManagement::removeIPv6AddressFromAddressMap(uint64 id, IPv6Address& 
         throw cRuntimeError("ID is not found in AddressMap. Create entry for ID.");
     }
 }
-void AddressManagement::insertSequenceTableToAddressMap(uint64 id, IPv6AddressList &addr, uint seq)
+void AddressManagement::insertSeqTableToMap(uint64 id, IPv6AddressList &addr, uint seq)
 {
     if(addressMap.count(id)) { // check if id exists in map
         addressMap[id].currentSequenceNumber = seq;
@@ -166,7 +166,7 @@ void AddressManagement::insertSequenceTableToAddressMap(uint64 id, IPv6AddressLi
 }
 
 // Returns the change of IPv6 addresses as lists from ack up to the seq
-AddressManagement::AddressChange AddressManagement::getUnacknowledgedIPv6AddressList(uint64 id, uint ack, uint seq)
+AddressManagement::AddressChange AddressManagement::getAddressChange(uint64 id, uint ack, uint seq)
 {
     if(addressMap.count(id)) // check if id exists in map
     {
@@ -196,7 +196,7 @@ AddressManagement::AddressChange AddressManagement::getUnacknowledgedIPv6Address
                    throw cRuntimeError( "AddressChangeAdd: Size of address list difference should be one.");
                } else
                {
-                   addressChange.getUnacknowledgedAddedIPv6AddressList.push_back(difference.front()); // put the difference address in local variable
+                   addressChange.getAddedIPv6AddressList.push_back(difference.front()); // put the difference address in local variable
                }
            } else if(currIPv6AddressList.size() > nextIPv6AddressList.size())
            { // deleted case
@@ -208,7 +208,7 @@ AddressManagement::AddressChange AddressManagement::getUnacknowledgedIPv6Address
                   throw cRuntimeError("AddressChangeRem: Size of address list difference should be one.");
               } else
               {
-                  addressChange.getUnacknowledgedRemovedIPv6AddressList.push_back(difference.front()); // put the difference address in local variable
+                  addressChange.getRemovedIPv6AddressList.push_back(difference.front()); // put the difference address in local variable
               }
            } else
            {
@@ -222,7 +222,7 @@ AddressManagement::AddressChange AddressManagement::getUnacknowledgedIPv6Address
     }
 }
 
-AddressManagement::AddressChange AddressManagement::getAddressEntriesOfSequenceNumber(uint64 id, uint seq)
+AddressManagement::AddressChange AddressManagement::getAddressEntriesOfSeqNo(uint64 id, uint seq)
 {
     if(addressMap.count(id)) { // check if id exists in map
        AddressChange addressChange;
@@ -231,7 +231,7 @@ AddressManagement::AddressChange AddressManagement::getAddressEntriesOfSequenceN
            throw cRuntimeError("Sequence table with index (seqNo) does not exist.");
        IPv6AddressList currIPv6AddressList (seqTable[seq]); // get address list of index
        addressChange.addedAddresses = currIPv6AddressList.size();
-       addressChange.getUnacknowledgedAddedIPv6AddressList = currIPv6AddressList;
+       addressChange.getAddedIPv6AddressList = currIPv6AddressList;
 //       addressChange.getUnacknowledgedRemovedIPv6AddressList;
        addressChange.removedAddresses = 0;
        return addressChange;
@@ -240,7 +240,7 @@ AddressManagement::AddressChange AddressManagement::getAddressEntriesOfSequenceN
     }
 }
 
-uint AddressManagement::getCurrentSequenceNumber(const uint64 id) const
+uint AddressManagement::getSeqNo(const uint64 id) const
 {
     if(addressMap.count(id)) // check if id exists in map
     {
@@ -251,7 +251,7 @@ uint AddressManagement::getCurrentSequenceNumber(const uint64 id) const
     }
 }
 
-uint AddressManagement::getLastAcknowledgemnt(const uint64 id) const
+uint AddressManagement::getAckNo(const uint64 id) const
 {
     if(addressMap.count(id)) // check if id exists in map
     {
@@ -261,7 +261,7 @@ uint AddressManagement::getLastAcknowledgemnt(const uint64 id) const
     }
 }
 
-void AddressManagement::setLastAcknowledgemnt(uint64 id, uint seqno)
+void AddressManagement::setAckNo(uint64 id, uint seqno)
 {
     if(addressMap.count(id)) // check if id exists in map
     {
@@ -271,7 +271,7 @@ void AddressManagement::setLastAcknowledgemnt(uint64 id, uint seqno)
     }
 }
 
-bool AddressManagement::isLastSequenceNumberAcknowledged(uint64 id) const
+bool AddressManagement::isSeqNoAcknowledged(uint64 id) const
 {
     if(addressMap.count(id)) // check if id exists in map
     {
@@ -307,7 +307,7 @@ bool AddressManagement::isIpRegistered(uint64 id, IPv6Address& dest, uint seq)
     }
 }
 
-AddressManagement::IPv6AddressList AddressManagement::getCurrentAddressList(uint64 id)
+AddressManagement::IPv6AddressList AddressManagement::getAddressList(uint64 id)
 {
     auto it = addressMap.find(id);
     if(it != addressMap.end()) {
@@ -396,11 +396,11 @@ std::string AddressManagement::to_string(AddressChange addrChange) const
     str.append(";Rem:");
     str.append(std::to_string(addrChange.removedAddresses));
     str.append(";#:");
-    std::string add = AddressManagement::to_string(addrChange.getUnacknowledgedAddedIPv6AddressList);
+    std::string add = AddressManagement::to_string(addrChange.getAddedIPv6AddressList);
     str.append(add);
     if(add.size()>1)
         str.append("->");
-    str.append(AddressManagement::to_string(addrChange.getUnacknowledgedRemovedIPv6AddressList));
+    str.append(AddressManagement::to_string(addrChange.getRemovedIPv6AddressList));
     str.append("\n");
     return str;
 }

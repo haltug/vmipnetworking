@@ -58,11 +58,11 @@ class INET_API AddressManagement : public cSimpleModule
     {
         uint addedAddresses = 0;
         uint removedAddresses = 0;
-        IPv6AddressList getUnacknowledgedAddedIPv6AddressList;
-        IPv6AddressList getUnacknowledgedRemovedIPv6AddressList;
+        IPv6AddressList getAddedIPv6AddressList;
+        IPv6AddressList getRemovedIPv6AddressList;
     };
-    AddressChange getUnacknowledgedIPv6AddressList(uint64 id, uint ack, uint seq);
-    AddressChange getAddressEntriesOfSequenceNumber(uint64 id, uint seq);
+    AddressChange getAddressChange(uint64 id, uint ack, uint seq); // getAddressChange(uint64 id, uint ack, uint seq)
+    AddressChange getAddressEntriesOfSeqNo(uint64 id, uint seq); // getAddressEntriesOfSeqNo
 
     // A map that contains all elements of vehicle agents
     typedef std::map<uint64,AddressMapEntry> AddressMap;
@@ -73,19 +73,17 @@ class INET_API AddressManagement : public cSimpleModule
 
     uint initiateAddressMap(uint64 id, int seed); // for VA
     bool insertNewId(uint64 id, uint seqno, IPv6Address& addr); // for CA+DA
-    void addIPv6AddressToAddressMap(uint64 id, IPv6Address& addr); // for adding of new ip by MA and CA. a new value increments the seqNo
-    void removeIPv6AddressFromAddressMap(uint64 id, IPv6Address& addr); // for removing existing ip in last seq entry
-    void insertSequenceTableToAddressMap(uint64 id, IPv6AddressList& addr, uint seq); // insert a complete seqTable to address map
+    void addIpToMap(uint64 id, IPv6Address& addr); // for adding of new ip by MA and CA. a new value increments the seqNo
+    void removeIpFromMap(uint64 id, IPv6Address& addr); // for removing existing ip in last seq entry
+    void insertSeqTableToMap(uint64 id, IPv6AddressList& addr, uint seq); // insert a complete seqTable to address map
 
-    // returns the last sequence number
-    uint getCurrentSequenceNumber(const uint64 id) const;
-    // returns the last ack number
-    uint getLastAcknowledgemnt(uint64 id) const;
-    void setLastAcknowledgemnt(uint64 id, uint seqno);
-    bool isLastSequenceNumberAcknowledged(uint64 id) const;
+    uint getSeqNo(const uint64 id) const; // returns the last sequence number
+    uint getAckNo(uint64 id) const;     // returns the last ack number
+    void setAckNo(uint64 id, uint seqno);
+    bool isSeqNoAcknowledged(uint64 id) const;
     bool isIdInitialized(uint64 id)  const;
     bool isIpRegistered(uint64 id, IPv6Address& dest, uint seq);
-    IPv6AddressList getCurrentAddressList(uint64 id);
+    IPv6AddressList getAddressList(uint64 id); // getCurrentAddressList(uint64)
 
     // prints given parameter in string form
     std::string to_string() const;
