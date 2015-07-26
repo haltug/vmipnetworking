@@ -44,15 +44,15 @@ network vehicleConnectivity
         }
         radioMedium: Ieee80211ScalarRadioMedium {
             parameters:
-                @display("p=48,75");
+                @display("p=50,75");
         }
         R_1: Router6 {
             parameters:
-                @display("p=230,230");
+                @display("p=140,230");
         }
         R_2: Router6 {
             parameters:
-                @display("p=630,230");
+                @display("p=700,230");
         }
         R_3: Router6 {
             parameters:
@@ -60,7 +60,7 @@ network vehicleConnectivity
         }
         R_4: Router6 {
             parameters:
-                @display("p=630,570");
+                @display("p=757,570");
         }
         R_5: Router6 {
             parameters:
@@ -68,7 +68,7 @@ network vehicleConnectivity
         }
         AP_1: AccessPoint {
             parameters:
-                @display("p=230,300;i=device/accesspoint_s");
+                @display("p=200,300;i=device/accesspoint_s");
         }
         //        AP_2: AccessPoint {
         //            parameters:
@@ -76,11 +76,11 @@ network vehicleConnectivity
         //        }
         AP_3: AccessPoint {
             parameters:
-                @display("p=430,500;i=device/accesspoint_s");
+                @display("p=370,500;i=device/accesspoint_s");
         }
         AP_4: AccessPoint {
             parameters:
-                @display("p=830,500;i=device/accesspoint_s");
+                @display("p=900,500;i=device/accesspoint_s");
         }
         //        HUB_1: EtherHub {
         //            parameters:
@@ -96,7 +96,7 @@ network vehicleConnectivity
         }
         DA: DataAgent {
             parameters:
-                @display("p=630,30");
+                @display("p=700,30");
         }
         MA[total_mn]: MobileAgent {
             parameters:

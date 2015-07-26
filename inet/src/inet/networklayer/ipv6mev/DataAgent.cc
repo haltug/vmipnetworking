@@ -270,7 +270,7 @@ void DataAgent::processUdpFromAgent(IdentificationHeader *agentHeader, IPv6Addre
             tuple.sourcePort = udpPacket->getSourcePort();
             tuple.destAddress = nodeAddress;
             tuple.interfaceId = nodeAddress.getInterfaceId();
-            EV << "DA: Creating UDP FlowTuple ADDR:" << tuple.destAddress << " DP:" << tuple.destPort << " SP:"<< tuple.sourcePort << endl;
+//            EV << "DA: Creating UDP FlowTuple ADDR:" << tuple.destAddress << " DP:" << tuple.destPort << " SP:"<< tuple.sourcePort << endl;
             FlowUnit *funit = getFlowUnit(tuple);
             if(funit->state == UNREGISTERED) {
                 EV << "DA: Init flow unit with first packet from: "<< destAddr.str() << endl;
@@ -283,7 +283,7 @@ void DataAgent::processUdpFromAgent(IdentificationHeader *agentHeader, IPv6Addre
                 // other fields are not initialized.
             }
             if (funit->state == REGISTERED) {
-                EV << "DA: flow unit exists. Preparing transmission: "<< destAddr.str() << endl;
+//                EV << "DA: flow unit exists. Preparing transmission: "<< destAddr.str() << endl;
                 funit->mobileAgent = destAddr; // just update return address
                 InterfaceEntry *ie = getInterface();
                 IPv6ControlInfo *ipControlInfo = new IPv6ControlInfo();
@@ -319,7 +319,7 @@ void DataAgent::processTcpFromAgent(IdentificationHeader *agentHeader, IPv6Addre
             tuple.sourcePort = tcpseg->getSourcePort();
             tuple.destAddress = nodeAddress;
             tuple.interfaceId = nodeAddress.getInterfaceId();
-            EV << "DA: Creating TCP FlowTuple ADDR:" << tuple.destAddress << " DP:" << tuple.destPort << " SP:"<< tuple.sourcePort << endl;
+//            EV << "DA: Creating TCP FlowTuple ADDR:" << tuple.destAddress << " DP:" << tuple.destPort << " SP:"<< tuple.sourcePort << endl;
             FlowUnit *funit = getFlowUnit(tuple);
             if(funit->state == UNREGISTERED) {
                 EV << "DA: Init flow unit with first packet: "<< destAddr << endl;
@@ -331,7 +331,7 @@ void DataAgent::processTcpFromAgent(IdentificationHeader *agentHeader, IPv6Addre
                 funit->nodeAddress = nodeAddress;
             }
             if (funit->state == REGISTERED) {
-                EV << "DA: flow unit exists. Preparing TCP packet transmission: "<< destAddr << " to " << nodeAddress << endl;
+//                EV << "DA: flow unit exists. Preparing TCP packet transmission: "<< destAddr << " to " << nodeAddress << endl;
                 funit->mobileAgent = destAddr; // just update return address
                 InterfaceEntry *ie = getInterface();
                 IPv6ControlInfo *ipControlInfo = new IPv6ControlInfo();

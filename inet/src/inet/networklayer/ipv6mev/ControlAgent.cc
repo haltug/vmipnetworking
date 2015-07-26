@@ -165,6 +165,7 @@ void ControlAgent::sendAgentUpdate(cMessage *msg)
     ih->setIsSeqValid(true);
     ih->setIsIpModified(true);
     AddressManagement::AddressChange ac = am.getAddressEntriesOfSeqNo(sut->id,sut->seq);
+    EV << "CA:AgentUpdate: Size: " << ac.addedAddresses << " R: " << ac.removedAddresses << endl;
     ih->setIpAddingField(ac.addedAddresses);
     ih->setIPaddressesArraySize(ac.addedAddresses);
     if(ac.addedAddresses > 0) {
@@ -295,12 +296,13 @@ void ControlAgent::initializeSequence(IdentificationHeader *agentHeader, IPv6Add
     if(std::find(mobileIdList.begin(), mobileIdList.end(), agentHeader->getId()) != mobileIdList.end()) {
         bool addrMgmtEntry = am.insertNewId(agentHeader->getId(), agentHeader->getIpSequenceNumber(), agentHeader->getIPaddresses(0));//first number
         if(addrMgmtEntry) { // check if seq and id is inserted
-            EV << "CA: Received sequence initialize message. Initialized seq: " << agentHeader->getIpSequenceNumber() << " with ip: " << agentHeader->getIPaddresses(0) << endl;
+            int s = agentHeader->getIpSequenceNumber();
+            EV << "CA: Received sequence initialize message. Initialized seq: " << s << " with ip: " << agentHeader->getIPaddresses(0) << endl;
             sendSequenceInitResponse(destAddr, agentHeader->getId(), am.getSeqNo(agentHeader->getId()));
         }
         else
             if(am.isIdInitialized(agentHeader->getId()))
-                EV << "CA: ERROR: Id has been initialized before. Why do you send me again an init message?" << endl;
+                EV << "CA: ERROR: Id has been initialized before. Why do you send me again an seq init message?" << endl;
             else
                 throw cRuntimeError("CA: Initialization of sequence number failed, CA could not insert id in AddrMgmt-Unit.");
     }
@@ -325,15 +327,27 @@ void ControlAgent::performSeqUpdate(IdentificationHeader *agentHeader, IPv6Addre
                                 am.removeIpFromMap(agentHeader->getId(), agentHeader->getIPaddresses(i));
                             }
                         }
-                        EV << "CA: Received update message. update to seq: " << agentHeader->getIpSequenceNumber() << " from ack: " << am.getAckNo(agentHeader->getId()) << endl;
+                        int s = agentHeader->getIpSequenceNumber();
+                        int a = am.getAckNo(agentHeader->getId());
+                        EV << "CA: Received update message. Update table to seq: " << s << " from ack: " << a << endl;
                         // first all DA's are updated. after update confirmation, CA's ack is incremented and subsequently MA is confirmed.
-                        createAgentUpdate(agentHeader->getId(), am.getSeqNo(agentHeader->getId()));
+                        if(agentAddressList.size() > 0)
+                            createAgentUpdate(agentHeader->getId(), am.getSeqNo(agentHeader->getId()));
+                        else {
+                            am.setAckNo(agentHeader->getId(),am.getSeqNo(agentHeader->getId()));
+                            sendSequenceUpdateResponse(destAddr, agentHeader->getId(), am.getSeqNo(agentHeader->getId()));
+                        }
                     }
                 } else if (agentHeader->getIpSequenceNumber() < am.getSeqNo(agentHeader->getId())) { // get retransmission from MA
                     EV << "CA: Received seq no of seq update is lower than the current seq no of CA. This should not occur. Check that." << endl;
                 } else { // following code is executed if DA's hasnt acked but CA has updated its seq no. Just resend update message to DA, so that MA can be confirmed.
                     EV << "CA: Resend update message to DA because MA retransmitted seq update. update to seq: " << agentHeader->getIpSequenceNumber() << " from ack: " << am.getAckNo(agentHeader->getId()) << endl;
-                    createAgentUpdate(agentHeader->getId(), am.getSeqNo(agentHeader->getId()));
+                    if(agentAddressList.size() > 0)
+                        createAgentUpdate(agentHeader->getId(), am.getSeqNo(agentHeader->getId()));
+                    else {
+                        am.setAckNo(agentHeader->getId(),am.getSeqNo(agentHeader->getId()));
+                        sendSequenceUpdateResponse(destAddr, agentHeader->getId(), am.getSeqNo(agentHeader->getId()));
+                    }
                 }
             } else {
                 EV << "CA: Received an older seq update. The seq no is lower than the current ack no of CA. This should be not the regular case." << endl;

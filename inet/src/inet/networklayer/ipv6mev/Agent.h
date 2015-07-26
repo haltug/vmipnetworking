@@ -66,6 +66,7 @@ namespace inet {
 #define MSG_AGENT_UPDATE        113
 #define MSG_SEQ_UPDATE_NOTIFY   114
 #define MSG_TCP_RETRANSMIT      115
+#define MSG_INTERFACE_DELAY     116
 
 //========== Retransmission time of messages ==========
 #define TIMEOUT_SESSION_INIT    1 // retransmission time of ca init in sec
@@ -78,6 +79,7 @@ namespace inet {
 #define TIMEDELAY_PKT_PROCESS   0.5
 #define TIMEDELAY_MA_INIT       1 // unit is [s]
 #define MAX_PKT_LIFETIME        30 // specifies retransmission attempts until pkt is discarded for udp tcp
+#define TIMEDELAY_IFACE_INIT    1 // delaying registration of interface when MA is in init stage.
 //#define TIMEOUT_FLOW_REQ        1
 
 //========== Header SIZE ===========

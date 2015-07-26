@@ -228,7 +228,7 @@ AddressManagement::AddressChange AddressManagement::getAddressEntriesOfSeqNo(uin
        AddressChange addressChange;
        SequenceTable seqTable (addressMap[id].sequenceTable); // get current sequence table
        if(!seqTable.count(seq)) // check if seq table with given seq number exists
-           throw cRuntimeError("Sequence table with index (seqNo) does not exist.");
+           throw cRuntimeError("AC> Sequence table with index (seqNo) does not exist.");
        IPv6AddressList currIPv6AddressList (seqTable[seq]); // get address list of index
        addressChange.addedAddresses = currIPv6AddressList.size();
        addressChange.getAddedIPv6AddressList = currIPv6AddressList;

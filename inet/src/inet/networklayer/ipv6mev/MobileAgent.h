@@ -49,6 +49,11 @@ class MobileAgent : public cListener, public Agent
     typedef std::map<int, InterfaceUnit *> AddressTable; // represents the address table
     AddressTable addressTable;
 
+    struct InterfaceInit {
+        int id;
+        InterfaceUnit *iu;
+    };
+
   public:
     void createSessionInit();
     void sendSessionInit(cMessage *msg); // send initialization message to CA
