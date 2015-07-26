@@ -121,7 +121,7 @@ void ControlAgent::sendAgentInit(cMessage *msg)
     mit->nextScheduledTime = simTime() + mit->ackTimeout;
     mit->ackTimeout = (mit->ackTimeout)*2;
     for(auto &item : am.getAddressMap()) {
-        IdentificationHeader *ih = getAgentHeader(2, IP_PROT_IPv6EXT_ID, am.getSeqNo(item.first), 0, item.first);
+        IdentificationHeader *ih = getAgentHeader(2, IP_PROT_NONE, am.getSeqNo(item.first), 0, item.first);
         ih->setIsIdInitialized(true);
         ih->setIsSeqValid(true);
         ih->setIsIpModified(true);
@@ -159,11 +159,10 @@ void ControlAgent::sendAgentUpdate(cMessage *msg)
     const IPv6Address &dest =  sut->dest;
     sut->nextScheduledTime = simTime() + sut->ackTimeout;
     sut->ackTimeout = (sut->ackTimeout)*1.5;
-    IdentificationHeader *ih = getAgentHeader(2, IP_PROT_IPv6EXT_ID, am.getSeqNo(sut->id), am.getSeqNo(sut->id), sut->id);
+    IdentificationHeader *ih = getAgentHeader(2, IP_PROT_NONE, am.getSeqNo(sut->id), am.getSeqNo(sut->id), sut->id);
     ih->setIsIdInitialized(true);
     ih->setIsIdAcked(true);
     ih->setIsSeqValid(true);
-    ih->setIsAckValid(true);
     ih->setIsIpModified(true);
     AddressManagement::AddressChange ac = am.getAddressEntriesOfSeqNo(sut->id,sut->seq);
     ih->setIpAddingField(ac.addedAddresses);
@@ -185,7 +184,7 @@ void ControlAgent::sendSequenceUpdateAck(uint64 mobileId)
     AddressManagement::IPv6AddressList addressList = am.getAddressList(mobileId);
     for (IPv6Address ip : addressList ) {
         IPv6Address destAddr = ip; // address to be responsed
-        IdentificationHeader *ih = getAgentHeader(2, IP_PROT_IPv6EXT_ID,am.getSeqNo(mobileId), 0, agentId);
+        IdentificationHeader *ih = getAgentHeader(2, IP_PROT_NONE,am.getSeqNo(mobileId), 0, agentId);
         ih->setIsIdInitialized(true);
         ih->setIsIdAcked(true);
         ih->setIsSeqValid(true);
@@ -195,7 +194,7 @@ void ControlAgent::sendSequenceUpdateAck(uint64 mobileId)
 
 void ControlAgent::sendSessionInitResponse(IPv6Address destAddr)
 {
-    IdentificationHeader *ih = getAgentHeader(2, IP_PROT_IPv6EXT_ID, 0, 0, agentId);
+    IdentificationHeader *ih = getAgentHeader(2, IP_PROT_NONE, 0, 0, agentId);
     ih->setIsIdInitialized(true);
     ih->setIsIdAcked(true);
     sendToLowerLayer(ih,destAddr);
@@ -203,7 +202,7 @@ void ControlAgent::sendSessionInitResponse(IPv6Address destAddr)
 
 void ControlAgent::sendSequenceInitResponse(IPv6Address destAddr, uint64 mobileId, uint seq)
 {
-    IdentificationHeader *ih = getAgentHeader(2, IP_PROT_IPv6EXT_ID, seq, 0, agentId);
+    IdentificationHeader *ih = getAgentHeader(2, IP_PROT_NONE, seq, 0, agentId);
     ih->setIsIdInitialized(true);
     ih->setIsIdAcked(true);
     ih->setIsSeqValid(true);
@@ -213,7 +212,7 @@ void ControlAgent::sendSequenceInitResponse(IPv6Address destAddr, uint64 mobileI
 
 void ControlAgent::sendSequenceUpdateResponse(IPv6Address destAddr, uint64 mobileId, uint seq)
 { // is same to seqInitResponse
-    IdentificationHeader *ih = getAgentHeader(2, IP_PROT_IPv6EXT_ID, seq, 0, agentId);
+    IdentificationHeader *ih = getAgentHeader(2, IP_PROT_NONE, seq, 0, agentId);
     ih->setIsIdInitialized(true);
     ih->setIsIdAcked(true);
     ih->setIsSeqValid(true);
@@ -223,18 +222,18 @@ void ControlAgent::sendSequenceUpdateResponse(IPv6Address destAddr, uint64 mobil
 
 void ControlAgent::sendFlowRequestResponse(IPv6Address destAddr, uint64 mobileId, uint seq, IPv6Address agentAddr, IPv6Address nodeAddr)
 {
-    IdentificationHeader *ih = getAgentHeader(2, IP_PROT_IPv6EXT_ID, seq, 0, agentId);
+    IdentificationHeader *ih = getAgentHeader(2, IP_PROT_NONE, seq, 0, agentId);
     ih->setIsIdInitialized(true);
     ih->setIsIdAcked(true);
     ih->setIsSeqValid(true);
-    ih->setIsWithAgentAddr(true);
     ih->setIsWithNodeAddr(true);
+    ih->setIsWithAgentAddr(true);
     ih->setIPaddressesArraySize(2);
-    ih->setIPaddresses(0,agentAddr);
-    ih->setIPaddresses(1,nodeAddr);
+    ih->setIPaddresses(0,nodeAddr);
+    ih->setIPaddresses(1,agentAddr);
     ih->setByteLength(SIZE_AGENT_HEADER+SIZE_ADDING_ADDR_TO_HDR*2);
     createAgentInit(mobileId);
-    sendToLowerLayer(ih,destAddr,simTime()+0.25); // TODO remove delay
+    sendToLowerLayer(ih,destAddr,0.1); // TODO remove delay
 }
 
     // ================================================================================
@@ -243,11 +242,11 @@ void ControlAgent::sendFlowRequestResponse(IPv6Address destAddr, uint64 mobileId
 void ControlAgent::processAgentMessage(IdentificationHeader* agentHeader, IPv6ControlInfo* controlInfo)
 {
     IPv6Address destAddr = controlInfo->getSourceAddress().toIPv6(); // address to be responsed
-    IPv6Address sourceAddr = controlInfo->getDestinationAddress().toIPv6();
+//    IPv6Address sourceAddr = controlInfo->getDestinationAddress().toIPv6();
     // check here if the message is from data agent
-    if(agentHeader->getIsDataAgent() && agentHeader->getNextHeader() == IP_PROT_IPv6EXT_ID) {
-        EV << "CA: ERROR Header Fields of DA (seq upd message) wrongly set. Check that mistake." << endl;
-        if(agentHeader->getIsIdInitialized() && !agentHeader->getIsIdAcked() && agentHeader->getIsSeqValid() && !agentHeader->getIsAckValid() && agentHeader->getIsIpModified())
+    if(agentHeader->getIsDataAgent() && agentHeader->getNextHeader() == IP_PROT_NONE) {
+//        EV << "CA: ERROR Header Fields of DA (seq upd message) wrongly set. Check that mistake." << endl;
+        if(agentHeader->getIsIdInitialized() && !agentHeader->getIsIdAcked() && agentHeader->getIsSeqValid() && !agentHeader->getIsAckValid() && !agentHeader->getIsIpModified())
             performAgentInitResponse(agentHeader, destAddr); // we need here the source address to remove the timers
         else if(agentHeader->getIsIdInitialized() && agentHeader->getIsIdAcked() && agentHeader->getIsSeqValid() && !agentHeader->getIsAckValid() && !agentHeader->getIsIpModified())
             performAgentUpdateResponse(agentHeader, destAddr); // we need here the source address to remove the timers
@@ -256,15 +255,15 @@ void ControlAgent::processAgentMessage(IdentificationHeader* agentHeader, IPv6Co
         else
             throw cRuntimeError("CA: DA msg not known.");
     } else
-        if(agentHeader->getIsMobileAgent() && agentHeader->getNextHeader() == IP_PROT_IPv6EXT_ID) {
-            if(agentHeader->getIsIdInitialized() && !agentHeader->getIsIdAcked()) // check for other bits // init process request
+        if(agentHeader->getIsMobileAgent() && agentHeader->getNextHeader() == IP_PROT_NONE) {
+            if(agentHeader->getIsIdInitialized() && !agentHeader->getIsIdAcked() && !agentHeader->getIsSeqValid() && !agentHeader->getIsAckValid()) // check for other bits // init process request
                 initializeSession(agentHeader, destAddr);
             else
                 if(agentHeader->getIsIdInitialized() && agentHeader->getIsIdAcked() && agentHeader->getIsSeqValid() && !agentHeader->getIsAckValid())  //TODO check from here if id is registered.
                     initializeSequence(agentHeader, destAddr);
                 else
                     if(agentHeader->getIsIdInitialized() && agentHeader->getIsIdAcked() && agentHeader->getIsSeqValid() && agentHeader->getIsAckValid()) {
-                        if(agentHeader->getIsWithAgentAddr() && !agentHeader->getIsIpModified())
+                        if(agentHeader->getIsWithNodeAddr() && !agentHeader->getIsIpModified())
                             performFlowRequest(agentHeader, destAddr);
                         else
                             if(agentHeader->getIsIpModified())
@@ -296,7 +295,7 @@ void ControlAgent::initializeSequence(IdentificationHeader *agentHeader, IPv6Add
     if(std::find(mobileIdList.begin(), mobileIdList.end(), agentHeader->getId()) != mobileIdList.end()) {
         bool addrMgmtEntry = am.insertNewId(agentHeader->getId(), agentHeader->getIpSequenceNumber(), agentHeader->getIPaddresses(0));//first number
         if(addrMgmtEntry) { // check if seq and id is inserted
-            EV << "CA: Received sequence initialize message from MA. Initialized sequence number: " << agentHeader->getIpSequenceNumber() << "; ip: " << agentHeader->getIPaddresses(0) << endl;
+            EV << "CA: Received sequence initialize message. Initialized seq: " << agentHeader->getIpSequenceNumber() << " with ip: " << agentHeader->getIPaddresses(0) << endl;
             sendSequenceInitResponse(destAddr, agentHeader->getId(), am.getSeqNo(agentHeader->getId()));
         }
         else
@@ -364,7 +363,7 @@ void ControlAgent::performSeqUpdate(IdentificationHeader *agentHeader, IPv6Addre
 void ControlAgent::performFlowRequest(IdentificationHeader *agentHeader, IPv6Address destAddr)
 {
     // you would here lookup for the best data agent, returning for simplicity just one address
-    // check createAgentInit function
+    // check createAgentInit function and check array size of ipaddresses()
     IPv6Address nodeAddress = agentHeader->getIPaddresses(0);
     L3Address daAddr;
     const char *dataAgentAddr;
@@ -434,7 +433,7 @@ void ControlAgent::sendToLowerLayer(cMessage *msg, const IPv6Address& destAddr, 
     } else { throw cRuntimeError("CA:send2LowerLayer no interface provided."); }
     msg->setControlInfo(ctrlInfo);
     cGate *outgate = gate("toLowerLayer");
-    EV << "CA: Dest=" << ctrlInfo->getDestAddr() << " Src=" << ctrlInfo->getSrcAddr() << " If=" << ctrlInfo->getInterfaceId() << endl;
+    EV << "CA2IP: Dest=" << ctrlInfo->getDestAddr() << " Src=" << ctrlInfo->getSrcAddr() << " If=" << ctrlInfo->getInterfaceId() << " Delay=" << delayTime.str() << endl;
     if (delayTime > 0)
         sendDelayed(msg, delayTime, outgate);
     else

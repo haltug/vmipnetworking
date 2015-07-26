@@ -114,7 +114,7 @@ void DataAgent::sendSequenceUpdateNotification(cMessage *msg)
     const IPv6Address &dest =  unt->dest;
     unt->nextScheduledTime = simTime() + unt->ackTimeout;
     unt->ackTimeout = (unt->ackTimeout)*1.5;
-    IdentificationHeader *ih = getAgentHeader(3, IP_PROT_IPv6EXT_ID, am.getSeqNo(unt->id), 0, unt->id);
+    IdentificationHeader *ih = getAgentHeader(3, IP_PROT_NONE, am.getSeqNo(unt->id), 0, unt->id);
     ih->setIsIdInitialized(true);
     ih->setIsIdAcked(true);
     ih->setIsSeqValid(true);
@@ -135,16 +135,15 @@ void DataAgent::sendSequenceUpdateNotification(cMessage *msg)
 
 void DataAgent::sendAgentInitResponse(IPv6Address destAddr, uint64 mobileId, uint seq)
 {
-    IdentificationHeader *ih = getAgentHeader(3, IP_PROT_IPv6EXT_ID, am.getSeqNo(mobileId), 0, mobileId);
+    IdentificationHeader *ih = getAgentHeader(3, IP_PROT_NONE, am.getSeqNo(mobileId), 0, mobileId);
     ih->setIsIdInitialized(true);
-    ih->setIsIdAcked(true);
     ih->setIsSeqValid(true);
     sendToLowerLayer(ih,destAddr);
 }
 
 void DataAgent::sendAgentUpdateResponse(IPv6Address destAddr, uint64 mobileId, uint seq)
 {
-    IdentificationHeader *ih = getAgentHeader(3, IP_PROT_IPv6EXT_ID, am.getSeqNo(mobileId), 0, mobileId);
+    IdentificationHeader *ih = getAgentHeader(3, IP_PROT_NONE, am.getSeqNo(mobileId), 0, mobileId);
     ih->setIsIdInitialized(true);
     ih->setIsIdAcked(true);
     ih->setIsSeqValid(true);
@@ -156,19 +155,20 @@ void DataAgent::sendAgentUpdateResponse(IPv6Address destAddr, uint64 mobileId, u
 void DataAgent::processAgentMessage(IdentificationHeader* agentHeader, IPv6ControlInfo* controlInfo)
 {
     IPv6Address destAddr = controlInfo->getSourceAddress().toIPv6(); // address to be responsed
-    if(agentHeader->getIsControlAgent() && (agentHeader->getNextHeader() == IP_PROT_IPv6EXT_ID)) {
+    if(agentHeader->getIsControlAgent() && (agentHeader->getNextHeader() == IP_PROT_NONE)) {
         if(sessionState == UNASSOCIATED) {
             sessionState = ASSOCIATED; // indicates if data agent is associated to a CA
             if(caAddress.isUnspecified()) caAddress = destAddr;
         }
         if(agentHeader->getIsIdInitialized() && !agentHeader->getIsIdAcked() && agentHeader->getIsSeqValid() && !agentHeader->getIsAckValid()  && agentHeader->getIsIpModified())
             performAgentInit(agentHeader, destAddr);
-        else if(agentHeader->getIsIdInitialized() && !agentHeader->getIsIdAcked() && agentHeader->getIsSeqValid() && !agentHeader->getIsAckValid()  && agentHeader->getIsIpModified())
+        else if(agentHeader->getIsIdInitialized() && agentHeader->getIsIdAcked() && agentHeader->getIsSeqValid() && !agentHeader->getIsAckValid()  && agentHeader->getIsIpModified())
             performAgentUpdate(agentHeader, destAddr);
         else
             throw cRuntimeError("DA: Header of CA msg is not known");
     } else if(agentHeader->getIsMobileAgent() && agentHeader->getIsIdInitialized() && agentHeader->getIsIdAcked() && agentHeader->getIsSeqValid() && agentHeader->getIsAckValid()) {
-        performSeqUpdate(agentHeader);
+        if(agentHeader->getIsIpModified())
+            performSeqUpdate(agentHeader);
         if(agentHeader->getNextHeader() == IP_PROT_UDP && agentHeader->getIsWithNodeAddr())
             processUdpFromAgent(agentHeader, destAddr);
         else if(agentHeader->getNextHeader() == IP_PROT_TCP && agentHeader->getIsWithNodeAddr())
@@ -307,6 +307,8 @@ void DataAgent::processUdpFromAgent(IdentificationHeader *agentHeader, IPv6Addre
 void DataAgent::processTcpFromAgent(IdentificationHeader *agentHeader, IPv6Address destAddr)
 {
     if(std::find(mobileIdList.begin(), mobileIdList.end(), agentHeader->getId()) != mobileIdList.end()) {
+        if(agentHeader->getIPaddressesArraySize() < 1)
+            throw cRuntimeError("DA: ArraySize = 0. Check process unti from MA.");
         IPv6Address nodeAddress = agentHeader->getIPaddresses(0);
         cPacket *packet = agentHeader->decapsulate(); // decapsulate(remove) agent header
         if (dynamic_cast<tcp::TCPSegment *>(packet) != nullptr) {
@@ -329,7 +331,7 @@ void DataAgent::processTcpFromAgent(IdentificationHeader *agentHeader, IPv6Addre
                 funit->nodeAddress = nodeAddress;
             }
             if (funit->state == REGISTERED) {
-                EV << "DA: flow unit exists. Preparing TCP packet transmission: "<< destAddr << endl;
+                EV << "DA: flow unit exists. Preparing TCP packet transmission: "<< destAddr << " to " << nodeAddress << endl;
                 funit->mobileAgent = destAddr; // just update return address
                 InterfaceEntry *ie = getInterface();
                 IPv6ControlInfo *ipControlInfo = new IPv6ControlInfo();
@@ -364,15 +366,12 @@ void DataAgent::processUdpFromNode(cMessage *msg)
         tuple.interfaceId = controlInfo->getSourceAddress().toIPv6().getInterfaceId();
         FlowUnit *funit = getFlowUnit(tuple);
         if(funit->state == REGISTERED && funit->isFlowActive) {
-            IdentificationHeader *ih = new IdentificationHeader();
-            ih->setNextHeader(IP_PROT_UDP);
+            IdentificationHeader *ih = getAgentHeader(3, IP_PROT_UDP, am.getSeqNo(funit->id), 0, tuple.interfaceId);
             ih->setIsIdInitialized(true);
             ih->setIsIdAcked(true);
             ih->setIsSeqValid(true);
             ih->setIsWithReturnAddr(true);
             ih->setIsReturnAddrCached(funit->isAddressCached);
-            ih->setId(controlInfo->getSourceAddress().toIPv6().getInterfaceId());
-            ih->setIpSequenceNumber(am.getSeqNo(funit->id));
 //                bool ipAddressExists = false;
 //            AddressManagement::AddressChange ac = am.getAddressEntriesOfSeqNo(funit->id,am.getSeqNo(funit->id));
 //                if(ac.addedAddresses > 0) { // check if address is yet available
@@ -414,17 +413,14 @@ void DataAgent::processTcpFromNode(cMessage *msg)
         EV << "DA: Received regular message from Node, ADDR:" << tuple.destAddress << " DP:" << tuple.destPort << " SP:"<< tuple.sourcePort << endl;
         FlowUnit *funit = getFlowUnit(tuple);
         if(funit->state == REGISTERED && funit->isFlowActive) {
-            IdentificationHeader *ih = new IdentificationHeader();
-            ih->setNextHeader(IP_PROT_TCP);
+            IdentificationHeader *ih = getAgentHeader(3, IP_PROT_TCP, am.getSeqNo(funit->id), 0, tuple.interfaceId);
             ih->setIsIdInitialized(true);
             ih->setIsIdAcked(true);
             ih->setIsSeqValid(true);
             ih->setIsWithReturnAddr(true);
             ih->setIsReturnAddrCached(funit->isAddressCached);
-            ih->setId(controlInfo->getSourceAddress().toIPv6().getInterfaceId());
-            ih->setIpSequenceNumber(am.getSeqNo(funit->id));
             ih->encapsulate(tcpseg);
-            EV << "DA: Forwarding regular TCP packet: "<< funit->mobileAgent << " agent: "<< funit->dataAgent << " node:"<< funit->nodeAddress <<" Id2: " << funit->id  <<endl;
+            EV << "DA: Forwarding regular TCP packet to: "<< funit->mobileAgent << " from node:"<< funit->nodeAddress <<" via Id2: " << funit->id  << " Size" << tcpseg->getByteLength() << endl;
             sendToLowerLayer(ih,funit->mobileAgent);
         } else
             throw cRuntimeError("DA:forward: could not find tuple of incoming tcp packet.");
@@ -447,7 +443,7 @@ void DataAgent::sendToLowerLayer(cMessage *msg, const IPv6Address& destAddr, sim
     IPv6ControlInfo *ctrlInfo = new IPv6ControlInfo();
     ctrlInfo->setProtocol(IP_PROT_IPv6EXT_ID); // todo must be adjusted
     ctrlInfo->setDestAddr(destAddr);
-    ctrlInfo->setHopLimit(255);
+    ctrlInfo->setHopLimit(255); // FIX this
     InterfaceEntry *ie = getInterface();
     if(ie) {
         ctrlInfo->setInterfaceId(ie->getInterfaceId());

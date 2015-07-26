@@ -56,7 +56,7 @@ Agent::FlowUnit *Agent::getFlowUnit(FlowTuple &tuple)
     return fu;
 }
 
-IPv6Address *Agent::getAssociatedAddress(IPv6Address &dest)
+IPv6Address *Agent::getAssociatedAddress(const IPv6Address &dest)
 {
     auto i = addressAssociation.find(dest);
     IPv6Address *ip;
@@ -68,28 +68,10 @@ IPv6Address *Agent::getAssociatedAddress(IPv6Address &dest)
     return ip;
 }
 
-bool Agent::isAddressAssociated(IPv6Address &dest)
+bool Agent::isAddressAssociated(const IPv6Address &dest)
 {
     auto i = addressAssociation.find(dest);
     return (i != addressAssociation.end());
-}
-
-IPv6Address *Agent::getAssociatedAddressInv(IPv6Address &dest)
-{
-    auto i = addressAssociationInv.find(dest);
-    IPv6Address *ip;
-    if (i == addressAssociationInv.end()) {
-        ip = nullptr;
-    } else {
-        ip = &(i->second);
-    }
-    return ip;
-}
-
-bool Agent::isAddressAssociatedInv(IPv6Address &dest)
-{
-    auto i = addressAssociationInv.find(dest);
-    return (i != addressAssociationInv.end());
 }
 
 IdentificationHeader *Agent::getAgentHeader(short type, short protocol, uint seq, uint ack, uint64 id) {

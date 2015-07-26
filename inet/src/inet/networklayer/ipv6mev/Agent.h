@@ -162,13 +162,10 @@ class INET_API Agent : public cSimpleModule
 
     typedef std::map<IPv6Address,IPv6Address> AddressAssociation; // nodeAddress -> agentAddress
     AddressAssociation addressAssociation;
-    AddressAssociation addressAssociationInv;
 
     FlowUnit *getFlowUnit(FlowTuple &tuple);
-    IPv6Address *getAssociatedAddress(IPv6Address &dest);
-    bool isAddressAssociated(IPv6Address &dest);
-    IPv6Address *getAssociatedAddressInv(IPv6Address &dest);
-    bool isAddressAssociatedInv(IPv6Address &dest);
+    IPv6Address *getAssociatedAddress(const IPv6Address &dest);
+    bool isAddressAssociated(const IPv6Address &dest);
     /**
      * All fields are by default false. Type: MA=1, CA=2, DA=3
      */
@@ -277,6 +274,7 @@ class INET_API Agent : public cSimpleModule
     class FlowRequestTimer : public ExpiryTimer {
     public:
         FlowTuple tuple;
+        IPv6Address nodeAddress;
     };
     class MobileInitTimer : public ExpiryTimer {
     public:
