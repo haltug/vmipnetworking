@@ -81,7 +81,7 @@ void ControlAgent::handleMessage(cMessage *msg)
 
 void ControlAgent::createAgentInit(uint64 mobileId)
 {
-    EV << "CA: Create DA_MobileId_init" << endl;
+//    EV << "CA: Create DA_MobileId_init" << endl;
     const char *dataAgentAddr = par("dataAgentAddress");
     cStringTokenizer tokenizer(dataAgentAddr);
     while (tokenizer.hasMoreTokens()) {
@@ -112,11 +112,10 @@ void ControlAgent::createAgentInit(uint64 mobileId)
 
 void ControlAgent::sendAgentInit(cMessage *msg)
 {   // header format MA:10101000 CA:11100000
-    EV << "CA: Send init_to_DA" << endl;
+    EV << "CA: Send initialization message to any DataAgent." << endl;
     MobileInitTimer *mit = (MobileInitTimer *) msg->getContextPointer();
     InterfaceEntry *ie = getInterface();
     if(!ie) throw cRuntimeError("CA: no interface provided.");
-    const IPv6Address &src = ie->ipv6Data()->getPreferredAddress();
     const IPv6Address &dest = mit->dest;
     mit->nextScheduledTime = simTime() + mit->ackTimeout;
     mit->ackTimeout = (mit->ackTimeout)*2;
@@ -125,10 +124,16 @@ void ControlAgent::sendAgentInit(cMessage *msg)
         ih->setIsIdInitialized(true);
         ih->setIsSeqValid(true);
         ih->setIsIpModified(true);
-        ih->setIpAddingField(1);
-        ih->setIPaddressesArraySize(1);
-        ih->setIPaddresses(0,src);
-        ih->setByteLength(SIZE_AGENT_HEADER+SIZE_ADDING_ADDR_TO_HDR);
+        AddressManagement::AddressChange ac = am.getAddressEntriesOfSeqNo(mit->id,am.getSeqNo(mit->id));
+        ih->setIpAddingField(ac.addedAddresses);
+        ih->setIPaddressesArraySize(ac.addedAddresses);
+        if(ac.addedAddresses > 0) {
+            for(int i=0; i<ac.addedAddresses; i++) {
+                ih->setIPaddresses(i,ac.getAddedIPv6AddressList.at(i));
+            }
+        }
+        ih->setIpRemovingField(0);
+        ih->setByteLength(SIZE_AGENT_HEADER+(SIZE_ADDING_ADDR_TO_HDR*ac.addedAddresses));
         sendToLowerLayer(ih, dest);
     }
     scheduleAt(mit->nextScheduledTime, msg);
@@ -136,7 +141,7 @@ void ControlAgent::sendAgentInit(cMessage *msg)
 
 void ControlAgent::createAgentUpdate(uint64 mobileId, uint seq)
 {
-    EV << "CA: Create Agent update message to all DA's" << endl;
+    EV << "CA: Create Agent update message to any DataAgent" << endl;
     for(IPv6Address nodeAddr : agentAddressList) {
         cMessage *msg = new cMessage("sendingDAseqUpdate", MSG_AGENT_UPDATE);
         TimerKey key(nodeAddr, -1, TIMERKEY_SEQ_UPDATE, mobileId, seq);
@@ -154,7 +159,7 @@ void ControlAgent::createAgentUpdate(uint64 mobileId, uint seq)
 
 void ControlAgent::sendAgentUpdate(cMessage *msg)
 {
-    EV << "CA: Send agent update" << endl;
+//    EV << "CA: Send agent update" << endl;
     SequenceUpdateTimer *sut = (SequenceUpdateTimer *) msg->getContextPointer();
     const IPv6Address &dest =  sut->dest;
     sut->nextScheduledTime = simTime() + sut->ackTimeout;
@@ -165,7 +170,7 @@ void ControlAgent::sendAgentUpdate(cMessage *msg)
     ih->setIsSeqValid(true);
     ih->setIsIpModified(true);
     AddressManagement::AddressChange ac = am.getAddressEntriesOfSeqNo(sut->id,sut->seq);
-    EV << "CA:AgentUpdate: Size: " << ac.addedAddresses << " R: " << ac.removedAddresses << endl;
+//    EV << "CA: update message: changes: " << ac.addedAddresses << endl;
     ih->setIpAddingField(ac.addedAddresses);
     ih->setIPaddressesArraySize(ac.addedAddresses);
     if(ac.addedAddresses > 0) {
@@ -244,9 +249,7 @@ void ControlAgent::processAgentMessage(IdentificationHeader* agentHeader, IPv6Co
 {
     IPv6Address destAddr = controlInfo->getSourceAddress().toIPv6(); // address to be responsed
 //    IPv6Address sourceAddr = controlInfo->getDestinationAddress().toIPv6();
-    // check here if the message is from data agent
     if(agentHeader->getIsDataAgent() && agentHeader->getNextHeader() == IP_PROT_NONE) {
-//        EV << "CA: ERROR Header Fields of DA (seq upd message) wrongly set. Check that mistake." << endl;
         if(agentHeader->getIsIdInitialized() && !agentHeader->getIsIdAcked() && agentHeader->getIsSeqValid() && !agentHeader->getIsAckValid() && !agentHeader->getIsIpModified())
             performAgentInitResponse(agentHeader, destAddr); // we need here the source address to remove the timers
         else if(agentHeader->getIsIdInitialized() && agentHeader->getIsIdAcked() && agentHeader->getIsSeqValid() && !agentHeader->getIsAckValid() && !agentHeader->getIsIpModified())
@@ -329,7 +332,8 @@ void ControlAgent::performSeqUpdate(IdentificationHeader *agentHeader, IPv6Addre
                         }
                         int s = agentHeader->getIpSequenceNumber();
                         int a = am.getAckNo(agentHeader->getId());
-                        EV << "CA: Received update message. Update table to seq: " << s << " from ack: " << a << endl;
+                        EV << "CA: Updating table to SEQ: " << s << " ACK: " << a << endl;
+                        EV << "CA: IP Table: " << am.to_string() << endl;
                         // first all DA's are updated. after update confirmation, CA's ack is incremented and subsequently MA is confirmed.
                         if(agentAddressList.size() > 0)
                             createAgentUpdate(agentHeader->getId(), am.getSeqNo(agentHeader->getId()));
@@ -390,7 +394,7 @@ void ControlAgent::performFlowRequest(IdentificationHeader *agentHeader, IPv6Add
 void ControlAgent::performAgentInitResponse(IdentificationHeader *agentHeader, IPv6Address sourceAddr)
 {
     if(cancelAndDeleteExpiryTimer(sourceAddr,-1, TIMERKEY_MA_INIT, agentHeader->getId())) {
-        EV << "CA: Received DA ack. Agent init timer removed if there was one. Agent init process successfully finished." << endl;
+        EV << "CA: Received Init Acknowledgment from DataAgent. Removed timer." << endl;
         // TODO sendFlowRequest should be executed from here
     } else {
         EV << "CA: No TIMER for DA init exists. So no initialization can be done." << endl;
@@ -415,12 +419,12 @@ void ControlAgent::performAgentUpdateResponse(IdentificationHeader *agentHeader,
                 for(int i=0; i<ac.addedAddresses; i++) {
                     sendSequenceUpdateResponse(ac.getAddedIPv6AddressList.at(i), agentHeader->getId(), agentHeader->getIpSequenceNumber());
                 }
-                EV << "CA: Acknowledge update message from MA over " << ac.addedAddresses << " interfaces" << endl;
+                EV << "CA: Response update message from MA over " << ac.addedAddresses << " interfaces. Seq: " << am.getAckNo(agentHeader->getId()) << endl;
             }
         }
-        EV << "CA: All update message to DA's received. No further messages expected." << endl;
+        EV << "CA: Update message from all DA's received." << endl;
     } else {
-        EV << "CA: Received DA update message. Agent update timer removed for seq: " << agentHeader->getIpSequenceNumber() << endl;
+        EV << "CA: Received from DataAgent. Removed timer for seq: " << agentHeader->getIpSequenceNumber() << endl;
     }
 }
 
@@ -447,7 +451,7 @@ void ControlAgent::sendToLowerLayer(cMessage *msg, const IPv6Address& destAddr, 
     } else { throw cRuntimeError("CA:send2LowerLayer no interface provided."); }
     msg->setControlInfo(ctrlInfo);
     cGate *outgate = gate("toLowerLayer");
-    EV << "CA2IP: Dest=" << ctrlInfo->getDestAddr() << " Src=" << ctrlInfo->getSrcAddr() << " If=" << ctrlInfo->getInterfaceId() << " Delay=" << delayTime.str() << endl;
+//    EV << "CA2IP: Dest=" << ctrlInfo->getDestAddr() << " Src=" << ctrlInfo->getSrcAddr() << " If=" << ctrlInfo->getInterfaceId() << " Delay=" << delayTime.str() << endl;
     if (delayTime > 0)
         sendDelayed(msg, delayTime, outgate);
     else

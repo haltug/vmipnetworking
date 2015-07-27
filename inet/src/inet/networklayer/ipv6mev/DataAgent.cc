@@ -185,15 +185,22 @@ void DataAgent::performAgentInit(IdentificationHeader *agentHeader, IPv6Address 
 {
     if(std::find(mobileIdList.begin(), mobileIdList.end(), agentHeader->getId()) == mobileIdList.end())
     { // if mobile is not registered. insert a new entry in map
-        EV << "DA: Received agent init message from CA. Adding id to list: " << agentHeader->getId() << endl;
         mobileIdList.push_back(agentHeader->getId());
         if(agentHeader->getIpAddingField() > 0) { // check size of field
+            EV << "DA: Received agent init message from CA. Adding id to list: " << agentHeader->getId() << endl;
             bool addrMgmtEntry = am.insertNewId(agentHeader->getId(), agentHeader->getIpSequenceNumber(), agentHeader->getIPaddresses(0)); //first number
             if(!addrMgmtEntry) // if we receive for the first time an init message, then response to this one
                 throw cRuntimeError("DA:procMAmsg: Could not insert id.");
+            AddressManagement::IPv6AddressList ipList;
+            for(int i=0; i<agentHeader->getIpAddingField(); i++){ // copy array in vector list
+                EV << "DA: ID list: i=" << i << " ip=" <<  agentHeader->getIPaddresses(i) << endl;
+                ipList.push_back(agentHeader->getIPaddresses(i)); // inserting elements of array into vector list due to function
+            }
+            am.insertSeqTableToMap(agentHeader->getId(), ipList, agentHeader->getIpSequenceNumber());
         } else
             throw cRuntimeError("DA:procMAmsg: Init message must contain the start message of mobile agent.");
         am.setAckNo(agentHeader->getId(), agentHeader->getIpSequenceNumber());
+        EV << "DA: IP Table: " << am.to_string() << endl;
     }
     sendAgentInitResponse(destAddr, agentHeader->getId(), am.getSeqNo(agentHeader->getId()));
 }
@@ -217,6 +224,7 @@ void DataAgent::performAgentUpdate(IdentificationHeader *agentHeader, IPv6Addres
             cancelAndDeleteExpiryTimer(caAddress, -1, TIMERKEY_SEQ_UPDATE_NOT, agentHeader->getId(), agentHeader->getIpSequenceNumber(), am.getAckNo(agentHeader->getId()));
             am.setAckNo(agentHeader->getId(),agentHeader->getIpSequenceNumber()); //
             sendAgentUpdateResponse(caAddress, agentHeader->getId(),agentHeader->getIpSequenceNumber());
+            EV << "DA: IP Table Update: " << am.to_string() << endl;
         } else
             throw cRuntimeError("DA: No IP field specified.");
     } else
@@ -232,14 +240,17 @@ void DataAgent::performSeqUpdate(IdentificationHeader *agentHeader)
             if(agentHeader->getIpSequenceNumber() > am.getAckNo(agentHeader->getId())) {
                 if(agentHeader->getIpSequenceNumber() > am.getSeqNo(agentHeader->getId())) {
                     if(agentHeader->getIsIpModified()) { // indicate a sequence update
+//                        EV << "DA: IP Table: " << am.to_string() << endl;
                         if(agentHeader->getIpAddingField() > 0) { // check size of field
                             for(int i=0; i<agentHeader->getIpAddingField(); i++){
-                                am.addIpToMap(agentHeader->getId(), agentHeader->getIPaddresses(i));
+//                                EV << "DA: IP ADD: " << agentHeader->getIPaddresses(i+1) << endl;
+                                am.addIpToMap(agentHeader->getId(), agentHeader->getIPaddresses(i+1));
                             }
                         }
                         if(agentHeader->getIpRemovingField() > 0) {
-                            for(int i=agentHeader->getIpAddingField(); i<(agentHeader->getIpRemovingField()+agentHeader->getIpAddingField()); i++) {
-                                am.removeIpFromMap(agentHeader->getId(), agentHeader->getIPaddresses(i));
+                            for(int i=0; i<agentHeader->getIpRemovingField(); i++) {
+//                                EV << "DA: IP REM: " << agentHeader->getIPaddresses(i+agentHeader->getIpAddingField()+1) << endl;
+                                am.removeIpFromMap(agentHeader->getId(), agentHeader->getIPaddresses(i+agentHeader->getIpAddingField()+1));
                             }
                         }
                         EV << "DA: Extraced update message. update to seq: " << agentHeader->getIpSequenceNumber() << " from ack: " << am.getAckNo(agentHeader->getId()) << endl;
@@ -295,7 +306,7 @@ void DataAgent::processUdpFromAgent(IdentificationHeader *agentHeader, IPv6Addre
                 udpPacket->setControlInfo(ipControlInfo);
                 cGate *outgate = gate("toLowerLayer");
                 send(udpPacket, outgate);
-                EV << "Forwarding pkt from MA to Node: Dest=" << ipControlInfo->getDestAddr() << " Src=" << ipControlInfo->getSrcAddr() << " If=" << ipControlInfo->getInterfaceId() << endl;
+//                EV << "Forwarding pkt from MA to Node: Dest=" << ipControlInfo->getDestAddr() << " Src=" << ipControlInfo->getSrcAddr() << " If=" << ipControlInfo->getInterfaceId() << endl;
             } else
                 throw cRuntimeError("DA:procMAmsg: UDP packet could not processed. FlowUnit unknown.");
         } else
@@ -343,7 +354,7 @@ void DataAgent::processTcpFromAgent(IdentificationHeader *agentHeader, IPv6Addre
                 tcpseg->setControlInfo(ipControlInfo);
                 cGate *outgate = gate("toLowerLayer");
                 send(tcpseg, outgate);
-                EV << "Forwarding pkt from MA to Node: Dest=" << ipControlInfo->getDestAddr() << " Src=" << ipControlInfo->getSrcAddr() << " If=" << ipControlInfo->getInterfaceId() << endl;
+//                EV << "Forwarding pkt from MA to Node: Dest=" << ipControlInfo->getDestAddr() << " Src=" << ipControlInfo->getSrcAddr() << " If=" << ipControlInfo->getInterfaceId() << endl;
             } else
                 throw cRuntimeError("DA:procMAmsg: TCP packet could not processed. FlowUnit unknown.");
         } else
@@ -389,7 +400,7 @@ void DataAgent::processUdpFromNode(cMessage *msg)
 //                    }
 //                }
             ih->encapsulate(udpPacket);
-            EV << "DA: Forwarding regular UDP packet: "<< funit->mobileAgent << " agent: "<< funit->dataAgent << " node:"<< funit->nodeAddress <<" Id2: " << funit->id  <<endl;
+//            EV << "DA: Forwarding regular UDP packet: "<< funit->mobileAgent << " agent: "<< funit->dataAgent << " node:"<< funit->nodeAddress <<" Id2: " << funit->id  <<endl;
             sendToLowerLayer(ih,funit->mobileAgent);
         } else
             throw cRuntimeError("DA:forward: could not find tuple of incoming udp packet.");
@@ -410,7 +421,7 @@ void DataAgent::processTcpFromNode(cMessage *msg)
         tuple.sourcePort = tcpseg->getDestinationPort();
         tuple.destAddress = controlInfo->getSourceAddress().toIPv6();
         tuple.interfaceId = controlInfo->getSourceAddress().toIPv6().getInterfaceId();
-        EV << "DA: Received regular message from Node, ADDR:" << tuple.destAddress << " DP:" << tuple.destPort << " SP:"<< tuple.sourcePort << endl;
+//        EV << "DA: Received regular message from Node, ADDR:" << tuple.destAddress << " DP:" << tuple.destPort << " SP:"<< tuple.sourcePort << endl;
         FlowUnit *funit = getFlowUnit(tuple);
         if(funit->state == REGISTERED && funit->isFlowActive) {
             IdentificationHeader *ih = getAgentHeader(3, IP_PROT_TCP, am.getSeqNo(funit->id), 0, tuple.interfaceId);
@@ -420,7 +431,7 @@ void DataAgent::processTcpFromNode(cMessage *msg)
             ih->setIsWithReturnAddr(true);
             ih->setIsReturnAddrCached(funit->isAddressCached);
             ih->encapsulate(tcpseg);
-            EV << "DA: Forwarding regular TCP packet to: "<< funit->mobileAgent << " from node:"<< funit->nodeAddress <<" via Id2: " << funit->id  << " Size" << tcpseg->getByteLength() << endl;
+//            EV << "DA: Forwarding regular TCP packet to: "<< funit->mobileAgent << " from node:"<< funit->nodeAddress <<" via Id2: " << funit->id  << " Size" << tcpseg->getByteLength() << endl;
             sendToLowerLayer(ih,funit->mobileAgent);
         } else
             throw cRuntimeError("DA:forward: could not find tuple of incoming tcp packet.");
@@ -451,7 +462,7 @@ void DataAgent::sendToLowerLayer(cMessage *msg, const IPv6Address& destAddr, sim
     }
     msg->setControlInfo(ctrlInfo);
     cGate *outgate = gate("toLowerLayer");
-    EV << "DA2IP: Dest=" << ctrlInfo->getDestAddr() << " Src=" << ctrlInfo->getSrcAddr() << " If=" << ctrlInfo->getInterfaceId() << " IfId=" << ctrlInfo->getDestAddr().str_interfaceId() << endl;
+//    EV << "DA2IP: Dest=" << ctrlInfo->getDestAddr() << " Src=" << ctrlInfo->getSrcAddr() << " If=" << ctrlInfo->getInterfaceId() << " IfId=" << ctrlInfo->getDestAddr().str_interfaceId() << endl;
     if (delayTime > 0) {
         EV << "delayed sending" << endl;
         sendDelayed(msg, delayTime, outgate);

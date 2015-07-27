@@ -83,9 +83,8 @@ class MobileAgent : public cListener, public Agent
     virtual void receiveSignal(cComponent *source, simsignal_t signalID, cObject *obj) override;
     InterfaceUnit* getInterfaceUnit(int id);
 // INTERFACE
-    InterfaceEntry *getAnyInterface();
     InterfaceEntry *getInterface(IPv6Address destAddr = IPv6Address::UNSPECIFIED_ADDRESS, int destPort = -1, int sourcePort = -1, short protocol = -1); //const ,
-    void sendToLowerLayer(cMessage *msg, const IPv6Address& destAddr, const IPv6Address& srcAddr = IPv6Address::UNSPECIFIED_ADDRESS, int interfaceId = -1, simtime_t sendTime = 0); // resend after timer expired
+    void sendToLowerLayer(cMessage *msg, const IPv6Address& destAddr, simtime_t sendTime = 0); // resend after timer expired
 
 };
 

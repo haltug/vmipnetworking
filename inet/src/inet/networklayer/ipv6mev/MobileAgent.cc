@@ -298,7 +298,7 @@ void MobileAgent::sendSequenceUpdate(cMessage* msg) {
         }
     }
     ih->setByteLength(SIZE_AGENT_HEADER+(SIZE_ADDING_ADDR_TO_HDR*(ac.addedAddresses+ac.removedAddresses)));
-    sendToLowerLayer(ih, dest); // TODO select interface
+    sendToLowerLayer(ih, dest, 2); // TODO select interface and remove delay
     scheduleAt(sut->nextScheduledTime, msg);
 }
 
@@ -433,9 +433,9 @@ void MobileAgent::performSequenceUpdateResponse(IdentificationHeader *agentHeade
         if(agentHeader->getIpSequenceNumber() > am.getAckNo(agentId)) {
             cancelAndDeleteExpiryTimer(caAddress,-1, TIMERKEY_SEQ_UPDATE, agentId, agentHeader->getIpSequenceNumber(), am.getAckNo(agentId));
             am.setAckNo(agentId, agentHeader->getIpSequenceNumber());
-            EV << "MA: Received seqNo update from CA. Removed timer." << endl;
+            EV << "MA: Received update acknowledgment from CA. Removed timer." << endl;
         } else {
-            EV << "MA: Received seqNo update from CA but value of message is lower as current value of ack." << endl;
+            EV << "MA: Received update acknowledgment from CA but value of message is lower as current value of ack." << endl;
         }
     } else {
         throw cRuntimeError("MA: Byte length does not match the expected size.");
@@ -461,7 +461,7 @@ void MobileAgent::performIncomingUdpPacket(IdentificationHeader *agentHeader, IP
         }
         IPv6Address fakeIp;
         fakeIp.set(0x1D << 24, 0, (agentId >> 32) & 0xFFFFFFFF, agentId & 0xFFFFFFFF);
-        EV << "MA:IPv6: " << fakeIp.str() << endl;
+//        EV << "MA:IPv6: " << fakeIp.str() << endl;
         IPv6ControlInfo *ipControlInfo = new IPv6ControlInfo();
         ipControlInfo->setProtocol(IP_PROT_UDP);
         ipControlInfo->setDestAddr(fakeIp);
@@ -471,7 +471,7 @@ void MobileAgent::performIncomingUdpPacket(IdentificationHeader *agentHeader, IP
         ipControlInfo->setTrafficClass(controlInfo->getTrafficClass());
         udpPacket->setControlInfo(ipControlInfo);
         cGate *outgate = gate("toUDP");
-        EV << "IP2UDP: Dest=" << controlInfo->getDestAddr() << " Src=" << controlInfo->getSrcAddr() << " If=" << controlInfo->getInterfaceId() << " Pkt=" << udpPacket->getByteLength() << endl;
+//        EV << "IP2UDP: Dest=" << controlInfo->getDestAddr() << " Src=" << controlInfo->getSrcAddr() << " If=" << controlInfo->getInterfaceId() << " Pkt=" << udpPacket->getByteLength() << endl;
         send(udpPacket, outgate);
     } else
         throw cRuntimeError("MA:procDAmsg: UDP packet could not be cast.");
@@ -497,7 +497,7 @@ void MobileAgent::performIncomingTcpPacket(IdentificationHeader *agentHeader, IP
         }
         IPv6Address fakeIp;
         fakeIp.set(0x1D << 24, 0, (agentId >> 32) & 0xFFFFFFFF, agentId & 0xFFFFFFFF);
-        EV << "MA:IPv6: " << fakeIp.str() << endl;
+//        EV << "MA:IPv6: " << fakeIp.str() << endl;
         IPv6ControlInfo *ipControlInfo = new IPv6ControlInfo();
         ipControlInfo->setProtocol(IP_PROT_TCP);
         ipControlInfo->setDestAddr(fakeIp);
@@ -507,7 +507,7 @@ void MobileAgent::performIncomingTcpPacket(IdentificationHeader *agentHeader, IP
         ipControlInfo->setTrafficClass(controlInfo->getTrafficClass());
         tcpseg->setControlInfo(ipControlInfo);
         cGate *outgate = gate("toTCP");
-        EV << "IP2TCP: Dest=" << controlInfo->getDestAddr() << " Src=" << controlInfo->getSrcAddr() << " If=" << controlInfo->getInterfaceId() << " PktSize=" << tcpseg->getByteLength() << endl;
+//        EV << "IP2TCP: Dest=" << controlInfo->getDestAddr() << " Src=" << controlInfo->getSrcAddr() << " If=" << controlInfo->getInterfaceId() << " PktSize=" << tcpseg->getByteLength() << endl;
         send(tcpseg, outgate);
     } else
         throw cRuntimeError("MA:procDAmsg: TCP packet could not be cast.");
@@ -606,7 +606,7 @@ void MobileAgent::processOutgoingUdpPacket(cMessage *msg, IPv6ControlInfo *contr
         controlInfo->setSourceAddress(getInterface(funit->dataAgent, tuple.destPort, tuple.sourcePort)->ipv6Data()->getPreferredAddress());
         ih->setControlInfo(controlInfo); // make copy before setting param
         cGate *outgate = gate("toLowerLayer");
-        EV << "UDP2IP: Dest=" << controlInfo->getDestAddr() << " Src=" << controlInfo->getSrcAddr() << " Pkt=" << ih->getByteLength() << endl;
+//        EV << "UDP2IP: Dest=" << controlInfo->getDestAddr() << " Src=" << controlInfo->getSrcAddr() << " Pkt=" << ih->getByteLength() << endl;
         send(ih, outgate);
     } else
         throw cRuntimeError("MA: Incoming message should be UPD packet.");
@@ -623,9 +623,9 @@ void MobileAgent::processOutgoingTcpPacket(cMessage *msg, IPv6ControlInfo *contr
         tuple.sourcePort = tcpseg->getSourcePort();
         tuple.destAddress = IPv6Address::UNSPECIFIED_ADDRESS;
         tuple.interfaceId = controlInfo->getDestinationAddress().toIPv6().getInterfaceId();
-//        EV << "MA: Tuple created." << endl;
         FlowUnit *funit = getFlowUnit(tuple);
         if(funit->state == UNREGISTERED) {
+            EV << "MA: Tuple creating. IP: " << controlInfo->getDestinationAddress().toIPv6() << " Pd:" << tcpseg->getDestinationPort() << " Ps:" << tcpseg->getSourcePort() << " Id:" << controlInfo->getDestinationAddress().toIPv6().getInterfaceId() << endl;
             funit->lifetime = MAX_PKT_LIFETIME;
             funit->state = REGISTERING;
             funit->nodeAddress = controlInfo->getDestinationAddress().toIPv6();
@@ -637,6 +637,7 @@ void MobileAgent::processOutgoingTcpPacket(cMessage *msg, IPv6ControlInfo *contr
             return;
         } else {
             if(funit->state == REGISTERING) {
+                EV << "MA: Tuple registering. IP: " << controlInfo->getDestinationAddress().toIPv6() << " Pd:" << tcpseg->getDestinationPort() << " Ps:" << tcpseg->getSourcePort() << " Id:" << controlInfo->getDestinationAddress().toIPv6().getInterfaceId() << endl;
                 EV << "MA:tcpIn starting registering process of first tcp packet: "<< funit->lifetime << endl;
                 funit->lifetime--; // not tested if working!
                 if(funit->lifetime < 1) {
@@ -681,8 +682,10 @@ void MobileAgent::processOutgoingTcpPacket(cMessage *msg, IPv6ControlInfo *contr
         ih->setIsSeqValid(true);
         ih->setIsAckValid(true);
         ih->setIsWithNodeAddr(true);
-        if(am.getSeqNo(agentId) != am.getAckNo(agentId))
+        if(am.getSeqNo(agentId) != am.getAckNo(agentId)) {
             ih->setIsIpModified(true);
+            EV << "MA: SENDING PACKET WITH IP CHANGES! s:" << am.getSeqNo(agentId) << " a:" << am.getAckNo(agentId) << endl;
+        }
         AddressManagement::AddressChange ac = am.getAddressChange(agentId,am.getAckNo(agentId),am.getSeqNo(agentId));
         ih->setIpAddingField(ac.addedAddresses);
         ih->setIPaddressesArraySize(1+ac.addedAddresses+ac.removedAddresses);
@@ -709,7 +712,7 @@ void MobileAgent::processOutgoingTcpPacket(cMessage *msg, IPv6ControlInfo *contr
         controlInfo->setSourceAddress(getInterface(funit->dataAgent, tuple.destPort, tuple.sourcePort)->ipv6Data()->getPreferredAddress());
         ih->setControlInfo(controlInfo); // make copy before setting param
         cGate *outgate = gate("toLowerLayer");
-        EV << "TCP2IP: Dest=" << controlInfo->getDestAddr() << " Src=" << controlInfo->getSrcAddr() << " Node=" << controlInfo->getDestinationAddress().toIPv6() << " Pkt=" << ih->getByteLength() << endl;
+//        EV << "TCP2IP: Dest=" << controlInfo->getDestAddr() << " Src=" << controlInfo->getSrcAddr() << " Node=" << controlInfo->getDestinationAddress().toIPv6() << " Pkt=" << ih->getByteLength() << endl;
         send(ih, outgate);
     } else
         throw cRuntimeError("MA: Incoming message should be TCP packet.");
@@ -823,10 +826,10 @@ MobileAgent::InterfaceUnit *MobileAgent::getInterfaceUnit(int id)
 
 void MobileAgent::updateAddressTable(int id, InterfaceUnit *iu)
 {
-    auto it = addressTable.find(id);
-    if(it != addressTable.end()) { // check if interface is provided in address table
-        if(it->first != id) throw cRuntimeError("ERROR in updateAddressTable: provided id should be same with entry");
-        if(seqnoState == ASSOCIATED) {
+    if(seqnoState == ASSOCIATED) {
+        auto it = addressTable.find(id);
+        if(it != addressTable.end()) { // updating interface
+            if(it->first != id) throw cRuntimeError("ERROR in updateAddressTable: provided id should be same with entry");
             (it->second)->active = iu->active;
             (it->second)->priority = iu->priority;
             (it->second)->careOfAddress = iu->careOfAddress;
@@ -835,42 +838,36 @@ void MobileAgent::updateAddressTable(int id, InterfaceUnit *iu)
             } else { // presents an interface has been disassociated
                 am.removeIpFromMap(agentId, iu->careOfAddress);
             }
+            // *** for output
             int seq = am.getSeqNo(agentId);
             int ack = am.getAckNo(agentId);
-            EV << "MA: New CoA-IP: " << iu->careOfAddress << " s:" << seq << " a:" << ack << endl;
-            createSequenceUpdate(agentId, am.getSeqNo(agentId), am.getAckNo(agentId));
-        } else { // delaying registering process when session/sequence init is not complete. occurs only at beginning
-            cMessage *msg = new cMessage("interfaceInit2", MSG_INTERFACE_DELAY);
-            InterfaceInit *ii = new InterfaceInit();
-            ii->id = id;
-            ii->iu = iu;
-            msg->setContextPointer(ii);
-            scheduleAt(simTime()+TIMEDELAY_IFACE_INIT, msg);
+            if(iu->active) {    // presents an interface that has been associated
+                EV << "MA: Adding CoA-IP: " << iu->careOfAddress << " s:" << seq << " a:" << ack << endl;
+            } else { // presents an interface has been disassociated
+                EV << "MA: Removing CoA-IP: " << iu->careOfAddress << " s:" << seq << " a:" << ack << endl;
+            }
+            // ***
+        } else { // adding interface in list if not known
+            addressTable.insert(std::make_pair(id,iu)); // if not, include this new
+            am.addIpToMap(agentId, iu->careOfAddress);
         }
-    } else {
-        addressTable.insert(std::make_pair(id,iu)); // if not, include this new
+        createSequenceUpdate(agentId, am.getSeqNo(agentId), am.getAckNo(agentId)); // next address must be updated by seq update
+    } else
         if(sessionState == UNASSOCIATED) {
+            addressTable.insert(std::make_pair(id,iu)); // if not, include this new
             am.addIpToMap(agentId, iu->careOfAddress);
             int seq = am.getSeqNo(agentId);
             int ack = am.getAckNo(agentId);
             EV << "MA: Interface-IP: " << iu->careOfAddress << " s:" << seq << " a:" << ack << endl;
             createSessionInit(); // first address is initialzed with session init
-        }
-        else if(sessionState == INITIALIZING || seqnoState == UNASSOCIATED) { // delaying registering process when session/sequence init is not complete. occurs only at beginning
-            cMessage *msg = new cMessage("interfaceInit", MSG_INTERFACE_DELAY);
+        } else { // delayin process if one were started
+            cMessage *msg = new cMessage("interfaceDelay", MSG_INTERFACE_DELAY);
             InterfaceInit *ii = new InterfaceInit();
             ii->id = id;
             ii->iu = iu;
             msg->setContextPointer(ii);
             scheduleAt(simTime()+TIMEDELAY_IFACE_INIT, msg);
         }
-        else if(seqnoState == ASSOCIATED)
-            createSequenceUpdate(agentId, am.getSeqNo(agentId), am.getAckNo(agentId)); // next address must be updated by seq update
-        else if(seqnoState == INITIALIZING || sessionState == ASSOCIATED)
-            throw cRuntimeError("ERROR updateAddressTable: not inserted interface id should be added when the seqnoState is registered.");
-    }
-//    EV << "AM_MA: " << am.to_string() << endl;
-//    EV << "AM_MA: " << am.getAckNo(agentId) << endl  << " -> " << am.getSeqNo(agentId);
 }
 
 InterfaceEntry *MobileAgent::getInterface(IPv6Address destAddr, int destPort, int sourcePort, short protocol) { // const IPv6Address &destAddr,
@@ -883,21 +880,23 @@ InterfaceEntry *MobileAgent::getInterface(IPv6Address destAddr, int destPort, in
 }
 
 
-void MobileAgent::sendToLowerLayer(cMessage *msg, const IPv6Address& destAddr, const IPv6Address& srcAddr, int interfaceId, simtime_t delayTime) {
+void MobileAgent::sendToLowerLayer(cMessage *msg, const IPv6Address& destAddr, simtime_t delayTime) {
 //    EV << "A: Creating IPv6ControlInfo to lower layer" << endl;
 
     IPv6ControlInfo *ctrlInfo = new IPv6ControlInfo();
     ctrlInfo->setProtocol(IP_PROT_IPv6EXT_ID); // todo must be adjusted
     ctrlInfo->setDestAddr(destAddr);
-    ctrlInfo->setSrcAddr(srcAddr);
     ctrlInfo->setHopLimit(255);
     InterfaceEntry *ie = getInterface(destAddr);
-    if(ie) { ctrlInfo->setInterfaceId(ie->getInterfaceId()); }
+    if(ie) {
+        ctrlInfo->setInterfaceId(ie->getInterfaceId());
+        ctrlInfo->setSrcAddr(ie->ipv6Data()->getPreferredAddress());
+    }
     msg->setControlInfo(ctrlInfo);
     cGate *outgate = gate("toLowerLayer");
-    EV << "MA2IP: Dest=" << ctrlInfo->getDestAddr() << " Src=" << ctrlInfo->getSrcAddr() << " If=" << ctrlInfo->getInterfaceId() << endl;
+//    EV << "MA2IP: Dest=" << ctrlInfo->getDestAddr() << " Src=" << ctrlInfo->getSrcAddr() << " If=" << ctrlInfo->getInterfaceId() << endl;
     if (delayTime > 0) {
-        EV << "delayed sending" << endl;
+//        EV << "delayed sending" << endl;
         sendDelayed(msg, delayTime, outgate);
     }
     else {
