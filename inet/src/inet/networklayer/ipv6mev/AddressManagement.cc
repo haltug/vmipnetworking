@@ -129,7 +129,7 @@ void AddressManagement::removeIpFromMap(uint64 id, IPv6Address& addr)
 {
     if(addressMap.count(id)) // check if id exists in map
     {
-        EV << "AM: SEQ:" << addressMap[id].currentSequenceNumber << " REM:" << addr.str() << endl;
+//        EV << "AM: SEQ:" << addressMap[id].currentSequenceNumber << " REM:" << addr.str() << endl;
         SequenceTable seqTable (addressMap[id].sequenceTable); // get current sequence table
         if(!seqTable.count(addressMap[id].currentSequenceNumber)) // check if seq table with given seq number exists
             throw cRuntimeError("AM:Rem:Sequence Table with seqNo does not exist.");

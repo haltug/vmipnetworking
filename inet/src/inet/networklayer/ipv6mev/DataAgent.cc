@@ -112,7 +112,7 @@ void DataAgent::createSequenceUpdateNotificaiton(uint64 mobileId, uint seq)
 
 void DataAgent::sendSequenceUpdateNotification(cMessage *msg)
 {
-    EV << "DA: Sending update notification to CA." << endl;
+//    EV << "DA: Sending update notification to CA." << endl;
     UpdateNotifierTimer *unt = (UpdateNotifierTimer *) msg->getContextPointer();
     const IPv6Address &dest =  unt->dest;
     unt->nextScheduledTime = simTime() + unt->ackTimeout;
@@ -167,7 +167,7 @@ void DataAgent::sendAgentUpdateResponse(cMessage *msg)
     uat->nextScheduledTime = simTime() + uat->ackTimeout;
     uat->ackTimeout = (uat->ackTimeout)*1.2;
     IdentificationHeader *ih = getAgentHeader(3, IP_PROT_NONE, am.getSeqNo(uat->id), 0, uat->id);
-    EV << "DA: Sending agent update response. Seq: " << am.getSeqNo(uat->id) << endl;
+//    EV << "DA: Sending agent update response. Seq: " << am.getSeqNo(uat->id) << endl;
     ih->setIsIdInitialized(true);
     ih->setIsIdAcked(true);
     ih->setIsSeqValid(true);
@@ -214,20 +214,20 @@ void DataAgent::performAgentInit(IdentificationHeader *agentHeader, IPv6Address 
     { // if mobile is not registered. insert a new entry in map
         mobileIdList.push_back(agentHeader->getId());
         if(agentHeader->getIpAddingField() > 0) { // check size of field
-            EV << "DA: Received agent init message from CA. Adding id to list: " << agentHeader->getId() << endl;
+//            EV << "DA: Received agent init message from CA. Adding id to list: " << agentHeader->getId() << endl;
             bool addrMgmtEntry = am.insertNewId(agentHeader->getId(), agentHeader->getIpSequenceNumber(), agentHeader->getIPaddresses(0)); //first number
             if(!addrMgmtEntry) // if we receive for the first time an init message, then response to this one
                 throw cRuntimeError("DA:procMAmsg: Could not insert id.");
             AddressManagement::IPv6AddressList ipList;
             for(int i=0; i<agentHeader->getIpAddingField(); i++){ // copy array in vector list
-                EV << "DA: ID list: i=" << i << " ip=" <<  agentHeader->getIPaddresses(i) << endl;
+//                EV << "DA: ID list: i=" << i << " ip=" <<  agentHeader->getIPaddresses(i) << endl;
                 ipList.push_back(agentHeader->getIPaddresses(i)); // inserting elements of array into vector list due to function
             }
             am.insertSeqTableToMap(agentHeader->getId(), ipList, agentHeader->getIpSequenceNumber());
         } else
             throw cRuntimeError("DA:procMAmsg: Init message must contain the start message of mobile agent.");
         am.setAckNo(agentHeader->getId(), agentHeader->getIpSequenceNumber());
-        EV << "DA: IP Table: " << am.to_string() << endl;
+//        EV << "DA: IP Table: " << am.to_string() << endl;
     }
     sendAgentInitResponse(destAddr, agentHeader->getId(), am.getSeqNo(agentHeader->getId()));
 }
@@ -237,7 +237,7 @@ void DataAgent::performAgentUpdate(IdentificationHeader *agentHeader, IPv6Addres
     if(caAddress.isUnspecified())
         throw cRuntimeError("DA:procMA: CA address must be known at this stage. Stage= seq update.");
     if(std::find(mobileIdList.begin(), mobileIdList.end(), agentHeader->getId()) != mobileIdList.end()) {
-        EV << "DA: Received message from CA. Id exists. Updating seq map and sending response message." << endl;
+//        EV << "DA: Received message from CA. Id exists. Updating seq map and sending response message." << endl;
         AddressManagement::IPv6AddressList ipList;
         if(agentHeader->getIpAddingField() > 0) { // check size of field
             for(int i=0; i<agentHeader->getIpAddingField(); i++){ // copy array in vector list
@@ -249,7 +249,7 @@ void DataAgent::performAgentUpdate(IdentificationHeader *agentHeader, IPv6Addres
         am.setAckNo(agentHeader->getId(),agentHeader->getIpSequenceNumber()); //
         createAgentUpdateResponse(caAddress, agentHeader->getId(),agentHeader->getIpSequenceNumber());
         int s = agentHeader->getIpSequenceNumber();
-        EV << "DA: Received from CA IP Table Update: Seq="<< s << endl;
+//        EV << "DA: Received from CA IP Table Update: Seq="<< s << endl;
     } else
         throw cRuntimeError("DA:procMA: Id is not inserted in map. Register id before seq update.");
 }
@@ -275,16 +275,13 @@ void DataAgent::performSeqUpdate(IdentificationHeader *agentHeader)
                         // Otherwise update process starts at seqNo, but header only declares difference from ackNo to seqNo ( and not from current seqNo to the pointed seqNo);
                         if(agentHeader->getIpAcknowledgementNumber() < am.getAckNo(agentHeader->getId()))
                             am.setSeqNo(agentHeader->getId(),agentHeader->getIpAcknowledgementNumber());
-//                        EV << "DA: IP Table: " << am.to_string() << endl;
                         if(agentHeader->getIpAddingField() > 0) { // check size of field
                             for(int i=0; i<agentHeader->getIpAddingField(); i++){
-//                                EV << "DA: IP ADD: " << agentHeader->getIPaddresses(i+1) << endl;
                                 am.addIpToMap(agentHeader->getId(), agentHeader->getIPaddresses(i+1));
                             }
                         }
                         if(agentHeader->getIpRemovingField() > 0) {
                             for(int i=0; i<agentHeader->getIpRemovingField(); i++) {
-//                                EV << "DA: IP REM: " << agentHeader->getIPaddresses(i+agentHeader->getIpAddingField()+1) << endl;
                                 am.removeIpFromMap(agentHeader->getId(), agentHeader->getIPaddresses(i+agentHeader->getIpAddingField()+1));
                             }
                         }
@@ -295,7 +292,7 @@ void DataAgent::performSeqUpdate(IdentificationHeader *agentHeader)
                     } else
                         throw cRuntimeError("DA: Received msg from MA with different Seq/Ack number but no changed IP Addresses are provided");
                 } else if (agentHeader->getIpSequenceNumber() > am.getSeqNo(agentHeader->getId())) {
-                    EV << "DA: Received message from MA contains unconfirmed update data. Sending notification to CA." << endl;
+//                    EV << "DA: Received message from MA contains unconfirmed update data. Sending notification to CA." << endl;
                     createSequenceUpdateNotificaiton(agentHeader->getId(), am.getSeqNo(agentHeader->getId()));
                 } else
                     throw cRuntimeError("DA: Seq number of DA is greater than seq number of MA. Not possible. MA is incrementing");
@@ -481,7 +478,9 @@ InterfaceEntry *DataAgent::getInterface() { // const IPv6Address &destAddr,
     InterfaceEntry *ie = nullptr;
     for (int i=0; i<ift->getNumInterfaces(); i++) {
         ie = ift->getInterface(i);
-        if(!(ie->isLoopback()) && ie->isUp() && ie->ipv6Data()->getPreferredAddress().isGlobal()) { return ie; }
+        if(!(ie->isLoopback()) && ie->isUp() && ie->ipv6Data()->getPreferredAddress().isGlobal()) {
+            return ie;
+        }
     }
     return ie;
 }

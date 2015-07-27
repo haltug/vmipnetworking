@@ -182,7 +182,7 @@ void MobileAgent::createSessionInit() {
 }
 
 void MobileAgent::sendSessionInit(cMessage* msg) {
-    EV << "MA: Send CA_init" << endl;
+//    EV << "MA: Send CA_init" << endl;
     SessionInitTimer *sit = (SessionInitTimer *) msg->getContextPointer();
     const IPv6Address &dest = sit->dest;
     sit->nextScheduledTime = simTime() + sit->ackTimeout;
@@ -215,7 +215,7 @@ void MobileAgent::createSequenceInit() { // does not support interface check
 }
 
 void MobileAgent::sendSequenceInit(cMessage *msg) {
-    EV << "MA: Send Seq_init_to_CA" << endl;
+//    EV << "MA: Send Seq_init_to_CA" << endl;
     SequenceInitTimer *sit = (SequenceInitTimer *) msg->getContextPointer();
     const IPv6Address &dest = sit->dest;
     InterfaceEntry *ie = getInterface();
@@ -263,7 +263,7 @@ void MobileAgent::createSequenceUpdate(uint64 mobileId, uint seq, uint ack) {
         cMessage *msg = new cMessage("sendingCAseqUpdate", MSG_SEQ_UPDATE);
         sut->timer = msg;
         msg->setContextPointer(sut);
-        scheduleAt(sut->nextScheduledTime+4, msg);
+        scheduleAt(sut->nextScheduledTime, msg);
     }
 }
 
@@ -305,7 +305,6 @@ void MobileAgent::sendSequenceUpdate(cMessage* msg) {
 //void Agent::createRedirection
 
 void MobileAgent::createFlowRequest(FlowTuple &tuple) {
-//    EV << "MA: Send FlowRequest" << endl;
     if(sessionState != ASSOCIATED &&  seqnoState != ASSOCIATED)
         throw cRuntimeError("MA: Not registered at CA. Cannot run seq init.");
     cMessage *msg = new cMessage("sendingCAflowReq", MSG_FLOW_REQ);
@@ -333,7 +332,6 @@ void MobileAgent::createFlowRequest(FlowTuple &tuple) {
 }
 
 void MobileAgent::sendFlowRequest(cMessage *msg) {
-    EV << "MA: Sending flow request." << endl;
     FlowRequestTimer *frt = (FlowRequestTimer *) msg->getContextPointer();
     frt->ackTimeout = (frt->ackTimeout)*2;
     frt->nextScheduledTime = simTime()+frt->ackTimeout;
@@ -344,6 +342,7 @@ void MobileAgent::sendFlowRequest(cMessage *msg) {
             return;
         }
     }
+    EV << "MA: Sending flow request." << endl;
     const IPv6Address nodeAddress = frt->nodeAddress;
     const IPv6Address &dest =  frt->dest;
     IdentificationHeader *ih = getAgentHeader(1, IP_PROT_NONE, am.getSeqNo(agentId), am.getAckNo(agentId), agentId);
@@ -433,9 +432,9 @@ void MobileAgent::performSequenceUpdateResponse(IdentificationHeader *agentHeade
         if(agentHeader->getIpSequenceNumber() > am.getAckNo(agentId)) {
             cancelAndDeleteExpiryTimer(caAddress,-1, TIMERKEY_SEQ_UPDATE, agentId, agentHeader->getIpSequenceNumber(), am.getAckNo(agentId));
             am.setAckNo(agentId, agentHeader->getIpSequenceNumber());
-            EV << "MA: Received update acknowledgment from CA. Removed timer." << endl;
+//            EV << "MA: Received update acknowledgment from CA. Removed timer." << endl;
         } else {
-            EV << "MA: Received update acknowledgment from CA contains older sequence value. No operation." << endl;
+//            EV << "MA: Received update acknowledgment from CA contains older sequence value. Dropping message." << endl;
         }
     } else {
         throw cRuntimeError("MA: Byte length does not match the expected size.");
@@ -684,7 +683,7 @@ void MobileAgent::processOutgoingTcpPacket(cMessage *msg, IPv6ControlInfo *contr
         ih->setIsWithNodeAddr(true);
         if(am.getSeqNo(agentId) != am.getAckNo(agentId)) {
             ih->setIsIpModified(true);
-            EV << "MA: SENDING PACKET WITH IP CHANGES! s:" << am.getSeqNo(agentId) << " a:" << am.getAckNo(agentId) << endl;
+//            EV << "MA: SENDING PACKET WITH IP CHANGES! s:" << am.getSeqNo(agentId) << " a:" << am.getAckNo(agentId) << endl;
         }
         AddressManagement::AddressChange ac = am.getAddressChange(agentId,am.getAckNo(agentId),am.getSeqNo(agentId));
         ih->setIpAddingField(ac.addedAddresses);
@@ -794,11 +793,6 @@ void MobileAgent::handleInterfaceUpMessage(cMessage *msg)
 void MobileAgent::receiveSignal(cComponent *source, simsignal_t signalID, cObject *obj)
 {
     Enter_Method_Silent();
-    if(signalID == NF_INTERFACE_STATE_CHANGED) { // is triggered when carrier setting is changed
-//        if(dynamic_cast<InterfaceEntryChangeDetails *>(obj)) {
-//            InterfaceEntry *ie = check_and_cast<const InterfaceEntryChangeDetails *>(obj)->getInterfaceEntry();
-//        }
-    }
     if(signalID == NF_INTERFACE_IPv6CONFIG_CHANGED) { // is triggered when carrier setting is changed
         if(dynamic_cast<InterfaceEntryChangeDetails *>(obj)) {
             InterfaceEntry *ie = check_and_cast<const InterfaceEntryChangeDetails *>(obj)->getInterfaceEntry();
@@ -874,7 +868,11 @@ InterfaceEntry *MobileAgent::getInterface(IPv6Address destAddr, int destPort, in
     InterfaceEntry *ie = nullptr;
     for (int i=0; i<ift->getNumInterfaces(); i++) {
         ie = ift->getInterface(i);
-        if(!(ie->isLoopback()) && ie->isUp() && ie->ipv6Data()->getPreferredAddress().isGlobal()) { return ie; }
+        if(!(ie->isLoopback()))
+            EV << "MA: ie=" << i << " mac=" << ie->getMacAddress() << endl;
+        if(!(ie->isLoopback()) && ie->isUp() && ie->ipv6Data()->getPreferredAddress().isGlobal()) {
+            return ie;
+        }
     }
     return ie;
 }
