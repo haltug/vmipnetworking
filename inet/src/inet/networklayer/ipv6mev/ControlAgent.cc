@@ -141,7 +141,7 @@ void ControlAgent::sendAgentInit(cMessage *msg)
 
 void ControlAgent::createAgentUpdate(uint64 mobileId, uint seq)
 {
-    EV << "CA: Create Agent update message to any DataAgent" << endl;
+//    EV << "CA: Create Agent update message to any DataAgent" << endl;
     for(IPv6Address nodeAddr : agentAddressList) {
         cMessage *msg = new cMessage("sendingDAseqUpdate", MSG_AGENT_UPDATE);
         TimerKey key(nodeAddr, -1, TIMERKEY_SEQ_UPDATE, mobileId, seq);
@@ -159,7 +159,7 @@ void ControlAgent::createAgentUpdate(uint64 mobileId, uint seq)
 
 void ControlAgent::sendAgentUpdate(cMessage *msg)
 {
-//    EV << "CA: Send agent update" << endl;
+    EV << "CA: Sending update message to dataAgent." << endl;
     SequenceUpdateTimer *sut = (SequenceUpdateTimer *) msg->getContextPointer();
     const IPv6Address &dest =  sut->dest;
     sut->nextScheduledTime = simTime() + sut->ackTimeout;
@@ -170,7 +170,6 @@ void ControlAgent::sendAgentUpdate(cMessage *msg)
     ih->setIsSeqValid(true);
     ih->setIsIpModified(true);
     AddressManagement::AddressChange ac = am.getAddressEntriesOfSeqNo(sut->id,sut->seq);
-//    EV << "CA: update message: changes: " << ac.addedAddresses << endl;
     ih->setIpAddingField(ac.addedAddresses);
     ih->setIPaddressesArraySize(ac.addedAddresses);
     if(ac.addedAddresses > 0) {
@@ -183,19 +182,6 @@ void ControlAgent::sendAgentUpdate(cMessage *msg)
     ih->setByteLength(SIZE_AGENT_HEADER+(SIZE_ADDING_ADDR_TO_HDR*ac.addedAddresses));
     sendToLowerLayer(ih, dest); // TODO select interface
     scheduleAt(sut->nextScheduledTime, msg);
-}
-
-void ControlAgent::sendSequenceUpdateAck(uint64 mobileId)
-{ // sending over all registered links update messages to MA
-    AddressManagement::IPv6AddressList addressList = am.getAddressList(mobileId);
-    for (IPv6Address ip : addressList ) {
-        IPv6Address destAddr = ip; // address to be responsed
-        IdentificationHeader *ih = getAgentHeader(2, IP_PROT_NONE,am.getSeqNo(mobileId), 0, agentId);
-        ih->setIsIdInitialized(true);
-        ih->setIsIdAcked(true);
-        ih->setIsSeqValid(true);
-        sendToLowerLayer(ih,destAddr);
-    }
 }
 
 void ControlAgent::sendSessionInitResponse(IPv6Address destAddr)
@@ -213,17 +199,28 @@ void ControlAgent::sendSequenceInitResponse(IPv6Address destAddr, uint64 mobileI
     ih->setIsIdAcked(true);
     ih->setIsSeqValid(true);
     sendToLowerLayer(ih,destAddr);
-//    createAgentInit(mobileId);
+}
+
+void ControlAgent::sendSequenceUpdateAck(uint64 mobileId)
+{ // sending over all registered links update messages to MA
+    AddressManagement::IPv6AddressList addressList = am.getAddressList(mobileId);
+    for (IPv6Address ip : addressList ) {
+        IPv6Address destAddr = ip; // address to be responsed
+        IdentificationHeader *ih = getAgentHeader(2, IP_PROT_NONE,am.getSeqNo(mobileId), 0, agentId);
+        ih->setIsIdInitialized(true);
+        ih->setIsIdAcked(true);
+        ih->setIsSeqValid(true);
+        sendToLowerLayer(ih,destAddr);
+    }
 }
 
 void ControlAgent::sendSequenceUpdateResponse(IPv6Address destAddr, uint64 mobileId, uint seq)
-{ // is same to seqInitResponse
-    IdentificationHeader *ih = getAgentHeader(2, IP_PROT_NONE, seq, 0, agentId);
+{ // this functions sends ack's to dataAgents
+    IdentificationHeader *ih = getAgentHeader(2, IP_PROT_NONE, seq, 0, mobileId);
     ih->setIsIdInitialized(true);
     ih->setIsIdAcked(true);
     ih->setIsSeqValid(true);
     sendToLowerLayer(ih,destAddr);
-//    createAgentUpdate(mobileId); // we notify all dataAgents when we response to mobile agents seq update
 }
 
 void ControlAgent::sendFlowRequestResponse(IPv6Address destAddr, uint64 mobileId, uint seq, IPv6Address agentAddr, IPv6Address nodeAddr)
@@ -253,9 +250,9 @@ void ControlAgent::processAgentMessage(IdentificationHeader* agentHeader, IPv6Co
         if(agentHeader->getIsIdInitialized() && !agentHeader->getIsIdAcked() && agentHeader->getIsSeqValid() && !agentHeader->getIsAckValid() && !agentHeader->getIsIpModified())
             performAgentInitResponse(agentHeader, destAddr); // we need here the source address to remove the timers
         else if(agentHeader->getIsIdInitialized() && agentHeader->getIsIdAcked() && agentHeader->getIsSeqValid() && !agentHeader->getIsAckValid() && !agentHeader->getIsIpModified())
-            performAgentUpdateResponse(agentHeader, destAddr); // we need here the source address to remove the timers
+            performAgentUpdateResponse(agentHeader, destAddr); // this function is called when a dataAgents requests a update acknowledgment
         else if(agentHeader->getIsIdInitialized() && agentHeader->getIsIdAcked() && agentHeader->getIsSeqValid() && !agentHeader->getIsAckValid() && agentHeader->getIsIpModified())
-            performSeqUpdate(agentHeader, destAddr);
+            performSeqUpdate(agentHeader, destAddr); // this functions is called when any dataAgent sends a update message.
         else
             throw cRuntimeError("CA: DA msg not known.");
     } else
@@ -320,26 +317,33 @@ void ControlAgent::performSeqUpdate(IdentificationHeader *agentHeader, IPv6Addre
             if(agentHeader->getIpSequenceNumber() > am.getAckNo(agentHeader->getId())) {
                 if(agentHeader->getIpSequenceNumber() > am.getSeqNo(agentHeader->getId())) {
                     if(agentHeader->getIsIpModified()) { // indicate a sequence update
+                        // when ackNo of update message is behind current ackNo, sequence number is decremented for starting the update process at ackNo.
+                        // Otherwise update process starts at seqNo, but header only declares difference from ackNo to seqNo ( and not from current seqNo
+                        if(agentHeader->getIpAcknowledgementNumber() < am.getAckNo(agentHeader->getId()))
+                            am.setSeqNo(agentHeader->getId(),agentHeader->getIpAcknowledgementNumber());
+//                        EV << "CA:ma IP Table before: " << am.to_string() << endl;
                         if(agentHeader->getIpAddingField() > 0) { // check size of field
                             for(int i=0; i<agentHeader->getIpAddingField(); i++){
+                                EV << "CA: Adding IP to Table: " << agentHeader->getIPaddresses(i) << endl;
                                 am.addIpToMap(agentHeader->getId(), agentHeader->getIPaddresses(i));
                             }
                         }
                         if(agentHeader->getIpRemovingField() > 0) {
                             for(int i=agentHeader->getIpAddingField(); i<(agentHeader->getIpRemovingField()+agentHeader->getIpAddingField()); i++) {
+                                EV << "CA: Removing IP to Table: " << agentHeader->getIPaddresses(i) << endl;
                                 am.removeIpFromMap(agentHeader->getId(), agentHeader->getIPaddresses(i));
                             }
                         }
                         int s = agentHeader->getIpSequenceNumber();
                         int a = am.getAckNo(agentHeader->getId());
-                        EV << "CA: Updating table to SEQ: " << s << " ACK: " << a << endl;
-                        EV << "CA: IP Table: " << am.to_string() << endl;
+                        EV << "CA:ma Updating table to SEQ: " << s << " ACK: " << a << " ADD: " << agentHeader->getIpAddingField() << " REM: " << agentHeader->getIpRemovingField() << endl;
+//                        EV << "CA:ma IP Table after: " << am.to_string() << endl;
                         // first all DA's are updated. after update confirmation, CA's ack is incremented and subsequently MA is confirmed.
                         if(agentAddressList.size() > 0)
                             createAgentUpdate(agentHeader->getId(), am.getSeqNo(agentHeader->getId()));
                         else {
                             am.setAckNo(agentHeader->getId(),am.getSeqNo(agentHeader->getId()));
-                            sendSequenceUpdateResponse(destAddr, agentHeader->getId(), am.getSeqNo(agentHeader->getId()));
+                            sendSequenceUpdateAck(agentHeader->getId());
                         }
                     }
                 } else if (agentHeader->getIpSequenceNumber() < am.getSeqNo(agentHeader->getId())) { // get retransmission from MA
@@ -350,7 +354,7 @@ void ControlAgent::performSeqUpdate(IdentificationHeader *agentHeader, IPv6Addre
                         createAgentUpdate(agentHeader->getId(), am.getSeqNo(agentHeader->getId()));
                     else {
                         am.setAckNo(agentHeader->getId(),am.getSeqNo(agentHeader->getId()));
-                        sendSequenceUpdateResponse(destAddr, agentHeader->getId(), am.getSeqNo(agentHeader->getId()));
+                        sendSequenceUpdateAck(agentHeader->getId());
                     }
                 }
             } else {
@@ -367,13 +371,22 @@ void ControlAgent::performSeqUpdate(IdentificationHeader *agentHeader, IPv6Addre
                             for(int i=0; i<agentHeader->getIpAddingField(); i++){ // copy array in vector list
                                 ipList.push_back(agentHeader->getIPaddresses(i)); // inserting elements of array into vector list due to function
                             }
-                            am.insertSeqTableToMap(agentHeader->getId(), ipList, agentHeader->getIpSequenceNumber());
-                            createAgentUpdate(agentHeader->getId(), agentHeader->getIpSequenceNumber());
-                            EV << "CA: Received seq upd message earlier than MA. Updating other DA's." << endl;
-                        } else { EV << "CA ERROR Received seq update message from DA but AddField is 0." << endl; }
+                        }
+                        am.insertSeqTableToMap(agentHeader->getId(), ipList, agentHeader->getIpSequenceNumber());
+                        int s = agentHeader->getIpSequenceNumber();
+                        int a = am.getAckNo(agentHeader->getId());
+                        EV << "CA:da Updating table to SEQ: " << s << " ACK: " << a << endl;
+//                        EV << "CA:da IP Table: " << am.to_string() << endl;
+                        EV << "CA: Received seqNo update from DataAgent. Updating other DataAgent's before sending acknowledgment to MA." << endl;
+                        createAgentUpdate(agentHeader->getId(), agentHeader->getIpSequenceNumber());
                     } else { EV << "CA ERROR Received seq update message from DA but AddValid is false. (RemValid!=false)" << endl; }
-                } else { EV << "CA: Received old seq update. seq: " << agentHeader->getIpSequenceNumber() << " seq_CA: " << am.getSeqNo(agentHeader->getId()) << endl; }
-            } else { EV << "CA: Received seq update that is lower than ack. seq: " << agentHeader->getIpSequenceNumber() << " seq_CA: " << am.getSeqNo(agentHeader->getId()) << endl; }
+                } else {
+                    createAgentUpdate(agentHeader->getId(), agentHeader->getIpSequenceNumber());
+                    EV << "CA: Received SeqNo update but containing value is same or older. SEQ: " << agentHeader->getIpSequenceNumber() << " SEQ_ca: " << am.getSeqNo(agentHeader->getId()) << endl;
+                }
+            } else {
+                EV << "CA: Received seqNo update contains lower ack. seq: " << agentHeader->getIpSequenceNumber() << " seq_CA: " << am.getSeqNo(agentHeader->getId()) << endl;
+            }
         } else {throw cRuntimeError("CA: identifier of message wrong"); }
     } else {throw cRuntimeError("CA:seqUpdate: Id not found in list."); }
 }
@@ -406,6 +419,7 @@ void ControlAgent::performAgentUpdateResponse(IdentificationHeader *agentHeader,
     // if this is true, then a timer key existed. so a timer can only exist when the data agent were not initialized.
     // if false, then data agents has been initialized. only a timer for update can exists.
     cancelAndDeleteExpiryTimer(sourceAddr,-1,TIMERKEY_SEQ_UPDATE, agentHeader->getId(), agentHeader->getIpSequenceNumber(), am.getAckNo(agentHeader->getId()));
+    sendSequenceUpdateResponse(sourceAddr, agentHeader->getId(), agentHeader->getIpSequenceNumber());
     bool allDataAgentsUpdated = true;
     for(IPv6Address ip : agentAddressList) {
         if(pendingExpiryTimer(ip,-1,TIMERKEY_SEQ_UPDATE, agentHeader->getId(), agentHeader->getIpSequenceNumber()))
@@ -414,14 +428,8 @@ void ControlAgent::performAgentUpdateResponse(IdentificationHeader *agentHeader,
     if(allDataAgentsUpdated) {
         if(agentHeader->getIpSequenceNumber() > am.getAckNo(agentHeader->getId())) {
             am.setAckNo(agentHeader->getId(), agentHeader->getIpSequenceNumber()); // we set here ack no of CA when all DA's has been updated.
-            AddressManagement::AddressChange ac = am.getAddressEntriesOfSeqNo(agentHeader->getId(),am.getSeqNo(agentHeader->getId()));
-            if(ac.addedAddresses > 0) { // any interafce is provided but it's not sure if these are also reachable. so mobile node has to ensure that seq update is receiveable
-                for(int i=0; i<ac.addedAddresses; i++) {
-                    sendSequenceUpdateResponse(ac.getAddedIPv6AddressList.at(i), agentHeader->getId(), agentHeader->getIpSequenceNumber());
-                }
-                EV << "CA: Response update message from MA over " << ac.addedAddresses << " interfaces. Seq: " << am.getAckNo(agentHeader->getId()) << endl;
-            }
         }
+        sendSequenceUpdateAck(agentHeader->getId());
         EV << "CA: Update message from all DA's received." << endl;
     } else {
         EV << "CA: Received from DataAgent. Removed timer for seq: " << agentHeader->getIpSequenceNumber() << endl;

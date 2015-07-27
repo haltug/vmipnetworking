@@ -111,7 +111,7 @@ void AddressManagement::addIpToMap(uint64 id, IPv6Address& addr)
         IPv6AddressList newIPv6AddressList (seqTable[addressMap[id].currentSequenceNumber]); // copy current ipaddrList in new list
         if (std::find(newIPv6AddressList.begin(), newIPv6AddressList.end(), addr) != newIPv6AddressList.end()) // check if at any position given ip addr exists
         {
-            EV_INFO << "IP address exists in address map. It will be inserted again?" << endl;
+            EV_INFO << "AM: IP address exists in address map. It will be inserted again?" << endl;
             return;
         }
         newIPv6AddressList.push_back(addr); // add new addr at the end of list
@@ -121,7 +121,7 @@ void AddressManagement::addIpToMap(uint64 id, IPv6Address& addr)
         addressMap[id].sequenceTable = seqTable; // set modified seq table to map
         addressMap[id].timestamp = simTime(); // set a current timestamp
     } else {
-        throw cRuntimeError("ID is not found in AddressMap. Create entry for ID.");
+        throw cRuntimeError("AM: ID is not found in AddressMap. Create entry for ID.");
     }
 }
 // Removes an IPv6 addresses in list of id. TODO SEQ exceeds max size of 64
@@ -155,11 +155,11 @@ void AddressManagement::insertSeqTableToMap(uint64 id, IPv6AddressList &addr, ui
     if(addressMap.count(id)) { // check if id exists in map
         addressMap[id].currentSequenceNumber = seq;
         addressMap[id].lastAcknowledgement = seq;
-        if(addr.size() > 0)
-            addressMap[id].sequenceTable[seq] = addr;
-//            addressMap[id].sequenceTable.insert(std::make_pair(seq,addr));
-        else
-            throw cRuntimeError("Size must greater as 0.");
+        addressMap[id].sequenceTable[seq] = addr;
+//        if(addr.size() > 0)
+////            addressMap[id].sequenceTable.insert(std::make_pair(seq,addr));
+//        else
+//            throw cRuntimeError("Size must greater as 0.");
         addressMap[id].timestamp = simTime(); // set a current timestamp
     } else {
         throw cRuntimeError("ID is not found in AddressMap. Create entry for ID.");
@@ -267,6 +267,16 @@ void AddressManagement::setAckNo(uint64 id, uint seqno)
     if(addressMap.count(id)) // check if id exists in map
     {
         addressMap[id].lastAcknowledgement = seqno;
+    } else {
+        throw cRuntimeError("ID is not found in AddressMap. Create entry for ID.");
+    }
+}
+
+void AddressManagement::setSeqNo(uint64 id, uint seqno)
+{
+    if(addressMap.count(id)) // check if id exists in map
+    {
+        addressMap[id].currentSequenceNumber = seqno;
     } else {
         throw cRuntimeError("ID is not found in AddressMap. Create entry for ID.");
     }

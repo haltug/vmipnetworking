@@ -80,6 +80,7 @@ class INET_API AddressManagement : public cSimpleModule
     uint getSeqNo(const uint64 id) const; // returns the last sequence number
     uint getAckNo(uint64 id) const;     // returns the last ack number
     void setAckNo(uint64 id, uint seqno);
+    void setSeqNo(uint64 id, uint seqno);
     bool isSeqNoAcknowledged(uint64 id) const;
     bool isIdInitialized(uint64 id)  const;
     bool isIpRegistered(uint64 id, IPv6Address& dest, uint seq);

@@ -37,6 +37,7 @@ namespace inet {
 #define TIMERKEY_FLOW_REQ        6
 #define TIMERKEY_MA_INIT         7
 #define TIMERKEY_SEQ_UPDATE_NOT  8
+#define TIMERKEY_UPDATE_ACK      9
 
 //========== Timer type
 #define TIMERTYPE_SESSION_INIT  50
@@ -48,6 +49,7 @@ namespace inet {
 #define TIMERTYPE_FLOW_REQ      56
 #define TIMERTYPE_MA_INIT       57
 #define TIMERTYPE_SEQ_UPDATE_NOT 58
+#define TIMERTYPE_UPDATE_ACK    59
 
 //========== Message type in handleMessage() ==========
 #define MSG_START_TIME          100
@@ -67,6 +69,7 @@ namespace inet {
 #define MSG_SEQ_UPDATE_NOTIFY   114
 #define MSG_TCP_RETRANSMIT      115
 #define MSG_INTERFACE_DELAY     116
+#define MSG_UPDATE_ACK          117
 
 //========== Retransmission time of messages ==========
 #define TIMEOUT_SESSION_INIT    1 // retransmission time of ca init in sec
@@ -289,6 +292,11 @@ class INET_API Agent : public cSimpleModule
         uint ack;
         simtime_t liftime;
         bool active = false;
+    };
+    class UpdateAckTimer : public ExpiryTimer {
+    public:
+        uint64 id;
+        uint seq;
     };
     // TODO should it be declared as virtual?
     ExpiryTimer *getExpiryTimer(TimerKey& key, int timerType);

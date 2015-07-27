@@ -44,11 +44,13 @@ class DataAgent : public Agent
     void sendSequenceUpdateNotification(cMessage *msg); // used by DA to notify CA of changes
 
     void sendAgentInitResponse(IPv6Address destAddr, uint64 mobileId, uint seq);
-    void sendAgentUpdateResponse(IPv6Address destAddr, uint64 mobileId, uint seq);
+    void createAgentUpdateResponse(IPv6Address destAddr, uint64 mobileId, uint seq);
+    void sendAgentUpdateResponse(cMessage *msg);
 
     void processAgentMessage(IdentificationHeader *agentHeader, IPv6ControlInfo *ipCtrlInfo);
     void performAgentInit(IdentificationHeader *agentHeader, IPv6Address destAddr);
     void performAgentUpdate(IdentificationHeader *agentHeader, IPv6Address destAddr);
+    void performSequenceUpdateResponse(IdentificationHeader *agentHeader, IPv6Address destAddr);
     void performSeqUpdate(IdentificationHeader *agentHeader);
     void processUdpFromAgent(IdentificationHeader *agentHeader, IPv6Address destAddr);
     void processTcpFromAgent(IdentificationHeader *agentHeader, IPv6Address destAddr);

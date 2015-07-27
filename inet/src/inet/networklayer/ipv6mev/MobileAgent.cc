@@ -263,7 +263,7 @@ void MobileAgent::createSequenceUpdate(uint64 mobileId, uint seq, uint ack) {
         cMessage *msg = new cMessage("sendingCAseqUpdate", MSG_SEQ_UPDATE);
         sut->timer = msg;
         msg->setContextPointer(sut);
-        scheduleAt(sut->nextScheduledTime, msg);
+        scheduleAt(sut->nextScheduledTime+4, msg);
     }
 }
 
@@ -298,7 +298,7 @@ void MobileAgent::sendSequenceUpdate(cMessage* msg) {
         }
     }
     ih->setByteLength(SIZE_AGENT_HEADER+(SIZE_ADDING_ADDR_TO_HDR*(ac.addedAddresses+ac.removedAddresses)));
-    sendToLowerLayer(ih, dest, 2); // TODO select interface and remove delay
+    sendToLowerLayer(ih, dest); // TODO select interface and remove delay
     scheduleAt(sut->nextScheduledTime, msg);
 }
 
@@ -435,7 +435,7 @@ void MobileAgent::performSequenceUpdateResponse(IdentificationHeader *agentHeade
             am.setAckNo(agentId, agentHeader->getIpSequenceNumber());
             EV << "MA: Received update acknowledgment from CA. Removed timer." << endl;
         } else {
-            EV << "MA: Received update acknowledgment from CA but value of message is lower as current value of ack." << endl;
+            EV << "MA: Received update acknowledgment from CA contains older sequence value. No operation." << endl;
         }
     } else {
         throw cRuntimeError("MA: Byte length does not match the expected size.");

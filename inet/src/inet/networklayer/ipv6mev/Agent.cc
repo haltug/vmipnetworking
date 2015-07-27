@@ -146,6 +146,10 @@ Agent::ExpiryTimer *Agent::getExpiryTimer(TimerKey& key, int timerType) {
             MobileInitTimer *mit = (MobileInitTimer *) pos->second;
             cancelAndDelete(mit->timer);
             timer = mit;
+        } else if(dynamic_cast<UpdateAckTimer *>(pos->second)) {
+            UpdateAckTimer *uat = (UpdateAckTimer *) pos->second;
+            cancelAndDelete(uat->timer);
+            timer = uat;
         } else if(dynamic_cast<UpdateNotifierTimer *>(pos->second)) {
             UpdateNotifierTimer *unt = (UpdateNotifierTimer *) pos->second;
 //            cancelAndDelete(unt->timer); // is explicitly removed by createSeqUpdate functions.
@@ -185,6 +189,9 @@ Agent::ExpiryTimer *Agent::getExpiryTimer(TimerKey& key, int timerType) {
                 break;
             case TIMERTYPE_SEQ_UPDATE_NOT:
                 timer = new UpdateNotifierTimer();
+                break;
+            case TIMERTYPE_UPDATE_ACK:
+                timer = new UpdateAckTimer();
                 break;
             default:
                 throw cRuntimeError("Timer is not known. Type of key is wrong, check that.");
