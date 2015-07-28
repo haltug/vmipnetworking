@@ -932,7 +932,7 @@ InterfaceEntry *MobileAgent::getInterface(IPv6Address destAddr, int destPort, in
         if(!(ift->getInterface(i)->isLoopback()) && ift->getInterface(i)->isUp() && ift->getInterface(i)->ipv6Data()->getPreferredAddress().isGlobal()) {
             LinkUnit *lu = getLinkUnit(ift->getInterface(i)->getMacAddress());
             if(lu->snir >= maxSnr) {
-                maxSnr = lu->snir;
+                maxSnr = lu->snir; // selecting highest snr interface
                 ie=ift->getInterface(i);
             }
         } else {
