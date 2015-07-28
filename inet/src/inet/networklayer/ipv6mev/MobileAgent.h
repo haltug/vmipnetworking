@@ -40,7 +40,7 @@ class MobileAgent : public cListener, public Agent
     virtual void initialize(int stage) override;
     virtual void handleMessage(cMessage *msg) override;
 
-    class InterfaceUnit { // represents the entry of addressTable
+    class InterfaceUnit { // represents the entry of addressTable for interface up/down
     public:
         bool active;
         int priority;
@@ -54,35 +54,47 @@ class MobileAgent : public cListener, public Agent
         InterfaceUnit *iu;
     };
 
+    class LinkUnit { // a tuple to represent the quality of a link.
+    public:
+        double snir; // stored unit is something around 10^-12 W. Could be more or less.
+        double per;
+    };
+    typedef std::map<MACAddress, LinkUnit *> LinkTable;
+    LinkTable linkTable;
+
+
   public:
     void createSessionInit();
     void sendSessionInit(cMessage *msg); // send initialization message to CA
     void createSequenceInit();
-    void sendSequenceInit(cMessage *msg);
+    void sendSequenceInit(cMessage *msg); // for sending sequence msg to CA
     void createSequenceUpdate(uint64 mobileId, uint seq, uint ack);
     void sendSequenceUpdate(cMessage *msg);
     void createFlowRequest(FlowTuple &tuple);
     void sendFlowRequest(cMessage *msg);
 //  PACKET PROCESSING
-    void processAgentMessage(IdentificationHeader *agentHeader, IPv6ControlInfo *ipCtrlInfo);
-    void performSessionInitResponse(IdentificationHeader *agentHeader, IPv6Address destAddr);
+    void processAgentMessage(IdentificationHeader *agentHeader, IPv6ControlInfo *ipCtrlInfo); // starting point of any receiving msg. assigns msg according header
+    void performSessionInitResponse(IdentificationHeader *agentHeader, IPv6Address destAddr); // process response of CA when session initialization was triggered
     void performSequenceInitResponse(IdentificationHeader *agentHeader, IPv6Address destAddr);
     void performFlowRequestResponse(IdentificationHeader *agentHeader, IPv6Address destAddr);
     void performSequenceUpdateResponse(IdentificationHeader *agentHeader, IPv6Address destAddr);
     void performIncomingUdpPacket(IdentificationHeader *agentHeader, IPv6ControlInfo *ipCtrlInfo);
     void performIncomingTcpPacket(IdentificationHeader *agentHeader, IPv6ControlInfo *ipCtrlInfo);
     //
-    void processOutgoingUdpPacket(cMessage *msg, IPv6ControlInfo *ipCtrlInfo);
-    void processOutgoingTcpPacket(cMessage *msg, IPv6ControlInfo *ipCtrlInfo);
+    void processOutgoingUdpPacket(cMessage *msg, IPv6ControlInfo *ipCtrlInfo); // handles udp packet that is coming from upper layer
+    void processOutgoingTcpPacket(cMessage *msg, IPv6ControlInfo *ipCtrlInfo); // handles tcp packet that is coming from upper layer
 //  INTERFACE LISTENER FUNCTIONS
+    InterfaceUnit* getInterfaceUnit(int id); // returns the instance of the interfaceId for setting interface configuration
     void createInterfaceDownMessage(int id);
-    void handleInterfaceDownMessage(cMessage *msg);
+    void handleInterfaceDownMessage(cMessage *msg); // is called when interface gets disconnected. Changes are stored in interface map.
     void createInterfaceUpMessage(int id);
-    void handleInterfaceUpMessage(cMessage *msg);
-    void updateAddressTable(int id, InterfaceUnit *iu);
+    void handleInterfaceUpMessage(cMessage *msg); // is called when interface gets connected. Changes are stored in interface map.
+    void updateAddressTable(int id, InterfaceUnit *iu); // changing address map when node gets out of reachability. Is called by handleInterfaceUpMsg...
+//  LISTENER FUNCTIONS: handling interface up/down
     virtual void receiveSignal(cComponent *source, simsignal_t signalID, cObject *obj) override;
-    InterfaceUnit* getInterfaceUnit(int id);
+    virtual void receiveSignal(cComponent *source, simsignal_t signalID, double d) override;
 // INTERFACE
+    LinkUnit* getLinkUnit(MACAddress mac); // returns the instance of LinkUnit for link configuration such as SNR, PER,..
     InterfaceEntry *getInterface(IPv6Address destAddr = IPv6Address::UNSPECIFIED_ADDRESS, int destPort = -1, int sourcePort = -1, short protocol = -1); //const ,
     void sendToLowerLayer(cMessage *msg, const IPv6Address& destAddr, simtime_t sendTime = 0); // resend after timer expired
 

@@ -374,8 +374,9 @@ void Ieee80211MgmtSTA::receiveSignal(cComponent *source, simsignal_t signalID, c
             return;
         Ieee80211BeaconFrame *beacon = (check_and_cast<Ieee80211BeaconFrame *>(frame));
         APInfo *ap = lookupAP(beacon->getTransmitterAddress());
-        if (ap)
+        if (ap) {
             ap->rxPower = ctl->getRecPow();
+        }
     }
 }
 
@@ -383,7 +384,7 @@ void Ieee80211MgmtSTA::processScanCommand(Ieee80211Prim_ScanRequest *ctrl)
 {
     EV << "Received Scan Request from agent, clearing AP list and starting scanning...\n";
 
-    if (isScanning) {
+    if (isScanning) { // --HA
 //        throw cRuntimeError("processScanCommand: scanning already in progress");
         return;
     }
@@ -391,7 +392,7 @@ void Ieee80211MgmtSTA::processScanCommand(Ieee80211Prim_ScanRequest *ctrl)
         disassociate();
     }
     else if (assocTimeoutMsg) {
-        EV << "Cancelling ongoing association process\n";
+        EV << "Canceling ongoing association process\n";
         delete cancelEvent(assocTimeoutMsg);
         assocTimeoutMsg = nullptr;
     }

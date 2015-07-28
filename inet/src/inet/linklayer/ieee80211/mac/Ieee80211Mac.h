@@ -685,6 +685,11 @@ class INET_API Ieee80211Mac : public MACProtocolBase
   public:
     virtual State getState() { return static_cast<State>(fsm.getState()); }
     virtual unsigned int getQueueSize() { return transmissionQueueSize(); }
+
+    const MACAddress& getMacAddress() const // --HA
+    {
+        return address;
+    }
 };
 
 } // namespace ieee80211

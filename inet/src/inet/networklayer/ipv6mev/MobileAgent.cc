@@ -27,8 +27,11 @@
 #include "inet/networklayer/ipv6/IPv6Datagram.h"
 #include "inet/networklayer/ipv6/IPv6ExtensionHeaders.h"
 #include "inet/networklayer/ipv6/IPv6InterfaceData.h"
+#include "inet/physicallayer/common/packetlevel/Radio.h"
 #include "inet/transportlayer/udp/UDPPacket.h"
 #include "inet/transportlayer/tcp_common/TCPSegment.h"
+#include "inet/physicallayer/ieee80211/packetlevel/Ieee80211Radio.h"
+#include "inet/linklayer/ieee80211/mac/Ieee80211Mac.h"
 
 #include "inet/common/NotifierConsts.h"
 #include "inet/common/lifecycle/NodeStatus.h"
@@ -52,6 +55,8 @@ void MobileAgent::initialize(int stage)
         ipSocket.registerProtocol(IP_PROT_IPv6EXT_ID);
         interfaceNotifier = getContainingNode(this);
         interfaceNotifier->subscribe(NF_INTERFACE_IPv6CONFIG_CHANGED,this);
+        interfaceNotifier->subscribe(physicallayer::Radio::minSNIRSignal, this);
+        interfaceNotifier->subscribe(physicallayer::Radio::packetErrorRateSignal, this);
     }
     if (stage == INITSTAGE_APPLICATION_LAYER) {
 //        simtime_t startTime = par("startTime");
@@ -506,7 +511,7 @@ void MobileAgent::performIncomingTcpPacket(IdentificationHeader *agentHeader, IP
         ipControlInfo->setTrafficClass(controlInfo->getTrafficClass());
         tcpseg->setControlInfo(ipControlInfo);
         cGate *outgate = gate("toTCP");
-//        EV << "IP2TCP: Dest=" << controlInfo->getDestAddr() << " Src=" << controlInfo->getSrcAddr() << " If=" << controlInfo->getInterfaceId() << " PktSize=" << tcpseg->getByteLength() << endl;
+        EV << "IP2TCP: Dest=" << controlInfo->getDestAddr() << " Src=" << controlInfo->getSrcAddr() << " PktSize=" << tcpseg->getByteLength() << " If=" << controlInfo->getInterfaceId() << endl;
         send(tcpseg, outgate);
     } else
         throw cRuntimeError("MA:procDAmsg: TCP packet could not be cast.");
@@ -601,11 +606,15 @@ void MobileAgent::processOutgoingUdpPacket(cMessage *msg, IPv6ControlInfo *contr
         // TODO set here scheduler, which decides the outgoing interface
         controlInfo->setProtocol(IP_PROT_IPv6EXT_ID);
         controlInfo->setDestinationAddress(funit->dataAgent);
-        controlInfo->setInterfaceId(getInterface(funit->dataAgent, tuple.destPort, tuple.sourcePort)->getInterfaceId()); // just override existing entries
-        controlInfo->setSourceAddress(getInterface(funit->dataAgent, tuple.destPort, tuple.sourcePort)->ipv6Data()->getPreferredAddress());
+        InterfaceEntry *ie = getInterface(funit->dataAgent, tuple.destPort, tuple.sourcePort);
+        if(!ie)
+            throw cRuntimeError("MA: No interface exists?");
+        controlInfo->setInterfaceId(ie->getInterfaceId()); // just override existing entries
+        controlInfo->setSourceAddress(ie->ipv6Data()->getPreferredAddress());
         ih->setControlInfo(controlInfo); // make copy before setting param
         cGate *outgate = gate("toLowerLayer");
-//        EV << "UDP2IP: Dest=" << controlInfo->getDestAddr() << " Src=" << controlInfo->getSrcAddr() << " Pkt=" << ih->getByteLength() << endl;
+        LinkUnit *lu = getLinkUnit(ie->getMacAddress());
+        EV << "UDP2IP: Dest=" << controlInfo->getDestAddr() << " Src=" << controlInfo->getSrcAddr() << " Pkt=" << ih->getByteLength() << " SNIR=" << lu->snir << endl;
         send(ih, outgate);
     } else
         throw cRuntimeError("MA: Incoming message should be UPD packet.");
@@ -707,14 +716,33 @@ void MobileAgent::processOutgoingTcpPacket(cMessage *msg, IPv6ControlInfo *contr
         // TODO set here scheduler, which decides the outgoing interface
         controlInfo->setProtocol(IP_PROT_IPv6EXT_ID);
         controlInfo->setDestinationAddress(funit->dataAgent);
-        controlInfo->setInterfaceId(getInterface(funit->dataAgent, tuple.destPort, tuple.sourcePort)->getInterfaceId()); // just override existing entries
-        controlInfo->setSourceAddress(getInterface(funit->dataAgent, tuple.destPort, tuple.sourcePort)->ipv6Data()->getPreferredAddress());
+        InterfaceEntry *ie = getInterface(funit->dataAgent, tuple.destPort, tuple.sourcePort);
+        if(!ie)
+            throw cRuntimeError("MA: No interface exists?");
+        controlInfo->setInterfaceId(ie->getInterfaceId()); // just override existing entries
+        controlInfo->setSourceAddress(ie->ipv6Data()->getPreferredAddress());
         ih->setControlInfo(controlInfo); // make copy before setting param
         cGate *outgate = gate("toLowerLayer");
-//        EV << "TCP2IP: Dest=" << controlInfo->getDestAddr() << " Src=" << controlInfo->getSrcAddr() << " Node=" << controlInfo->getDestinationAddress().toIPv6() << " Pkt=" << ih->getByteLength() << endl;
+        LinkUnit *lu = getLinkUnit(ie->getMacAddress());
+        EV << "TCP2IP: Dest=" << controlInfo->getDestAddr() << " Src=" << controlInfo->getSrcAddr() << " Pkt=" << ih->getByteLength() << " IF=" << ie->getInterfaceId() << " SNIR=" << lu->snir << endl;
         send(ih, outgate);
     } else
         throw cRuntimeError("MA: Incoming message should be TCP packet.");
+}
+
+MobileAgent::InterfaceUnit *MobileAgent::getInterfaceUnit(int id)
+{
+    InterfaceUnit *iu;
+    auto it = addressTable.find(id);
+    if(it != addressTable.end()) { // addressTable contains an instance of interfaceUnit
+        iu = it->second;
+        return iu;
+    } else {
+        iu = new InterfaceUnit();
+        iu->active = false;
+        iu->priority = -1;
+        return iu;
+    }
 }
 
 void MobileAgent::createInterfaceDownMessage(int id)
@@ -800,23 +828,39 @@ void MobileAgent::receiveSignal(cComponent *source, simsignal_t signalID, cObjec
             else { createInterfaceDownMessage(ie->getInterfaceId()); }
         }
     }
-
 }
 
-MobileAgent::InterfaceUnit *MobileAgent::getInterfaceUnit(int id)
+void MobileAgent::receiveSignal(cComponent *source, simsignal_t signalID, double d)
 {
-    InterfaceUnit *iu;
-    auto it = addressTable.find(id);
-    if(it != addressTable.end()) { // addressTable contains an instance of interfaceUnit
-        iu = it->second;
-        return iu;
-    } else {
-        iu = new InterfaceUnit();
-        iu->active = false;
-        iu->priority = -1;
-        return iu;
+    Enter_Method_Silent();
+    if (dynamic_cast<physicallayer::Ieee80211Radio *>(source) != nullptr) {
+        physicallayer::Ieee80211Radio *radio = (physicallayer::Ieee80211Radio *) source;
+        if(radio) {
+            ieee80211::Ieee80211Mac *mac = (ieee80211::Ieee80211Mac *) radio->getParentModule()->getSubmodule("mac");
+            if(mac) {
+                LinkUnit *lu = getLinkUnit(mac->getMacAddress());
+                if(signalID == physicallayer::Radio::minSNIRSignal) {
+                    lu->snir = d;
+            //        EV << "MA: SNR=" << d << " MAC= " << mac->getMacAddress() << endl;
+                }
+                if(signalID == physicallayer::Radio::packetErrorRateSignal) {
+                    LinkUnit *lu = getLinkUnit(mac->getMacAddress());
+                    lu->per = d;
+            //        EV << "MA: PER=" << d << " MAC= " << mac->getMacAddress() << endl;
+                }
+            }
+        }
     }
+//    if(radio) {
+//        ieee80211::Ieee80211Mac *mac = (ieee80211::Ieee80211Mac *) radio->getParentModule()->getSubmodule("mac");
+//        if(mac) {
+//        }
+//        ieee80211::Ieee80211MgmtSTA *mgmt = (ieee80211::Ieee80211MgmtSTA *) radio->getParentModule()->getSubmodule("mgmt");
+//        if(mgmt) {
+//        }
+//    }
 }
+
 
 void MobileAgent::updateAddressTable(int id, InterfaceUnit *iu)
 {
@@ -864,14 +908,36 @@ void MobileAgent::updateAddressTable(int id, InterfaceUnit *iu)
         }
 }
 
+MobileAgent::LinkUnit *MobileAgent::getLinkUnit(MACAddress mac)
+{
+    LinkUnit *lu;
+    auto it = linkTable.find(mac);
+    if(it != linkTable.end()) { // linkTable contains an instance of linkUnit
+        lu = it->second;
+        return lu;
+    } else {
+        lu = new LinkUnit();
+        lu->snir = 0;
+        lu->per = 0;
+        linkTable.insert(std::make_pair(mac,lu));
+        EV << "MA: Created MAC entry: " << mac << endl;
+        return lu;
+    }
+}
+
 InterfaceEntry *MobileAgent::getInterface(IPv6Address destAddr, int destPort, int sourcePort, short protocol) { // const IPv6Address &destAddr,
     InterfaceEntry *ie = nullptr;
+    double maxSnr = 0;
     for (int i=0; i<ift->getNumInterfaces(); i++) {
-        ie = ift->getInterface(i);
-        if(!(ie->isLoopback()))
-            EV << "MA: ie=" << i << " mac=" << ie->getMacAddress() << endl;
-        if(!(ie->isLoopback()) && ie->isUp() && ie->ipv6Data()->getPreferredAddress().isGlobal()) {
-            return ie;
+        if(!(ift->getInterface(i)->isLoopback()) && ift->getInterface(i)->isUp() && ift->getInterface(i)->ipv6Data()->getPreferredAddress().isGlobal()) {
+            LinkUnit *lu = getLinkUnit(ift->getInterface(i)->getMacAddress());
+            if(lu->snir >= maxSnr) {
+                maxSnr = lu->snir;
+                ie=ift->getInterface(i);
+            }
+        } else {
+            if(!ie)
+                ie=ift->getInterface(i);
         }
     }
     return ie;
@@ -892,7 +958,8 @@ void MobileAgent::sendToLowerLayer(cMessage *msg, const IPv6Address& destAddr, s
     }
     msg->setControlInfo(ctrlInfo);
     cGate *outgate = gate("toLowerLayer");
-//    EV << "MA2IP: Dest=" << ctrlInfo->getDestAddr() << " Src=" << ctrlInfo->getSrcAddr() << " If=" << ctrlInfo->getInterfaceId() << endl;
+    LinkUnit *lu = getLinkUnit(ie->getMacAddress());
+    EV << "MA2IP: Dest=" << ctrlInfo->getDestAddr() << " Src=" << ctrlInfo->getSrcAddr() << " If=" << ctrlInfo->getInterfaceId() << " SNIR=" << lu->snir << endl;
     if (delayTime > 0) {
 //        EV << "delayed sending" << endl;
         sendDelayed(msg, delayTime, outgate);

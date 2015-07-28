@@ -99,7 +99,7 @@ void InterfaceTable::handleMessage(cMessage *msg)
 
 void InterfaceTable::receiveSignal(cComponent *source, simsignal_t signalID, cObject *obj)
 {
-//  updates the interface entries when L2 associates/disassociates from AP
+//  updates the interface entries when L2 associates/disassociates from AP --HA
     Enter_Method_Silent();
     printNotificationBanner(signalID, obj);
     if(signalID == NF_L2_ASSOCIATED) {
