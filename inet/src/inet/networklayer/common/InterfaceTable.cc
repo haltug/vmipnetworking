@@ -109,11 +109,11 @@ void InterfaceTable::receiveSignal(cComponent *source, simsignal_t signalID, cOb
     }
     if(signalID == NF_L2_DISASSOCIATED) {
         if(dynamic_cast<InterfaceEntry *>(obj)) {
-            bool isUp = ((InterfaceEntry *) obj)->isUp();
-            bool isGlobal = ((InterfaceEntry *) obj)->ipv6Data()->getPreferredAddress().isGlobal();
+//            bool isUp = ((InterfaceEntry *) obj)->isUp(); // sets interface address to link local address
+//            bool isGlobal = ((InterfaceEntry *) obj)->ipv6Data()->getPreferredAddress().isGlobal();
             ((InterfaceEntry *) obj)->setCarrier(false);
-            if(isUp && isGlobal)
-                ((InterfaceEntry *) obj)->ipv6Data()->removeAddress(((InterfaceEntry *) obj)->ipv6Data()->getPreferredAddress());
+//            if(isUp && isGlobal)
+//                ((InterfaceEntry *) obj)->ipv6Data()->removeAddress(((InterfaceEntry *) obj)->ipv6Data()->getPreferredAddress());
         }
     }
 }

@@ -59,11 +59,51 @@ class MobileAgent : public cListener, public Agent
         double snir; // stored unit is something around 10^-12 W. Could be more or less.
         double per;
     };
-    typedef std::map<MACAddress, LinkUnit *> LinkTable;
+    typedef std::map<MACAddress, LinkUnit *> LinkTable; // table of mac address. value contains link parameter
     LinkTable linkTable;
 
+    class PacketTimer {
+    public:
+        virtual ~PacketTimer() {};
+        cMessage *packet;
+        int prot;
+        int destPort;
+        int sourcePort;
+        IPv6Address destAddress;
+        simtime_t nextScheduledTime;
+    };
+    class PacketTimerKey {
+    public:
+        virtual ~PacketTimerKey() {};
+        int prot;
+        int destPort;
+        int sourcePort;
+        IPv6Address destAddress;
+        PacketTimerKey(int _prot, IPv6Address _destAddress, int _destPort, int _sourcePort) {
+            prot = _prot;
+            destPort = _destPort;
+            sourcePort = _sourcePort;
+            destAddress = _destAddress;
+        }
+        bool operator<(const PacketTimerKey& b) const {
+            if(destAddress == b.destAddress) {
+                if(destPort == b.destPort) {
+                    if(sourcePort == b.sourcePort) {
+                        return prot < b.prot;
+                    } else
+                        return sourcePort < b.sourcePort;
+                } else
+                    return destPort < b.destPort;
+            } else
+                return destAddress < b.destAddress;
+        }
+    };
+
+    typedef std::map<PacketTimerKey, PacketTimer *> PacketQueue; // ProtocolType
+    PacketQueue packetQueue;
 
   public:
+    //  AGENT MANAGEMENT
     void createSessionInit();
     void sendSessionInit(cMessage *msg); // send initialization message to CA
     void createSequenceInit();
@@ -72,7 +112,7 @@ class MobileAgent : public cListener, public Agent
     void sendSequenceUpdate(cMessage *msg);
     void createFlowRequest(FlowTuple &tuple);
     void sendFlowRequest(cMessage *msg);
-//  PACKET PROCESSING
+//  PACKET PROCESSING INCOMING MESSAGES
     void processAgentMessage(IdentificationHeader *agentHeader, IPv6ControlInfo *ipCtrlInfo); // starting point of any receiving msg. assigns msg according header
     void performSessionInitResponse(IdentificationHeader *agentHeader, IPv6Address destAddr); // process response of CA when session initialization was triggered
     void performSequenceInitResponse(IdentificationHeader *agentHeader, IPv6Address destAddr);
@@ -80,9 +120,11 @@ class MobileAgent : public cListener, public Agent
     void performSequenceUpdateResponse(IdentificationHeader *agentHeader, IPv6Address destAddr);
     void performIncomingUdpPacket(IdentificationHeader *agentHeader, IPv6ControlInfo *ipCtrlInfo);
     void performIncomingTcpPacket(IdentificationHeader *agentHeader, IPv6ControlInfo *ipCtrlInfo);
-    //
-    void processOutgoingUdpPacket(cMessage *msg, IPv6ControlInfo *ipCtrlInfo); // handles udp packet that is coming from upper layer
-    void processOutgoingTcpPacket(cMessage *msg, IPv6ControlInfo *ipCtrlInfo); // handles tcp packet that is coming from upper layer
+//  PACKET PROCESSING OUTGOING MESSAGES
+    void processOutgoingUdpPacket(cMessage *msg); // handles udp packet that is coming from upper layer
+    void processOutgoingTcpPacket(cMessage *msg); // handles tcp packet that is coming from upper layer
+    void sendUpplerLayerPacket(cPacket *packet, IPv6ControlInfo *controlInfo, IPv6Address agentAddr, short prot);
+
 //  INTERFACE LISTENER FUNCTIONS
     InterfaceUnit* getInterfaceUnit(int id); // returns the instance of the interfaceId for setting interface configuration
     void createInterfaceDownMessage(int id);
@@ -93,10 +135,19 @@ class MobileAgent : public cListener, public Agent
 //  LISTENER FUNCTIONS: handling interface up/down
     virtual void receiveSignal(cComponent *source, simsignal_t signalID, cObject *obj) override;
     virtual void receiveSignal(cComponent *source, simsignal_t signalID, double d) override;
-// INTERFACE
+//  LINK CONFIGURATION
     LinkUnit* getLinkUnit(MACAddress mac); // returns the instance of LinkUnit for link configuration such as SNR, PER,..
-    InterfaceEntry *getInterface(IPv6Address destAddr = IPv6Address::UNSPECIFIED_ADDRESS, int destPort = -1, int sourcePort = -1, short protocol = -1); //const ,
+    InterfaceEntry *getInterface(IPv6Address destAddr = IPv6Address::UNSPECIFIED_ADDRESS, int destPort = -1, int sourcePort = -1, short protocol = -1);
+    bool isInterfaceUp();
+//  PACKET PROCESSING
     void sendToLowerLayer(cMessage *msg, const IPv6Address& destAddr, simtime_t sendTime = 0); // resend after timer expired
+//  PACKET QUEUEING
+    void sendAllPacketsInQueue();
+    PacketTimer *getPacketTimer(PacketTimerKey& key);
+    bool isPacketTimerQueued(PacketTimerKey& key);
+    void cancelPacketTimer(PacketTimerKey& key);
+    void deletePacketTimer(PacketTimerKey& key);
+    void deletePacketTimerEntry(PacketTimerKey& key);
 
 };
 

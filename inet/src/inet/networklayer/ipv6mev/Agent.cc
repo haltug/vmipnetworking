@@ -150,6 +150,14 @@ Agent::ExpiryTimer *Agent::getExpiryTimer(TimerKey& key, int timerType) {
             UpdateAckTimer *uat = (UpdateAckTimer *) pos->second;
             cancelAndDelete(uat->timer);
             timer = uat;
+//        } else if(dynamic_cast<OutgoingUdpMessageTimer *>(pos->second)) {
+//            OutgoingUdpMessageTimer *oum = (OutgoingUdpMessageTimer *) pos->second;
+//            cancelEvent(oum->timer); // message is only canceled, but not deleted
+//            timer = oum;
+//        } else if(dynamic_cast<OutgoingTcpMessageTimer *>(pos->second)) {
+//            OutgoingTcpMessageTimer *otm = (OutgoingTcpMessageTimer *) pos->second;
+//            cancelEvent(otm->timer); // message is only canceled, but not deleted
+//            timer = otm;
         } else if(dynamic_cast<UpdateNotifierTimer *>(pos->second)) {
             UpdateNotifierTimer *unt = (UpdateNotifierTimer *) pos->second;
 //            cancelAndDelete(unt->timer); // is explicitly removed by createSeqUpdate functions.

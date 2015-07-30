@@ -38,6 +38,8 @@ namespace inet {
 #define TIMERKEY_MA_INIT         7
 #define TIMERKEY_SEQ_UPDATE_NOT  8
 #define TIMERKEY_UPDATE_ACK      9
+//#define TIMERKEY_UDP_OUT_MSG     10
+//#define TIMERKEY_TCP_OUT_MSG     11
 
 //========== Timer type
 #define TIMERTYPE_SESSION_INIT  50
@@ -50,6 +52,8 @@ namespace inet {
 #define TIMERTYPE_MA_INIT       57
 #define TIMERTYPE_SEQ_UPDATE_NOT 58
 #define TIMERTYPE_UPDATE_ACK    59
+//#define TIMERTYPE_UDP_OUT_MSG   60
+//#define TIMERTYPE_TCP_OUT_MSG   61
 
 //========== Message type in handleMessage() ==========
 #define MSG_START_TIME          100
@@ -303,7 +307,6 @@ class INET_API Agent : public cSimpleModule
     bool pendingExpiryTimer(const IPv6Address& dest, int interfaceId, int timerType, uint64 id = 0, uint seq = 0);
     bool cancelExpiryTimer(const IPv6Address& dest, int interfaceId, int timerType, uint64 id = 0, uint seq = 0, uint ack = 0);
     bool cancelAndDeleteExpiryTimer(const IPv6Address& dest, int interfaceId, int timerType, uint64 id = 0, uint seq = 0, uint ack = 0);
-    void cancelExpiryTimers();
 //============================================= Timer configuration ===========================
 
 };

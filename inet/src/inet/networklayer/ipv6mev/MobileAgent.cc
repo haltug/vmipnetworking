@@ -114,12 +114,10 @@ void MobileAgent::handleMessage(cMessage *msg)
             sendFlowRequest(msg);
         }
         else if(msg->getKind() == MSG_UDP_RETRANSMIT) { // from MA
-            IPv6ControlInfo *controlInfo = check_and_cast<IPv6ControlInfo *>(msg->removeControlInfo());
-            processOutgoingUdpPacket(msg, controlInfo);
+            processOutgoingUdpPacket(msg);
         }
         else if(msg->getKind() == MSG_TCP_RETRANSMIT) { // from MA
-            IPv6ControlInfo *controlInfo = check_and_cast<IPv6ControlInfo *>(msg->removeControlInfo());
-            processOutgoingTcpPacket(msg, controlInfo);
+            processOutgoingTcpPacket(msg);
         }
         else if(msg->getKind() == MSG_INTERFACE_DELAY) { // from MA
             InterfaceInit *ii = (InterfaceInit *) msg->getContextPointer();
@@ -130,24 +128,11 @@ void MobileAgent::handleMessage(cMessage *msg)
             throw cRuntimeError("handleMessage: Unknown timer expired. Which timer msg is unknown?");
     }
     else if(msg->arrivedOn("fromUDP")) {
-        cObject *ctrl = msg->removeControlInfo();
-        if (dynamic_cast<IPv6ControlInfo *>(ctrl) != nullptr) {
-//            EV << "MA: Received packet fromUDP" << endl;
-            IPv6ControlInfo *controlInfo = (IPv6ControlInfo *) ctrl;
-            processOutgoingUdpPacket(msg, controlInfo);
-        }
-//        else
-//            EV << "MA: Received udp packet but not with ipv6 ctrl info." << endl;
+        processOutgoingUdpPacket(msg);
     }
     else if(msg->arrivedOn("fromTCP")) {
-        cObject *ctrl = msg->removeControlInfo();
-        if (dynamic_cast<IPv6ControlInfo *>(ctrl) != nullptr) {
-//            EV << "MA: Received packet fromTCP" << endl;
-            IPv6ControlInfo *controlInfo = (IPv6ControlInfo *) ctrl;
-            processOutgoingTcpPacket(msg, controlInfo);
-        }
-//        else
-//            EV << "MA: Received tcp packet but not with ipv6 ctrl info." << endl;
+        EV << "MA: outging TCP packet." << endl;
+        processOutgoingTcpPacket(msg);
     }
     else if(msg->arrivedOn("fromLowerLayer")) {
         if (dynamic_cast<IdentificationHeader *> (msg)) {
@@ -307,8 +292,6 @@ void MobileAgent::sendSequenceUpdate(cMessage* msg) {
     scheduleAt(sut->nextScheduledTime, msg);
 }
 
-//void Agent::createRedirection
-
 void MobileAgent::createFlowRequest(FlowTuple &tuple) {
     if(sessionState != ASSOCIATED &&  seqnoState != ASSOCIATED)
         throw cRuntimeError("MA: Not registered at CA. Cannot run seq init.");
@@ -425,6 +408,7 @@ void MobileAgent::performFlowRequestResponse(IdentificationHeader *agentHeader, 
         IPv6Address agent = agentHeader->getIPaddresses(1);
         addressAssociation.insert(std::make_pair(node,agent));
         cancelAndDeleteExpiryTimer(caAddress,-1, TIMERKEY_FLOW_REQ);
+        sendAllPacketsInQueue();
         EV << "MA: Flow request responsed by CA. Request process successfully established." << endl;
     } else {
         throw cRuntimeError("MA: Byte length does not match the expected size.FlowRequest");
@@ -483,6 +467,7 @@ void MobileAgent::performIncomingUdpPacket(IdentificationHeader *agentHeader, IP
 
 void MobileAgent::performIncomingTcpPacket(IdentificationHeader *agentHeader, IPv6ControlInfo *controlInfo)
 {
+    EV << "MA: received TCP packet. next step: decapsulating." << endl;
     cPacket *packet = agentHeader->decapsulate();
     if (dynamic_cast<tcp::TCPSegment *>(packet) != nullptr) {
         tcp::TCPSegment *tcpseg =  (tcp::TCPSegment *) packet;
@@ -501,15 +486,16 @@ void MobileAgent::performIncomingTcpPacket(IdentificationHeader *agentHeader, IP
         }
         IPv6Address fakeIp;
         fakeIp.set(0x1D << 24, 0, (agentId >> 32) & 0xFFFFFFFF, agentId & 0xFFFFFFFF);
-//        EV << "MA:IPv6: " << fakeIp.str() << endl;
+        EV << "MA:IPv6: " << fakeIp.str() << endl;
         IPv6ControlInfo *ipControlInfo = new IPv6ControlInfo();
         ipControlInfo->setProtocol(IP_PROT_TCP);
         ipControlInfo->setDestAddr(fakeIp);
         ipControlInfo->setSrcAddr(funit->nodeAddress);
-        ipControlInfo->setInterfaceId(100);
+        ipControlInfo->setInterfaceId(101);
         ipControlInfo->setHopLimit(controlInfo->getHopLimit());
         ipControlInfo->setTrafficClass(controlInfo->getTrafficClass());
         tcpseg->setControlInfo(ipControlInfo);
+        EV << "MA: new ControlInfo for incoming TCP packet configured." << endl;
         cGate *outgate = gate("toTCP");
         EV << "IP2TCP: Dest=" << controlInfo->getDestAddr() << " Src=" << controlInfo->getSrcAddr() << " PktSize=" << tcpseg->getByteLength() << " If=" << controlInfo->getInterfaceId() << endl;
         send(tcpseg, outgate);
@@ -517,149 +503,46 @@ void MobileAgent::performIncomingTcpPacket(IdentificationHeader *agentHeader, IP
         throw cRuntimeError("MA:procDAmsg: TCP packet could not be cast.");
 }
 
-void MobileAgent::processOutgoingUdpPacket(cMessage *msg, IPv6ControlInfo *controlInfo)
+void MobileAgent::processOutgoingUdpPacket(cMessage *msg)
 {
-    if (dynamic_cast<UDPPacket *>(msg) != nullptr) {
-//        EV << "MA:udpIn: processsing udp pkt." << endl;
-        UDPPacket *udpPacket =  (UDPPacket *) msg;
-        FlowTuple tuple;
-        tuple.protocol = IP_PROT_UDP;
-        tuple.destPort = udpPacket->getDestinationPort();
-        tuple.sourcePort = udpPacket->getSourcePort();
-        tuple.destAddress = IPv6Address::UNSPECIFIED_ADDRESS;
-        tuple.interfaceId = controlInfo->getDestinationAddress().toIPv6().getInterfaceId();
-        FlowUnit *funit = getFlowUnit(tuple);
-        if(funit->state == UNREGISTERED) {
-            funit->lifetime = MAX_PKT_LIFETIME;
-            funit->state = REGISTERING;
-            funit->nodeAddress = controlInfo->getDestinationAddress().toIPv6();
-            createFlowRequest(tuple); // invoking flow initialization and delaying pkt by sending in queue of this object (hint: scheduleAt with delay)
-            udpPacket->setKind(MSG_UDP_RETRANSMIT);
-            udpPacket->setControlInfo(controlInfo); // appending own
-            EV << "MA:udpIn: delaying process, creating flow request." << endl;
-            scheduleAt(simTime()+TIMEDELAY_PKT_PROCESS, udpPacket);
-            return;
-        } else if(funit->state == REGISTERING) {
-            EV << "MA:udpIn starting registering process of first udp packet: "<< funit->lifetime << endl;
-            funit->lifetime--;
-            if(funit->lifetime < 1) {
-                EV << "MA:udpIn: deleting udp packet because of exceeding lifetime." << endl;
-                delete msg;
-                delete controlInfo;
-                return;
-            } // TODO discarding all packets of tuple
-            if(isAddressAssociated(controlInfo->getDestinationAddress().toIPv6())) {
-                EV << "MA:udpIn: creating address association. only done one time actually." << endl;
+    cObject *ctrl = msg->removeControlInfo();
+    if (dynamic_cast<IPv6ControlInfo *>(ctrl) != nullptr) {
+        IPv6ControlInfo *controlInfo = (IPv6ControlInfo *) ctrl;
+        if (dynamic_cast<UDPPacket *>(msg) != nullptr) {
+    //        EV << "MA:udpIn: processsing udp pkt." << endl;
+            UDPPacket *udpPacket =  (UDPPacket *) msg;
+            FlowTuple tuple;
+            tuple.protocol = IP_PROT_UDP;
+            tuple.destPort = udpPacket->getDestinationPort();
+            tuple.sourcePort = udpPacket->getSourcePort();
+            tuple.destAddress = IPv6Address::UNSPECIFIED_ADDRESS;
+            tuple.interfaceId = controlInfo->getDestinationAddress().toIPv6().getInterfaceId();
+            FlowUnit *funit = getFlowUnit(tuple);
+            if(funit->state == UNREGISTERED) {
                 funit->lifetime = MAX_PKT_LIFETIME;
-                IPv6Address *ag = getAssociatedAddress(controlInfo->getDestinationAddress().toIPv6());
-                if(ag) {
-                    EV << "MA:udpIn: creating flow unit." << endl;
-                    funit->state = REGISTERED;
-                    funit->isFlowActive = true;
-                    funit->isAddressCached = true;
-                    funit->dataAgent = *ag;
-                    funit->nodeAddress = controlInfo->getDestinationAddress().toIPv6();
-                    funit->id = agentId;
-                } else {
-                    throw cRuntimeError("MA:UDPin: getAssociatedAddr fetched empty pointer instead of address.");
-                }
-            } else {
-                EV << "MA:udpIn sending udp packet in queue, such that it can be processed in next round" << endl;
+                funit->state = REGISTERING;
+                funit->nodeAddress = controlInfo->getDestinationAddress().toIPv6();
+                createFlowRequest(tuple); // invoking flow initialization and delaying pkt by sending in queue of this object (hint: scheduleAt with delay)
                 udpPacket->setKind(MSG_UDP_RETRANSMIT);
                 udpPacket->setControlInfo(controlInfo); // appending own
+                EV << "MA:udpIn: delaying process, creating flow request." << endl;
                 scheduleAt(simTime()+TIMEDELAY_PKT_PROCESS, udpPacket);
                 return;
-            }
-        } else
-            if(funit->state == REGISTERED) {
-            funit->lifetime = MAX_PKT_LIFETIME;
-            // what should here be done?
-            } else { throw cRuntimeError("MA:UDPin: Not known state of flow. What should be done?"); }
-//        EV << "MA:udpIn: flow is registered. starting sending process." << endl;
-        IdentificationHeader *ih = getAgentHeader(1, IP_PROT_UDP, am.getSeqNo(agentId), am.getAckNo(agentId), agentId);
-        ih->setIsIdInitialized(true);
-        ih->setIsIdAcked(true);
-        ih->setIsSeqValid(true);
-        ih->setIsAckValid(true);
-        ih->setIsWithNodeAddr(true);
-        if(am.getSeqNo(agentId) != am.getAckNo(agentId))
-            ih->setIsIpModified(true);
-        AddressManagement::AddressChange ac = am.getAddressChange(agentId,am.getAckNo(agentId),am.getSeqNo(agentId));
-        ih->setIpAddingField(ac.addedAddresses);
-        ih->setIPaddressesArraySize(1+ac.addedAddresses+ac.removedAddresses);
-        ih->setIPaddresses(0,controlInfo->getDestinationAddress().toIPv6());
-        if(ac.addedAddresses > 0) {
-            if(ac.addedAddresses != ac.getAddedIPv6AddressList.size()) throw cRuntimeError("MA:sendSeqTcp: value of Add list must have size of integer.");
-            for(int i=0; i<ac.addedAddresses; i++) {
-                ih->setIPaddresses(i+1,ac.getAddedIPv6AddressList.at(i));
-            }
-        }
-        ih->setIpRemovingField(ac.removedAddresses);
-        if(ac.removedAddresses > 0) {
-            if(ac.removedAddresses != ac.getRemovedIPv6AddressList.size()) throw cRuntimeError("MA:sendSeqTcp: value of Rem list must have size of integer.");
-            for(int i=0; i<ac.removedAddresses; i++) {
-                ih->setIPaddresses(i+1+ac.addedAddresses,ac.getRemovedIPv6AddressList.at(i));
-            }
-        }
-        ih->setByteLength(SIZE_AGENT_HEADER+(SIZE_ADDING_ADDR_TO_HDR*(ac.addedAddresses+ac.removedAddresses+1)));
-        ih->encapsulate(udpPacket);
-        // TODO set here scheduler, which decides the outgoing interface
-        controlInfo->setProtocol(IP_PROT_IPv6EXT_ID);
-        controlInfo->setDestinationAddress(funit->dataAgent);
-        InterfaceEntry *ie = getInterface(funit->dataAgent, tuple.destPort, tuple.sourcePort);
-        if(!ie)
-            throw cRuntimeError("MA: No interface exists?");
-        controlInfo->setInterfaceId(ie->getInterfaceId()); // just override existing entries
-        controlInfo->setSourceAddress(ie->ipv6Data()->getPreferredAddress());
-        ih->setControlInfo(controlInfo); // make copy before setting param
-        cGate *outgate = gate("toLowerLayer");
-        LinkUnit *lu = getLinkUnit(ie->getMacAddress());
-        EV << "UDP2IP: Dest=" << controlInfo->getDestAddr() << " Src=" << controlInfo->getSrcAddr() << " Pkt=" << ih->getByteLength() << " SNIR=" << lu->snir << endl;
-        send(ih, outgate);
-    } else
-        throw cRuntimeError("MA: Incoming message should be UPD packet.");
-}
-
-void MobileAgent::processOutgoingTcpPacket(cMessage *msg, IPv6ControlInfo *controlInfo)
-{
-    if (dynamic_cast<tcp::TCPSegment *>(msg) != nullptr) {
-//        EV << "MA:tcpIn: processing tcp pkt. Node: " << controlInfo->getDestinationAddress().toIPv6() << endl;
-        tcp::TCPSegment *tcpseg = (tcp::TCPSegment *) msg;
-        FlowTuple tuple;
-        tuple.protocol = IP_PROT_TCP;
-        tuple.destPort = tcpseg->getDestinationPort();
-        tuple.sourcePort = tcpseg->getSourcePort();
-        tuple.destAddress = IPv6Address::UNSPECIFIED_ADDRESS;
-        tuple.interfaceId = controlInfo->getDestinationAddress().toIPv6().getInterfaceId();
-        FlowUnit *funit = getFlowUnit(tuple);
-        if(funit->state == UNREGISTERED) {
-            EV << "MA: Tuple creating. IP: " << controlInfo->getDestinationAddress().toIPv6() << " Pd:" << tcpseg->getDestinationPort() << " Ps:" << tcpseg->getSourcePort() << " Id:" << controlInfo->getDestinationAddress().toIPv6().getInterfaceId() << endl;
-            funit->lifetime = MAX_PKT_LIFETIME;
-            funit->state = REGISTERING;
-            funit->nodeAddress = controlInfo->getDestinationAddress().toIPv6();
-            EV << "MA:tcpIn: delaying processing of ougoing tcp packet, creating flow request and waiting for completion." << endl;
-            createFlowRequest(tuple); // invoking flow initialization and delaying pkt by sending in queue of this object (hint: scheduleAt with delay)
-            tcpseg->setKind(MSG_TCP_RETRANSMIT);
-            tcpseg->setControlInfo(controlInfo); // appending own
-            scheduleAt(simTime()+TIMEDELAY_PKT_PROCESS, tcpseg);
-            return;
-        } else {
-            if(funit->state == REGISTERING) {
-                EV << "MA: Tuple registering. IP: " << controlInfo->getDestinationAddress().toIPv6() << " Pd:" << tcpseg->getDestinationPort() << " Ps:" << tcpseg->getSourcePort() << " Id:" << controlInfo->getDestinationAddress().toIPv6().getInterfaceId() << endl;
-                EV << "MA:tcpIn starting registering process of first tcp packet: "<< funit->lifetime << endl;
-                funit->lifetime--; // not tested if working!
+            } else if(funit->state == REGISTERING) {
+                EV << "MA:udpIn starting registering process of first udp packet: "<< funit->lifetime << endl;
+                funit->lifetime--;
                 if(funit->lifetime < 1) {
-                    EV << "MA:tcpIn: deleting tcp packet because of exceeding lifetime." << endl;
+                    EV << "MA:udpIn: deleting udp packet because of exceeding lifetime." << endl;
                     delete msg;
                     delete controlInfo;
                     return;
                 } // TODO discarding all packets of tuple
                 if(isAddressAssociated(controlInfo->getDestinationAddress().toIPv6())) {
-                    EV << "MA:tcpIn: creating address association. only done one time actually." << endl;
+                    EV << "MA:udpIn: creating address association. only done one time actually." << endl;
                     funit->lifetime = MAX_PKT_LIFETIME;
                     IPv6Address *ag = getAssociatedAddress(controlInfo->getDestinationAddress().toIPv6());
                     if(ag) {
-                        EV << "MA:tcpIn: creating flow unit." << endl;
+                        EV << "MA:udpIn: creating flow unit." << endl;
                         funit->state = REGISTERED;
                         funit->isFlowActive = true;
                         funit->isAddressCached = true;
@@ -667,67 +550,234 @@ void MobileAgent::processOutgoingTcpPacket(cMessage *msg, IPv6ControlInfo *contr
                         funit->nodeAddress = controlInfo->getDestinationAddress().toIPv6();
                         funit->id = agentId;
                     } else {
-                        throw cRuntimeError("MA:tcpIn: getAssociatedAddr fetched empty pointer instead of address.");
+                        throw cRuntimeError("MA:UDPin: getAssociatedAddr fetched empty pointer instead of address.");
                     }
                 } else {
-                    EV << "MA:tcpIn sending tcp packet in queue, such that it can be processed in next round" << endl;
-                    tcpseg->setKind(MSG_TCP_RETRANSMIT);
-                    tcpseg->setControlInfo(controlInfo); // appending own
-                    scheduleAt(simTime()+TIMEDELAY_PKT_PROCESS, tcpseg);
+                    EV << "MA:udpIn sending udp packet in queue, such that it can be processed in next round" << endl;
+                    udpPacket->setKind(MSG_UDP_RETRANSMIT);
+                    udpPacket->setControlInfo(controlInfo); // appending own
+                    scheduleAt(simTime()+TIMEDELAY_PKT_PROCESS, udpPacket);
                     return;
                 }
             } else
                 if(funit->state == REGISTERED) {
-                    funit->lifetime = MAX_PKT_LIFETIME;
+                funit->lifetime = MAX_PKT_LIFETIME;
                 // what should here be done?
+                } else { throw cRuntimeError("MA:UDPin: Not known state of flow. What should be done?"); }
+    //        EV << "MA:udpIn: flow is registered. starting sending process." << endl;
+            IdentificationHeader *ih = getAgentHeader(1, IP_PROT_UDP, am.getSeqNo(agentId), am.getAckNo(agentId), agentId);
+            ih->setIsIdInitialized(true);
+            ih->setIsIdAcked(true);
+            ih->setIsSeqValid(true);
+            ih->setIsAckValid(true);
+            ih->setIsWithNodeAddr(true);
+            if(am.getSeqNo(agentId) != am.getAckNo(agentId))
+                ih->setIsIpModified(true);
+            AddressManagement::AddressChange ac = am.getAddressChange(agentId,am.getAckNo(agentId),am.getSeqNo(agentId));
+            ih->setIpAddingField(ac.addedAddresses);
+            ih->setIPaddressesArraySize(1+ac.addedAddresses+ac.removedAddresses);
+            ih->setIPaddresses(0,controlInfo->getDestinationAddress().toIPv6());
+            if(ac.addedAddresses > 0) {
+                if(ac.addedAddresses != ac.getAddedIPv6AddressList.size()) throw cRuntimeError("MA:sendSeqTcp: value of Add list must have size of integer.");
+                for(int i=0; i<ac.addedAddresses; i++) {
+                    ih->setIPaddresses(i+1,ac.getAddedIPv6AddressList.at(i));
+                }
+            }
+            ih->setIpRemovingField(ac.removedAddresses);
+            if(ac.removedAddresses > 0) {
+                if(ac.removedAddresses != ac.getRemovedIPv6AddressList.size()) throw cRuntimeError("MA:sendSeqTcp: value of Rem list must have size of integer.");
+                for(int i=0; i<ac.removedAddresses; i++) {
+                    ih->setIPaddresses(i+1+ac.addedAddresses,ac.getRemovedIPv6AddressList.at(i));
+                }
+            }
+            ih->setByteLength(SIZE_AGENT_HEADER+(SIZE_ADDING_ADDR_TO_HDR*(ac.addedAddresses+ac.removedAddresses+1)));
+            ih->encapsulate(udpPacket);
+            // TODO set here scheduler, which decides the outgoing interface
+            controlInfo->setProtocol(IP_PROT_IPv6EXT_ID);
+            controlInfo->setDestinationAddress(funit->dataAgent);
+            InterfaceEntry *ie = getInterface(funit->dataAgent, tuple.destPort, tuple.sourcePort);
+            if(!ie)
+                throw cRuntimeError("MA: No interface exists?");
+            controlInfo->setInterfaceId(ie->getInterfaceId()); // just override existing entries
+            controlInfo->setSourceAddress(ie->ipv6Data()->getPreferredAddress());
+            ih->setControlInfo(controlInfo); // make copy before setting param
+            cGate *outgate = gate("toLowerLayer");
+            LinkUnit *lu = getLinkUnit(ie->getMacAddress());
+            EV << "UDP2IP: Dest=" << controlInfo->getDestAddr() << " Src=" << controlInfo->getSrcAddr() << " Pkt=" << ih->getByteLength() << " SNIR=" << lu->snir << endl;
+            send(ih, outgate);
+        } else
+            throw cRuntimeError("MA: Incoming message should be UPD packet.");
+    }
+}
+
+void MobileAgent::processOutgoingTcpPacket(cMessage *msg)
+{
+    //        EV << "MA:tcpIn: processing tcp pkt. Node: " << controlInfo->getDestinationAddress().toIPv6() << endl;
+    EV << "MA:--------> TCP PROCESSING" << endl;
+    cObject *controlInfoPtr = msg->removeControlInfo();
+    EV << "MA: ==> removed ControlInfo" << endl;
+    if (dynamic_cast<IPv6ControlInfo *>(controlInfoPtr) != nullptr)
+    {
+        IPv6ControlInfo *controlInfo = (IPv6ControlInfo *) controlInfoPtr;
+        if (dynamic_cast<tcp::TCPSegment *>(msg) != nullptr)
+        {
+            EV << "MA: ==> casted to TCP segment" << endl;
+            tcp::TCPSegment *tcpseg = (tcp::TCPSegment *) msg;
+            PacketTimerKey packet(IP_PROT_TCP,controlInfo->getDestinationAddress().toIPv6(),tcpseg->getDestinationPort(),tcpseg->getSourcePort());
+            if(isInterfaceUp()) {
+                FlowTuple tuple;
+                tuple.protocol = IP_PROT_TCP;
+                tuple.destPort = tcpseg->getDestinationPort();
+                tuple.sourcePort = tcpseg->getSourcePort();
+                tuple.destAddress = IPv6Address::UNSPECIFIED_ADDRESS;
+                tuple.interfaceId = controlInfo->getDestinationAddress().toIPv6().getInterfaceId();
+                FlowUnit *funit = getFlowUnit(tuple);
+                if(funit->state == UNREGISTERED) {
+                    EV << "MA:tcpIn: No flow unit. State is unregistered. Creating flow request." << endl;
+                    EV << "MA:==> tuple: IP= " << controlInfo->getDestinationAddress().toIPv6() << " Pd=" << tcpseg->getDestinationPort() << " Ps=" << tcpseg->getSourcePort() << " Id=" << controlInfo->getDestinationAddress().toIPv6().getInterfaceId() << endl;
+                    funit->state = REGISTERING;
+                    funit->nodeAddress = controlInfo->getDestinationAddress().toIPv6();
+                    createFlowRequest(tuple); // invoking flow initialization and delaying pkt by sending in queue of this object (hint: scheduleAt with delay)
+                    PacketTimer *pkt = getPacketTimer(packet); // set packet in queue
+                    pkt->packet = msg; // replaced by new packet
+                    pkt->nextScheduledTime = simTime()+TIMEDELAY_PKT_PROCESS;
+                    msg->setKind(MSG_TCP_RETRANSMIT);
+                    msg->setControlInfo(controlInfo);
+                    void *ptr = msg->getContextPointer();
+                    if(ptr) {
+                        EV << "MA: context Pointer exists" << endl;
+                    } else {
+                        EV << "MA: NO context Pointer" << endl;
+                    }
+                    msg->setContextPointer(pkt);
+                    scheduleAt(pkt->nextScheduledTime, msg);
+                } else if(funit->state == REGISTERING) {
+                    EV << "MA:tcpIn: Flow state is in registering. Checking for response." << endl;
+                    if(isAddressAssociated(controlInfo->getDestinationAddress().toIPv6())) {
+                        IPv6Address *ag = getAssociatedAddress(controlInfo->getDestinationAddress().toIPv6());
+                        if(!ag)
+                            throw cRuntimeError("MA:tcpIn: getAssociatedAddr fetched empty pointer instead of address.");
+                        EV << "MA:==> flow response received. Restarting TCP process with associated agent=" << ag->str() << " node=" <<  controlInfo->getDestinationAddress().toIPv6().str() << endl;
+                        funit->state = REGISTERED;
+                        funit->isFlowActive = true;
+                        funit->isAddressCached = true;
+                        funit->dataAgent = *ag;
+                        funit->nodeAddress = controlInfo->getDestinationAddress().toIPv6();
+                        funit->id = agentId;
+                        PacketTimer *pkt = getPacketTimer(packet);
+                        pkt->nextScheduledTime = simTime(); // restart tcp processing
+                        msg->setControlInfo(controlInfo);
+                        scheduleAt(pkt->nextScheduledTime, msg);
+                    } else
+                    { // if code is here, then flow process is not finished
+                        EV << "MA:tcpIn flow registering is in process. Waiting for response." << endl;
+                        PacketTimer *pkt = getPacketTimer(packet);
+                        if(isPacketTimerQueued(packet)) { // check is packet is in queue
+                            if(msg->getCreationTime() > pkt->packet->getCreationTime()) { // indicates that message is newer,
+                                EV << "MA:==> new message arrived. Replacing message and setting scheduling time." << endl;
+                                cancelPacketTimer(packet); // packet is in queue, cancel scheduling
+                                delete pkt->packet; // old packet is...
+                                pkt->packet = msg; // replaced by new packet
+                                pkt->nextScheduledTime = simTime()+TIMEDELAY_PKT_PROCESS;
+                            } else {
+                                EV << "MA:==> previous message arrived. Just setting scheduling time." << endl;
+                                pkt->nextScheduledTime = simTime()+TIMEDELAY_PKT_PROCESS;
+                            }
+                            msg->setControlInfo(controlInfo);
+                            scheduleAt(pkt->nextScheduledTime, msg);
+                        } else
+                            throw cRuntimeError("MA:tcpIn: Message is not in queue during phase of flow registering.");
+                    }
+                } else if(funit->state == REGISTERED) {
+                    EV << "MA: flow is registered. preparing transmission." << endl;
+                    PacketTimer *pkt = getPacketTimer(packet);
+                    if(isPacketTimerQueued(packet)) { // check is packet is in queue
+                        if(msg->getCreationTime() > pkt->packet->getCreationTime()) { // indicates that message is newer,
+                            EV << "MA:==> deleting older packet." << endl;
+                            deletePacketTimer(packet); // deletes older message and removes the key from the queue.
+                        } else {
+                            EV << "MA:==> deleting entry in queue as this message is sent." << endl;
+                            deletePacketTimerEntry(packet); // removes just from the queue but does not delete message
+                        }
+                    }
+                    EV << "MA:==> sending TCP packet to Agent: " << funit->dataAgent << endl;
+                    sendUpplerLayerPacket(tcpseg, controlInfo, funit->dataAgent, IP_PROT_TCP);
                 } else
                     throw cRuntimeError("MA:tcpIn: Not known state of flow. What should be done?");
-        }
-//        EV << "MA:tcpIn: flow is registered. starting sending process." << endl;
-        IdentificationHeader *ih = getAgentHeader(1, IP_PROT_TCP, am.getSeqNo(agentId), am.getAckNo(agentId), agentId);
-        ih->setIsIdInitialized(true);
-        ih->setIsIdAcked(true);
-        ih->setIsSeqValid(true);
-        ih->setIsAckValid(true);
-        ih->setIsWithNodeAddr(true);
-        if(am.getSeqNo(agentId) != am.getAckNo(agentId)) {
-            ih->setIsIpModified(true);
-//            EV << "MA: SENDING PACKET WITH IP CHANGES! s:" << am.getSeqNo(agentId) << " a:" << am.getAckNo(agentId) << endl;
-        }
-        AddressManagement::AddressChange ac = am.getAddressChange(agentId,am.getAckNo(agentId),am.getSeqNo(agentId));
-        ih->setIpAddingField(ac.addedAddresses);
-        ih->setIPaddressesArraySize(1+ac.addedAddresses+ac.removedAddresses);
-        ih->setIPaddresses(0,controlInfo->getDestinationAddress().toIPv6());
-        if(ac.addedAddresses > 0) {
-            if(ac.addedAddresses != ac.getAddedIPv6AddressList.size()) throw cRuntimeError("MA:sendSeqTcp: value of Add list must have size of integer.");
-            for(int i=0; i<ac.addedAddresses; i++) {
-                ih->setIPaddresses(i+1,ac.getAddedIPv6AddressList.at(i));
+            } else
+            { // interface is down, so schedule for later transmission
+                PacketTimer *pkt = getPacketTimer(packet); // packet is cancelled
+                if(isPacketTimerQueued(packet)) { // check is packet is in queue
+                    if(msg->getCreationTime() > pkt->packet->getCreationTime()) { // indicates that message is newer,
+                        EV << "MA:tcpIn: Interface is down and packet is in queue. Replacing new message with older one." << endl;
+                        cancelPacketTimer(packet); // packet is in queue, cancel scheduling
+                        delete pkt->packet; // old packet is...
+                        pkt->packet = msg; // replaced by new packet
+                        pkt->nextScheduledTime = simTime()+TIMEDELAY_PKT_PROCESS;
+                    } else {
+                        EV << "MA:tcpIn: Interface is down and packet is in queue. Seeting new schedule time." << endl;
+                        pkt->nextScheduledTime = simTime()+TIMEDELAY_PKT_PROCESS;
+                    }
+                } else { // first packet of socket
+                    EV << "MA:tcpIn: Interface is down and (first) packet is inserted in queue." << endl;
+                    pkt->packet = msg;
+                    pkt->nextScheduledTime = simTime()+TIMEDELAY_PKT_PROCESS;
+                    msg->setKind(MSG_TCP_RETRANSMIT);
+                    msg->setContextPointer(pkt);
+                }
+                msg->setControlInfo(controlInfo);
+                scheduleAt(pkt->nextScheduledTime, msg);
             }
-        }
-        ih->setIpRemovingField(ac.removedAddresses);
-        if(ac.removedAddresses > 0) {
-            if(ac.removedAddresses != ac.getRemovedIPv6AddressList.size()) throw cRuntimeError("MA:sendSeqTcp: value of Rem list must have size of integer.");
-            for(int i=0; i<ac.removedAddresses; i++) {
-                ih->setIPaddresses(i+1+ac.addedAddresses,ac.getRemovedIPv6AddressList.at(i));
-            }
-        }
-        ih->setByteLength(SIZE_AGENT_HEADER+(SIZE_ADDING_ADDR_TO_HDR*(ac.addedAddresses+ac.removedAddresses+1)));
-        ih->encapsulate(tcpseg);
-        // TODO set here scheduler, which decides the outgoing interface
-        controlInfo->setProtocol(IP_PROT_IPv6EXT_ID);
-        controlInfo->setDestinationAddress(funit->dataAgent);
-        InterfaceEntry *ie = getInterface(funit->dataAgent, tuple.destPort, tuple.sourcePort);
-        if(!ie)
-            throw cRuntimeError("MA: No interface exists?");
-        controlInfo->setInterfaceId(ie->getInterfaceId()); // just override existing entries
-        controlInfo->setSourceAddress(ie->ipv6Data()->getPreferredAddress());
-        ih->setControlInfo(controlInfo); // make copy before setting param
-        cGate *outgate = gate("toLowerLayer");
-        LinkUnit *lu = getLinkUnit(ie->getMacAddress());
-        EV << "TCP2IP: Dest=" << controlInfo->getDestAddr() << " Src=" << controlInfo->getSrcAddr() << " Pkt=" << ih->getByteLength() << " IF=" << ie->getInterfaceId() << " SNIR=" << lu->snir << endl;
-        send(ih, outgate);
+        } else
+            throw cRuntimeError("MA: Incoming message could not be casted to a TCP packet.");
     } else
-        throw cRuntimeError("MA: Incoming message should be TCP packet.");
+        EV << "MA: ControlInfo could not be extracted from TCP packet." << endl;
+}
+
+void MobileAgent::sendUpplerLayerPacket(cPacket *packet, IPv6ControlInfo *controlInfo, IPv6Address agentAddr, short prot)
+{
+//        EV << "MA:In: Flow is registered. starting sending process." << endl;
+    IdentificationHeader *ih = getAgentHeader(1, prot, am.getSeqNo(agentId), am.getAckNo(agentId), agentId);
+    ih->setIsIdInitialized(true);
+    ih->setIsIdAcked(true);
+    ih->setIsSeqValid(true);
+    ih->setIsAckValid(true);
+    ih->setIsWithNodeAddr(true);
+    if(am.getSeqNo(agentId) != am.getAckNo(agentId)) {
+        ih->setIsIpModified(true);
+//            EV << "MA: SENDING PACKET WITH IP CHANGES! s:" << am.getSeqNo(agentId) << " a:" << am.getAckNo(agentId) << endl;
+    }
+    AddressManagement::AddressChange ac = am.getAddressChange(agentId,am.getAckNo(agentId),am.getSeqNo(agentId));
+    ih->setIpAddingField(ac.addedAddresses);
+    ih->setIPaddressesArraySize(1+ac.addedAddresses+ac.removedAddresses);
+    ih->setIPaddresses(0,controlInfo->getDestinationAddress().toIPv6());
+    if(ac.addedAddresses > 0) {
+        if(ac.addedAddresses != ac.getAddedIPv6AddressList.size()) throw cRuntimeError("MA:sendSeqTcp: value of Add list must have size of integer.");
+        for(int i=0; i<ac.addedAddresses; i++) {
+            ih->setIPaddresses(i+1,ac.getAddedIPv6AddressList.at(i));
+        }
+    }
+    ih->setIpRemovingField(ac.removedAddresses);
+    if(ac.removedAddresses > 0) {
+        if(ac.removedAddresses != ac.getRemovedIPv6AddressList.size()) throw cRuntimeError("MA:sendSeqTcp: value of Rem list must have size of integer.");
+        for(int i=0; i<ac.removedAddresses; i++) {
+            ih->setIPaddresses(i+1+ac.addedAddresses,ac.getRemovedIPv6AddressList.at(i));
+        }
+    }
+    ih->setByteLength(SIZE_AGENT_HEADER+(SIZE_ADDING_ADDR_TO_HDR*(ac.addedAddresses+ac.removedAddresses+1)));
+    EV << "MA: encapsulating message." << endl;
+    ih->encapsulate(packet);
+    controlInfo->setProtocol(IP_PROT_IPv6EXT_ID);
+    controlInfo->setDestinationAddress(agentAddr);
+    // Set here scheduler configuration
+    InterfaceEntry *ie = getInterface(controlInfo->getDestinationAddress().toIPv6());
+    controlInfo->setInterfaceId(ie->getInterfaceId()); // just override existing entries
+    controlInfo->setSourceAddress(ie->ipv6Data()->getPreferredAddress());
+    ih->setControlInfo(controlInfo); // make copy before setting param
+    cGate *outgate = gate("toLowerLayer");
+        LinkUnit *lu = getLinkUnit(ie->getMacAddress());
+        EV << "P2IP: Dest=" << controlInfo->getDestAddr() << " Src=" << controlInfo->getSrcAddr() << " Pkt=" << ih->getByteLength() << " IF=" << ie->getInterfaceId() << " SNIR=" << lu->snir << endl;
+    send(ih, outgate);
 }
 
 MobileAgent::InterfaceUnit *MobileAgent::getInterfaceUnit(int id)
@@ -873,6 +923,7 @@ void MobileAgent::updateAddressTable(int id, InterfaceUnit *iu)
             (it->second)->careOfAddress = iu->careOfAddress;
             if(iu->active) {    // presents an interface that has been associated
                 am.addIpToMap(agentId, iu->careOfAddress);
+                sendAllPacketsInQueue();
             } else { // presents an interface has been disassociated
                 am.removeIpFromMap(agentId, iu->careOfAddress);
             }
@@ -925,22 +976,40 @@ MobileAgent::LinkUnit *MobileAgent::getLinkUnit(MACAddress mac)
     }
 }
 
-InterfaceEntry *MobileAgent::getInterface(IPv6Address destAddr, int destPort, int sourcePort, short protocol) { // const IPv6Address &destAddr,
+InterfaceEntry *MobileAgent::getInterface(IPv6Address destAddr, int destPort, int sourcePort, short protocol)
+{ // const IPv6Address &destAddr,
     InterfaceEntry *ie = nullptr;
     double maxSnr = 0;
     for (int i=0; i<ift->getNumInterfaces(); i++) {
-        if(!(ift->getInterface(i)->isLoopback()) && ift->getInterface(i)->isUp() && ift->getInterface(i)->ipv6Data()->getPreferredAddress().isGlobal()) {
+        if(!(ift->getInterface(i)->isLoopback()) && ift->getInterface(i)->isUp()) {// && ift->getInterface(i)->ipv6Data()->getPreferredAddress().isGlobal()) {
             LinkUnit *lu = getLinkUnit(ift->getInterface(i)->getMacAddress());
             if(lu->snir >= maxSnr) {
                 maxSnr = lu->snir; // selecting highest snr interface
                 ie=ift->getInterface(i);
             }
-        } else {
-            if(!ie)
-                ie=ift->getInterface(i);
+        }
+    }
+    if(ie)
+        return ie;
+    else {
+    // if an interface with carrier does not exist return any interface but not loopback
+        for (int i=0; i<ift->getNumInterfaces(); i++) {
+            if(!(ift->getInterface(i)->isLoopback())) {// && ift->getInterface(i)->ipv6Data()->getPreferredAddress().isGlobal()) {
+                return ift->getInterface(i);
+            }
         }
     }
     return ie;
+}
+
+bool MobileAgent::isInterfaceUp()
+{
+    for (int i=0; i<ift->getNumInterfaces(); i++) {
+        if(!(ift->getInterface(i)->isLoopback()) && ift->getInterface(i)->isUp()) {// && ift->getInterface(i)->ipv6Data()->getPreferredAddress().isGlobal()) {
+            return true;
+        }
+    }
+    return false;
 }
 
 
@@ -967,6 +1036,80 @@ void MobileAgent::sendToLowerLayer(cMessage *msg, const IPv6Address& destAddr, s
     else {
         send(msg, outgate);
     }
+}
+
+void MobileAgent::sendAllPacketsInQueue()
+{
+    EV << "MA: Size of packetQueue: " << packetQueue.size() << endl;
+    for(auto it : packetQueue) {
+        PacketTimerKey key = it.first;
+        cancelPacketTimer(key);
+        PacketTimer *pkt = it.second;
+        EV << "MA: iterating and schedulting through queue. Destined schedule time: " << pkt->nextScheduledTime << endl;
+        pkt->nextScheduledTime = simTime();
+        if(pkt->packet->getKind() == MSG_TCP_RETRANSMIT || pkt->packet->getKind() == MSG_UDP_RETRANSMIT)
+            scheduleAt(pkt->nextScheduledTime, pkt->packet);
+        else
+            throw cRuntimeError("MA: message type is unknown. Set kind to tcp or upd.");
+    }
+    EV << "MA: End of looping." << endl;
+}
+
+MobileAgent::PacketTimer *MobileAgent::getPacketTimer(PacketTimerKey& key)
+{
+    PacketTimer *msg;
+    auto it = packetQueue.find(key);
+    if(it != packetQueue.end()) {
+        msg = it->second;
+//        cancelEvent(msg->packet);
+    } else {
+        msg = new PacketTimer();
+        msg->packet = nullptr;
+        msg->destAddress = key.destAddress;
+        msg->destPort = key.destPort;
+        msg->sourcePort = key.sourcePort;
+        msg->prot = key.prot;
+        packetQueue.insert(std::make_pair(key, msg));
+    }
+    return msg;
+}
+
+bool MobileAgent::isPacketTimerQueued(PacketTimerKey& key)
+{
+    auto it = packetQueue.find(key);
+    return it != packetQueue.end();
+}
+
+void MobileAgent::cancelPacketTimer(PacketTimerKey& key)
+{
+    auto it = packetQueue.find(key);
+    if(it == packetQueue.end())
+        return;
+    PacketTimer *msg = it->second;
+    cancelEvent(msg->packet);
+}
+
+void MobileAgent::deletePacketTimer(PacketTimerKey& key)
+{
+    auto it = packetQueue.find(key);
+    if(it == packetQueue.end())
+        return;
+    PacketTimer *msg = it->second;
+    cancelAndDelete(msg->packet);
+    msg->packet = nullptr;
+    packetQueue.erase(key);
+    delete msg;
+}
+
+void MobileAgent::deletePacketTimerEntry(PacketTimerKey& key)
+{
+    auto it = packetQueue.find(key);
+    if(it == packetQueue.end())
+        return;
+    PacketTimer *msg = it->second;
+    cancelEvent(msg->packet);
+    packetQueue.erase(key);
+    delete msg;
 }
 
 } //namespace
