@@ -83,7 +83,7 @@ namespace inet {
 #define TIMEDELAY_IF_DOWN       3   // delay of ip msg handler
 #define TIMEDELAY_IF_UP         0
 #define TIMEDELAY_FLOW_REQ      1 // unit is [s]
-#define TIMEDELAY_PKT_PROCESS   0.5
+#define TIMEDELAY_PKT_PROCESS   5
 #define TIMEDELAY_MA_INIT       1 // unit is [s]
 #define MAX_PKT_LIFETIME        30 // specifies retransmission attempts until pkt is discarded for udp tcp
 #define TIMEDELAY_IFACE_INIT    1 // delaying registration of interface when MA is in init stage.

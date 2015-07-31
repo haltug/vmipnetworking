@@ -123,7 +123,7 @@ class MobileAgent : public cListener, public Agent
 //  PACKET PROCESSING OUTGOING MESSAGES
     void processOutgoingUdpPacket(cMessage *msg); // handles udp packet that is coming from upper layer
     void processOutgoingTcpPacket(cMessage *msg); // handles tcp packet that is coming from upper layer
-    void sendUpplerLayerPacket(cPacket *packet, IPv6ControlInfo *controlInfo, IPv6Address agentAddr, short prot);
+    void sendUpperLayerPacket(cPacket *packet, IPv6ControlInfo *controlInfo, IPv6Address agentAddr, short prot);
 
 //  INTERFACE LISTENER FUNCTIONS
     InterfaceUnit* getInterfaceUnit(int id); // returns the instance of the interfaceId for setting interface configuration
