@@ -21,4 +21,6 @@ module TwoRayGroundReflection extends FreeSpacePathLoss
 {
     parameters:
         @class(TwoRayGroundReflection);
+		double transmitterAntennaAltitude @unit(m) = default(1m); // specifies position of antenna for two ray ground reflection
+		double receiverAntennaAltitude @unit(m) = default(1m);
 }

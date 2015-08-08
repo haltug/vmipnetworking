@@ -13,7 +13,7 @@
 // along with this program.  If not, see http://www.gnu.org/licenses/.
 // 
 
-package inet.examples.vehiclenetworking;
+package inet.examples.vehicularNetworking;
 
 import inet.linklayer.ethernet.EtherHub;
 import inet.physicallayer.ieee80211.packetlevel.Ieee80211ScalarRadioMedium;

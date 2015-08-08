@@ -155,7 +155,7 @@ class INET_API Agent : public cSimpleModule
     struct FlowUnit {
         FlowState state;
         bool isFlowActive;
-        bool isAddressCached; // specifiy if address should be cached
+        bool isAddressCached; // specifies if address should be cached
 //        bool locationUpdate;
 //        bool loadSharing;
         int  lifetime;

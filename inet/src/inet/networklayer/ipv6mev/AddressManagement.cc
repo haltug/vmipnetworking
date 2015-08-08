@@ -147,7 +147,7 @@ void AddressManagement::removeIpFromMap(uint64 id, IPv6Address& addr)
             throw cRuntimeError("IP address does not exist in address map. Selected wrong addr?");
         }
     } else {
-        throw cRuntimeError("ID is not found in AddressMap. Create entry for ID.");
+        throw cRuntimeError("ID is not found in AddressMap. Create entry for ID. removeIpFromMap");
     }
 }
 void AddressManagement::insertSeqTableToMap(uint64 id, IPv6AddressList &addr, uint seq)
@@ -162,7 +162,7 @@ void AddressManagement::insertSeqTableToMap(uint64 id, IPv6AddressList &addr, ui
 //            throw cRuntimeError("Size must greater as 0.");
         addressMap[id].timestamp = simTime(); // set a current timestamp
     } else {
-        throw cRuntimeError("ID is not found in AddressMap. Create entry for ID.");
+        throw cRuntimeError("ID is not found in AddressMap. Create entry for ID. insertSeqTableToMap");
     }
 }
 
@@ -219,7 +219,7 @@ AddressManagement::AddressChange AddressManagement::getAddressChange(uint64 id, 
        return addressChange;
     } else
     {
-        throw cRuntimeError("ID is not found in AddressMap. Create entry for ID.");
+        throw cRuntimeError("ID is not found in AddressMap. Create entry for ID. getAddressChange");
     }
 }
 
@@ -229,7 +229,7 @@ AddressManagement::AddressChange AddressManagement::getAddressEntriesOfSeqNo(uin
        AddressChange addressChange;
        SequenceTable seqTable (addressMap[id].sequenceTable); // get current sequence table
        if(!seqTable.count(seq)) // check if seq table with given seq number exists
-           throw cRuntimeError("AC> Sequence table with index (seqNo) does not exist.");
+           throw cRuntimeError("AC: Sequence table with index (seqNo) does not exist.");
        IPv6AddressList currIPv6AddressList (seqTable[seq]); // get address list of index
        addressChange.addedAddresses = currIPv6AddressList.size();
        addressChange.getAddedIPv6AddressList = currIPv6AddressList;
@@ -237,7 +237,7 @@ AddressManagement::AddressChange AddressManagement::getAddressEntriesOfSeqNo(uin
        addressChange.removedAddresses = 0;
        return addressChange;
     } else {
-        throw cRuntimeError("ID is not found in AddressMap. Create entry for ID.");
+        throw cRuntimeError("ID is not found in AddressMap. Create entry for ID. getAddressEntriesOfSeqNo");
     }
 }
 
@@ -248,7 +248,7 @@ uint AddressManagement::getSeqNo(const uint64 id) const
         return addressMap.find(id)->second.currentSequenceNumber;
     } else
     {
-        throw cRuntimeError("ID is not found in AddressMap. Create entry for ID.");
+        throw cRuntimeError("ID is not found in AddressMap. Create entry for ID. getSeqNo");
     }
 }
 
@@ -258,7 +258,7 @@ uint AddressManagement::getAckNo(const uint64 id) const
     {
         return addressMap.find(id)->second.lastAcknowledgement;
     } else {
-        throw cRuntimeError("ID is not found in AddressMap. Create entry for ID.");
+        throw cRuntimeError("ID is not found in AddressMap. Create entry for ID. getAckNo");
     }
 }
 
@@ -268,7 +268,7 @@ void AddressManagement::setAckNo(uint64 id, uint seqno)
     {
         addressMap[id].lastAcknowledgement = seqno;
     } else {
-        throw cRuntimeError("ID is not found in AddressMap. Create entry for ID.");
+        throw cRuntimeError("ID is not found in AddressMap. Create entry for ID. setAckNo");
     }
 }
 
@@ -278,7 +278,7 @@ void AddressManagement::setSeqNo(uint64 id, uint seqno)
     {
         addressMap[id].currentSequenceNumber = seqno;
     } else {
-        throw cRuntimeError("ID is not found in AddressMap. Create entry for ID.");
+        throw cRuntimeError("ID is not found in AddressMap. Create entry for ID. setSegNo");
     }
 }
 
@@ -288,7 +288,7 @@ bool AddressManagement::isSeqNoAcknowledged(uint64 id) const
     {
         return (addressMap.find(id)->second.lastAcknowledgement==addressMap.find(id)->second.currentSequenceNumber);
     } else {
-        throw cRuntimeError("ID is not found in AddressMap. Create entry for ID.");
+        throw cRuntimeError("ID is not found in AddressMap. Create entry for ID. isSeqNoAcked");
     }
 }
 
@@ -314,7 +314,7 @@ bool AddressManagement::isIpRegistered(uint64 id, IPv6Address& dest, uint seq)
             throw cRuntimeError("Sequence does not exist in sequence table of adressMap. check that");
         }
     } else {
-        throw cRuntimeError("ID is not found in AddressMap. Create entry for ID.");
+        throw cRuntimeError("ID is not found in AddressMap. Create entry for ID. isIpRegistered");
     }
 }
 

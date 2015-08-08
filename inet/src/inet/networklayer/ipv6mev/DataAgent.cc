@@ -82,7 +82,7 @@ void DataAgent::createSequenceUpdateNotificaiton(uint64 mobileId, uint seq)
 {
     if(!caAddress.isGlobal())
         throw cRuntimeError("DA:SeqUpdNotify: CA_Address is not set. Cannot send update message without address");
-//    EV << "DA: creating seq No update for CA" << endl;
+    EV << "DA: creating seq No update for CA with id = "<< mobileId << endl;
     TimerKey key(caAddress,-1,TIMERKEY_SEQ_UPDATE_NOT, mobileId, am.getSeqNo(mobileId));
     UpdateNotifierTimer *unt = (UpdateNotifierTimer *) getExpiryTimer(key,TIMERTYPE_SEQ_UPDATE_NOT); // this timer must explicitly deleted
     if(!unt->active) { // a timer has not been created earlier
@@ -112,7 +112,7 @@ void DataAgent::createSequenceUpdateNotificaiton(uint64 mobileId, uint seq)
 
 void DataAgent::sendSequenceUpdateNotification(cMessage *msg)
 {
-//    EV << "DA: Sending update notification to CA." << endl;
+    EV << "DA: Sending update notification to CA." << endl;
     UpdateNotifierTimer *unt = (UpdateNotifierTimer *) msg->getContextPointer();
     const IPv6Address &dest =  unt->dest;
     unt->nextScheduledTime = simTime() + unt->ackTimeout;
@@ -213,21 +213,23 @@ void DataAgent::performAgentInit(IdentificationHeader *agentHeader, IPv6Address 
     if(std::find(mobileIdList.begin(), mobileIdList.end(), agentHeader->getId()) == mobileIdList.end())
     { // if mobile is not registered. insert a new entry in map
         mobileIdList.push_back(agentHeader->getId());
+        EV << "DA: Received agent init message from CA Adding id to list: " << agentHeader->getId() << endl;
         if(agentHeader->getIpAddingField() > 0) { // check size of field
-//            EV << "DA: Received agent init message from CA. Adding id to list: " << agentHeader->getId() << endl;
+            EV << "DA: ID list:";
             bool addrMgmtEntry = am.insertNewId(agentHeader->getId(), agentHeader->getIpSequenceNumber(), agentHeader->getIPaddresses(0)); //first number
             if(!addrMgmtEntry) // if we receive for the first time an init message, then response to this one
                 throw cRuntimeError("DA:procMAmsg: Could not insert id.");
             AddressManagement::IPv6AddressList ipList;
             for(int i=0; i<agentHeader->getIpAddingField(); i++){ // copy array in vector list
-//                EV << "DA: ID list: i=" << i << " ip=" <<  agentHeader->getIPaddresses(i) << endl;
+                EV << " i=" << i << " ip=" <<  agentHeader->getIPaddresses(i);
                 ipList.push_back(agentHeader->getIPaddresses(i)); // inserting elements of array into vector list due to function
             }
+            EV << endl;
             am.insertSeqTableToMap(agentHeader->getId(), ipList, agentHeader->getIpSequenceNumber());
         } else
             throw cRuntimeError("DA:procMAmsg: Init message must contain the start message of mobile agent.");
         am.setAckNo(agentHeader->getId(), agentHeader->getIpSequenceNumber());
-//        EV << "DA: IP Table: " << am.to_string() << endl;
+        EV << "DA: IP Table: " << am.to_string() << endl;
     }
     sendAgentInitResponse(destAddr, agentHeader->getId(), am.getSeqNo(agentHeader->getId()));
 }
