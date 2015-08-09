@@ -34,7 +34,8 @@ namespace inet {
  */
 class ControlAgent : public Agent
 {
-    virtual ~ControlAgent() {};
+public:
+    virtual ~ControlAgent();
   protected:
     IInterfaceTable *ift = nullptr; // for recognizing changes etc
     std::vector<uint64>  mobileIdList; // lists all id of mobile nodes

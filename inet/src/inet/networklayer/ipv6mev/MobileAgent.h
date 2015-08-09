@@ -32,7 +32,7 @@ namespace inet {
  */
 class MobileAgent : public cListener, public Agent
 {
-    virtual ~MobileAgent() {};
+    virtual ~MobileAgent();
   protected:
     IInterfaceTable *ift = nullptr; // for recognizing changes etc
     cModule *interfaceNotifier = nullptr; // listens for changes in interfacetable
@@ -42,6 +42,7 @@ class MobileAgent : public cListener, public Agent
 
     class InterfaceUnit { // represents the entry of addressTable for interface up/down
     public:
+        virtual ~InterfaceUnit() {};
         bool active;
         int priority;
         IPv6Address careOfAddress;
@@ -56,6 +57,7 @@ class MobileAgent : public cListener, public Agent
 
     class LinkUnit { // a tuple to represent the quality of a link.
     public:
+        virtual ~LinkUnit() {};
         double snir; // stored unit is something around 10^-12 W. Could be more or less.
         double per;
     };

@@ -34,6 +34,15 @@ namespace inet {
 
 Define_Module(DataAgent);
 
+DataAgent::~DataAgent() {
+    auto it = expiredTimerList.begin();
+    while(it != expiredTimerList.end()) {
+        TimerKey key = it->first;
+        it++;
+        cancelAndDeleteExpiryTimer(key.dest,key.interfaceID,key.type);
+    }
+}
+
 void DataAgent::initialize(int stage)
 {
     cSimpleModule::initialize(stage);
@@ -68,8 +77,11 @@ void DataAgent::handleMessage(cMessage *msg)
         if (dynamic_cast<IdentificationHeader *> (msg)) {
             IPv6ControlInfo *controlInfo = check_and_cast<IPv6ControlInfo *>(msg->removeControlInfo());
             processAgentMessage((IdentificationHeader *) msg, controlInfo);
-        } else
-            throw cRuntimeError("A:handleMsg: Extension Hdr Type not known. What did you send?");
+        } else {
+//            ignore any other kind of message: ICMPv6DestUnreachableMsg
+//            throw cRuntimeError("A:handleMsg: Extension Hdr Type not known. What did you send?");
+            delete msg;
+        }
     } else if(msg->arrivedOn("udpIn")) {
         processUdpFromNode(msg);
     } else if(msg->arrivedOn("tcpIn")) {

@@ -40,6 +40,33 @@ namespace inet {
 
 Define_Module(MobileAgent);
 
+MobileAgent::~MobileAgent() {
+    auto it = expiredTimerList.begin();
+    while(it != expiredTimerList.end()) {
+        TimerKey key = it->first;
+        it++;
+        cancelAndDeleteExpiryTimer(key.dest,key.interfaceID,key.type);
+    }
+    auto it2 = addressTable.begin();
+    while(it2 != addressTable.end()) {
+        InterfaceUnit *iu = it2->second;
+        it2++;
+        delete iu;
+    }
+    auto it3 = linkTable.begin();
+    while(it3 != linkTable.end()) {
+        LinkUnit *lu = it3->second;
+        it3++;
+        delete lu;
+    }
+    auto it4 = packetQueue.begin();
+    while(it4 != packetQueue.end()) {
+        PacketTimerKey packet = it4->first;
+        it4++;
+        deletePacketTimerEntry(packet);
+    }
+}
+
 void MobileAgent::initialize(int stage)
 {
     cSimpleModule::initialize(stage);
@@ -56,6 +83,7 @@ void MobileAgent::initialize(int stage)
         ipSocket.registerProtocol(IP_PROT_IPv6EXT_ID);
         interfaceNotifier = getContainingNode(this);
         interfaceNotifier->subscribe(NF_INTERFACE_IPv6CONFIG_CHANGED,this);
+        interfaceNotifier->subscribe(NF_INTERFACE_STATE_CHANGED,this);
         interfaceNotifier->subscribe(physicallayer::Radio::minSNIRSignal, this);
         interfaceNotifier->subscribe(physicallayer::Radio::packetErrorRateSignal, this);
     }
@@ -433,9 +461,9 @@ void MobileAgent::performSequenceUpdateResponse(IdentificationHeader *agentHeade
         if(agentHeader->getIpSequenceNumber() > am.getAckNo(agentId)) {
             cancelAndDeleteExpiryTimer(caAddress,-1, TIMERKEY_SEQ_UPDATE, agentId, agentHeader->getIpSequenceNumber(), am.getAckNo(agentId));
             am.setAckNo(agentId, agentHeader->getIpSequenceNumber());
-            EV << "MA: Received update acknowledgment from CA. Removed timer." << endl;
+            EV << "MA: Received update acknowledgment from CA. Removed timer. SeqNo=" << am.getSeqNo(agentId) << endl;
         } else {
-            EV << "MA: Received update acknowledgment from CA contains older sequence value. Dropping message." << endl;
+            EV << "MA: Received update acknowledgment from CA contains older sequence value. Dropping message. SeqNo="<< am.getSeqNo(agentId) << endl;
         }
     } else {
         throw cRuntimeError("MA: Byte length does not match the expected size.");
@@ -471,7 +499,7 @@ void MobileAgent::performIncomingUdpPacket(IdentificationHeader *agentHeader, IP
         ipControlInfo->setTrafficClass(controlInfo->getTrafficClass());
         udpPacket->setControlInfo(ipControlInfo);
         cGate *outgate = gate("toUDP");
-        EV << "MA: <<== UDP:" << " Pkt=" << udpPacket->getByteLength() << " If=" << controlInfo->getInterfaceId() << "snir=/--.--/" << " DA=" << controlInfo->getDestAddr() << " MA=" << controlInfo->getSrcAddr() << endl;
+//        EV << "MA: <<== UDP:" << " Pkt=" << udpPacket->getByteLength() << " If=" << controlInfo->getInterfaceId() << "snir=/--.--/" << " DA=" << controlInfo->getDestAddr() << " MA=" << controlInfo->getSrcAddr() << endl;
         send(udpPacket, outgate);
     } else
         throw cRuntimeError("MA:procDAmsg: UDP packet could not be cast.");
@@ -508,7 +536,7 @@ void MobileAgent::performIncomingTcpPacket(IdentificationHeader *agentHeader, IP
         ipControlInfo->setTrafficClass(controlInfo->getTrafficClass());
         tcpseg->setControlInfo(ipControlInfo);
         cGate *outgate = gate("toTCP");
-        EV << "MA: <<== TCP:" << " Pkt=" << tcpseg->getByteLength() << " If=" << controlInfo->getInterfaceId() << "            " << " DA=" << controlInfo->getDestAddr() << " MA=" << controlInfo->getSrcAddr() << endl;
+//        EV << "MA: <<== TCP:" << " Pkt=" << tcpseg->getByteLength() << " If=" << controlInfo->getInterfaceId() << "            " << " DA=" << controlInfo->getDestAddr() << " MA=" << controlInfo->getSrcAddr() << endl;
         send(tcpseg, outgate);
     } else
         throw cRuntimeError("MA:procDAmsg: TCP packet could not be cast.");
@@ -795,8 +823,8 @@ void MobileAgent::sendUpperLayerPacket(cPacket *packet, IPv6ControlInfo *control
     controlInfo->setSourceAddress(ie->ipv6Data()->getPreferredAddress());
     ih->setControlInfo(controlInfo); // make copy before setting param
     cGate *outgate = gate("toLowerLayer");
-    LinkUnit *lu = getLinkUnit(ie->getMacAddress());
-    EV << "MA: ======>>:" << " Pkt=" << ih->getByteLength() << " If=" << ie->getInterfaceId() << " SNIR=" << lu->snir << " DA=" << controlInfo->getDestAddr() << " MA=" << controlInfo->getSrcAddr() <<  endl;
+//    LinkUnit *lu = getLinkUnit(ie->getMacAddress());
+//    EV << "MA: ======>>:" << " Pkt=" << ih->getByteLength() << " If=" << ie->getInterfaceId() << " SNIR=" << lu->snir << " DA=" << controlInfo->getDestAddr() << " MA=" << controlInfo->getSrcAddr() <<  endl;
     send(ih, outgate);
 }
 
@@ -833,7 +861,7 @@ void MobileAgent::createInterfaceDownMessage(int id)
         msg->setContextPointer(l2dt);
         scheduleAt(l2dt->nextScheduledTime, msg);
     }
-    EV << "MA: Create interface down timer message: " << id << endl;
+    EV << "MA: Create Interface DOWN Timer message for Id=" << id << endl;
 }
 
 void MobileAgent::handleInterfaceDownMessage(cMessage *msg)
@@ -870,7 +898,7 @@ void MobileAgent::createInterfaceUpMessage(int id)
     } else {
         EV << "Timer was configured. Is deleted." << endl;
     }
-    EV << "MA: create interface up timer message" << endl;
+    EV << "MA: Create Interface UP Timer message for Id=" << id << endl;
 }
 
 void MobileAgent::handleInterfaceUpMessage(cMessage *msg)
@@ -889,9 +917,10 @@ void MobileAgent::handleInterfaceUpMessage(cMessage *msg)
 }
 
 void MobileAgent::receiveSignal(cComponent *source, simsignal_t signalID, cObject *obj)
-{
+{ // FIXME can be merged to one
     Enter_Method_Silent();
     if(signalID == NF_INTERFACE_IPv6CONFIG_CHANGED) { // is triggered when carrier setting is changed
+        EV << "-------- RECEIVED CONFIG SIGNAL ---------" << endl;
         if(dynamic_cast<InterfaceEntryChangeDetails *>(obj)) {
             InterfaceEntry *ie = check_and_cast<const InterfaceEntryChangeDetails *>(obj)->getInterfaceEntry();
             if(ie->isUp())
@@ -899,7 +928,18 @@ void MobileAgent::receiveSignal(cComponent *source, simsignal_t signalID, cObjec
             else
                 createInterfaceDownMessage(ie->getInterfaceId());
         }
-    EV << "-------- RECEIVED SIGNAL ---------" << endl;
+    }
+    if(signalID == NF_INTERFACE_STATE_CHANGED) { // is triggered when carrier setting is changed
+        EV << "-------- RECEIVED STATE SIGNAL ---------" << endl;
+        if(dynamic_cast<InterfaceEntryChangeDetails *>(obj)) {
+            InterfaceEntry *ie = check_and_cast<const InterfaceEntryChangeDetails *>(obj)->getInterfaceEntry();
+            if(ie->ipv6Data()->getPreferredAddress().isGlobal()) {
+                if(ie->isUp())
+                    createInterfaceUpMessage(ie->getInterfaceId());
+                else
+                    createInterfaceDownMessage(ie->getInterfaceId());
+            }
+        }
     }
 }
 
@@ -914,12 +954,12 @@ void MobileAgent::receiveSignal(cComponent *source, simsignal_t signalID, double
                 LinkUnit *lu = getLinkUnit(mac->getMacAddress());
                 if(signalID == physicallayer::Radio::minSNIRSignal) {
                     lu->snir = d;
-                    EV << "MA: SNR=" << d << " MAC= " << mac->getMacAddress() << endl;
+//                    EV << "MA: SNR=" << d << " MAC= " << mac->getMacAddress() << endl;
                 }
                 if(signalID == physicallayer::Radio::packetErrorRateSignal) {
                     LinkUnit *lu = getLinkUnit(mac->getMacAddress());
                     lu->per = d;
-                    EV << "MA: PER=" << d << " MAC= " << mac->getMacAddress() << endl;
+//                    EV << "MA: PER=" << d << " MAC= " << mac->getMacAddress() << endl;
                 }
             }
         }

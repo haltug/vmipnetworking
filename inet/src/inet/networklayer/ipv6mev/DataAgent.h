@@ -33,7 +33,7 @@ namespace inet {
  */
 class DataAgent : public Agent
 {
-    virtual ~DataAgent() {};
+    virtual ~DataAgent();
   protected:
     IInterfaceTable *ift = nullptr; // for recognizing changes etc
     virtual int numInitStages() const override { return NUM_INIT_STAGES; }

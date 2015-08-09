@@ -33,6 +33,15 @@ namespace inet {
 
 Define_Module(ControlAgent);
 
+ControlAgent::~ControlAgent() {
+    auto it = expiredTimerList.begin();
+    while(it != expiredTimerList.end()) {
+        TimerKey key = it->first;
+        it++;
+        cancelAndDeleteExpiryTimer(key.dest,key.interfaceID,key.type);
+    }
+}
+
 void ControlAgent::initialize(int stage)
 {
     cSimpleModule::initialize(stage);
@@ -72,7 +81,8 @@ void ControlAgent::handleMessage(cMessage *msg)
             IPv6ControlInfo *controlInfo = check_and_cast<IPv6ControlInfo *>(msg->removeControlInfo());
             processAgentMessage((IdentificationHeader *) msg, controlInfo);
         } else {
-            throw cRuntimeError("A:handleMsg: Extension Hdr Type not known. What did you send?");
+//            throw cRuntimeError("A:handleMsg: Extension Hdr Type not known. What did you send?");
+            delete msg;
         }
     }
     else
