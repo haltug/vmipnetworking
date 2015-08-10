@@ -26,11 +26,8 @@
 
 namespace inet {
 
-class INET_API AddressManagement : public cSimpleModule
+class AddressManagement
 {
-  protected:
-    virtual void initialize();
-    virtual void handleMessage(cMessage *msg);
 
   public:
     AddressManagement();

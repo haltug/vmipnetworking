@@ -26,34 +26,6 @@
 namespace inet {
 
 
-Define_Module(AddressManagement);
-
-//std::ostream& operator<<(std::ostream& os, const AddressManagement& am)
-//{
-//    os << "Not implemented yet." << endl;
-//    return os;
-////    for(std::map<uint64,AddressManagement::AddressMapEntry>::const_iterator item=am.begin(); item!=am.end(); ++item) {
-////        os << "id:" << item->first << ";" << "seq:" << item->second.currentSequenceNumber << ";" << "ack:" << item->second.lastAcknowledgement << ";" << "tab:\n";
-////    }
-////        for(auto& item2: item.second.sequenceTable) {
-////            os << "" << item2.first << ":";
-////            for(IPv6Address item3 : item2.second) {
-////                os << "" << item3.str() << ";";
-////            }
-////            os << "\n";
-////        }
-//}
-
-void AddressManagement::initialize()
-{
-//    WATCH_MAP(addressMap);
-}
-
-void AddressManagement::handleMessage(cMessage *msg)
-{
-    throw cRuntimeError("This module doesn't process messages");
-}
-
 AddressManagement::AddressManagement()
 {
 }
