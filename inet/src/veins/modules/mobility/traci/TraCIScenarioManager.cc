@@ -735,7 +735,6 @@ void TraCIScenarioManager::processVehicleSubscription(std::string objectId, TraC
 			TraCIMobility* mm = dynamic_cast<TraCIMobility*>(submod);
 			if (!mm) continue;
 			MYDEBUG << "module " << objectId << " moving to " << p.x << "," << p.y << endl;
-			EV << "processVehicleSubscription called." << endl;
 			mm->nextPosition(p, edge, speed, angle);
 		}
 	}

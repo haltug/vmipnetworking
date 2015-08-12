@@ -27,9 +27,10 @@
 #include "veins/base/modules/BaseLayer.h"
 #include "veins/base/utils/SimpleAddress.h"
 #include "veins/base/phyLayer/MappingBase.h"
+#include "inet/linklayer/common/MACAddress.h"
+#include "inet/linklayer/ieee80211/mac/Ieee80211Frame_m.h"
 
 class BaseConnectionManager;
-class MacPkt;
 class MacToPhyInterface;
 class Signal;
 
@@ -78,7 +79,7 @@ protected:
     /**
      * @brief MAC address.
      **/
-    LAddress::L2Type myMacAddr;
+    inet::MACAddress myMacAddr;
 
     /** @brief debug this core module? */
     bool coreDebug;
@@ -97,12 +98,12 @@ public:
     BaseMacLayer() 
       : BaseLayer()
       , phy(NULL)
-      , myMacAddr(LAddress::L2NULL)
+      , myMacAddr(inet::MACAddress::UNSPECIFIED_ADDRESS)
     {}
     BaseMacLayer(unsigned stacksize) 
       : BaseLayer(stacksize)
       , phy(NULL)
-      , myMacAddr(LAddress::L2NULL)
+      , myMacAddr(inet::MACAddress::UNSPECIFIED_ADDRESS)
     {}
 
     /** @brief Initialization of the module and some variables*/
@@ -111,7 +112,7 @@ public:
     /**
      * @brief Returns the MAC address of this MAC module.
      */
-    const LAddress::L2Type& getMACAddress() { return myMacAddr; }
+    const inet::MACAddress& getMACAddress() { return myMacAddr; }
 
 protected:
 
@@ -149,10 +150,10 @@ protected:
 
 
     /** @brief decapsulate the network message from the MacPkt */
-    virtual cPacket* decapsMsg(MacPkt*);
+    virtual cPacket* decapsMsg(inet::ieee80211::Ieee80211DataOrMgmtFrame*);
 
     /** @brief Encapsulate the NetwPkt into an MacPkt */
-    virtual MacPkt* encapsMsg(cPacket*);
+    virtual inet::ieee80211::Ieee80211DataOrMgmtFrame* encapsMsg(cPacket*);
 
     /**
      * @brief Creates a simple Signal defined over time with the
@@ -207,7 +208,7 @@ protected:
      * @param pCtrlInfo	The "control info" structure (object) prev. set by NetwToMacControlInfo::setControlInfo().
      * @return The MAC address of message receiver.
      */
-    virtual const LAddress::L2Type& getUpperDestinationFromControlInfo(const cObject *const pCtrlInfo);
+    virtual const inet::MACAddress& getUpperDestinationFromControlInfo(const cObject *const pCtrlInfo);
 
     /**
      * @brief Attaches a "control info" (MacToNetw) structure (object) to the message pMsg.
@@ -222,7 +223,7 @@ protected:
      * @param pMsg		The message where the "control info" shall be attached.
      * @param pSrcAddr	The MAC address of the message receiver.
      */
-    virtual cObject *const setUpControlInfo(cMessage *const pMsg, const LAddress::L2Type& pSrcAddr);
+    virtual cObject *const setUpControlInfo(cMessage *const pMsg, const inet::MACAddress& pSrcAddr);
     /**
      * @brief Attaches a "control info" (MacToPhy) structure (object) to the message pMsg.
      *

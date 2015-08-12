@@ -182,14 +182,12 @@ void TraCIMobility::nextPosition(const inet::Coord& position, std::string road_i
 	this->speed = speed;
 	this->angle = angle;
 	this->signals = signals;
-	EV << "nextPosition called." << endl;
 	changePosition();
 }
 
 void TraCIMobility::changePosition()
 {
 	// ensure we're not called twice in one time step
-    EV << "lastUpdate=" << lastUpdate << " simTime()=" << simTime() << endl;
 	ASSERT(lastUpdate != simTime());
 
 	// keep statistics (for current step)

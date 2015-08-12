@@ -34,28 +34,28 @@ network Scenario
         double playgroundSizeZ @unit(m); // z size of the area the nodes are in (in meters)
         @display("bgb=$playgroundSizeX,$playgroundSizeY");
     submodules:
-        obstacles: ObstacleControl {
-            @display("p=240,50");
-        }
-        annotations: AnnotationManager {
-            @display("p=260,50");
-        }
-        connectionManager: ConnectionManager {
-            parameters:
-                @display("p=150,0;i=abstract/multicast");
-        }
         world: BaseWorldUtility {
             parameters:
                 playgroundSizeX = playgroundSizeX;
                 playgroundSizeY = playgroundSizeY;
                 playgroundSizeZ = playgroundSizeZ;
-                @display("p=30,0;i=misc/globe");
+                @display("p=50,100;i=misc/globe");
+        }
+        obstacles: ObstacleControl {
+            @display("p=250,100");
+        }
+        annotations: AnnotationManager {
+            @display("p=450,100");
         }
         manager: TraCIScenarioManagerLaunchd {
             parameters:
-                @display("p=512,128");
+                @display("p=650,100");
         }
-        
+        connectionManager: ConnectionManager {
+            parameters:
+                @display("p=850,100;i=abstract/multicast");
+        }
+
     connections allowunconnected:
 }
 

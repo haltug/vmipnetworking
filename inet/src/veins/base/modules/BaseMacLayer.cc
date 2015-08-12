@@ -60,7 +60,7 @@ void BaseMacLayer::initialize(int stage)
 
         hasPar("coreDebug") ? coreDebug = par("coreDebug").boolValue() : coreDebug = false;
     }
-    if (myMacAddr == LAddress::L2NULL) {
+    if (myMacAddr == inet::MACAddress::UNSPECIFIED_ADDRESS) {
     	// see if there is an addressing module available
         // otherwise use NIC modules id as MAC address
         AddressingInterface* addrScheme = FindModule<AddressingInterface*>::findSubModule(findHost());
@@ -69,9 +69,9 @@ void BaseMacLayer::initialize(int stage)
         } else {
             const std::string addressString = par("address").stringValue();
             if (addressString.empty() || addressString == "auto")
-                myMacAddr = LAddress::L2Type(getParentModule()->getId());
+                myMacAddr = inet::MACAddress::generateAutoAddress();
             else
-                myMacAddr = LAddress::L2Type(addressString.c_str());
+                myMacAddr = inet::MACAddress(addressString.c_str());
             // use streaming operator for string conversion, this makes it more
             // independent from the myMacAddr type
             std::ostringstream oSS; oSS << myMacAddr;
@@ -88,10 +88,10 @@ void BaseMacLayer::registerInterface()
 /**
  * Decapsulates the network packet from the received MacPkt
  **/
-cPacket* BaseMacLayer::decapsMsg(MacPkt* msg)
+cPacket* BaseMacLayer::decapsMsg(inet::ieee80211::Ieee80211DataOrMgmtFrame* msg)
 {
     cPacket *m = msg->decapsulate();
-    setUpControlInfo(m, msg->getSrcAddr());
+    setUpControlInfo(m, msg->getTransmitterAddress());
     // delete the macPkt
     delete msg;
     coreEV << " message decapsulated " << endl;
@@ -102,9 +102,9 @@ cPacket* BaseMacLayer::decapsMsg(MacPkt* msg)
  * Encapsulates the received NetwPkt into a MacPkt and set all needed
  * header fields.
  **/
-MacPkt* BaseMacLayer::encapsMsg(cPacket *netwPkt)
+inet::ieee80211::Ieee80211DataOrMgmtFrame* BaseMacLayer::encapsMsg(cPacket *netwPkt)
 {
-    MacPkt *pkt = new MacPkt(netwPkt->getName(), netwPkt->getKind());
+    inet::ieee80211::Ieee80211DataOrMgmtFrame *pkt = new inet::ieee80211::Ieee80211DataOrMgmtFrame(netwPkt->getName(), netwPkt->getKind());
     pkt->setBitLength(headerLength);
 
     // copy dest address from the Control Info attached to the network
@@ -112,13 +112,13 @@ MacPkt* BaseMacLayer::encapsMsg(cPacket *netwPkt)
     cObject* cInfo = netwPkt->removeControlInfo();
 
     coreEV <<"CInfo removed, mac addr="<< getUpperDestinationFromControlInfo(cInfo) << endl;
-    pkt->setDestAddr(getUpperDestinationFromControlInfo(cInfo));
+    pkt->setReceiverAddress(getUpperDestinationFromControlInfo(cInfo));
 
     //delete the control info
     delete cInfo;
 
     //set the src address to own mac address (nic module getId())
-    pkt->setSrcAddr(myMacAddr);
+    pkt->setTransmitterAddress(myMacAddr);
 
     //encapsulate the network packet
     pkt->encapsulate(netwPkt);
@@ -150,12 +150,12 @@ void BaseMacLayer::handleUpperMsg(cMessage *mac)
 
 void BaseMacLayer::handleLowerMsg(cMessage *msg)
 {
-    MacPkt*          mac  = static_cast<MacPkt *>(msg);
-    LAddress::L2Type dest = mac->getDestAddr();
-    LAddress::L2Type src  = mac->getSrcAddr();
+    inet::ieee80211::Ieee80211DataOrMgmtFrame*          mac  = static_cast<inet::ieee80211::Ieee80211DataOrMgmtFrame *>(msg);
+    inet::MACAddress dest = mac->getReceiverAddress();
+    inet::MACAddress src  = mac->getTransmitterAddress();
 
     //only foward to upper layer if message is for me or broadcast
-    if((dest == myMacAddr) || LAddress::isL2Broadcast(dest)) {
+    if((dest == myMacAddr) || dest.isBroadcast()) {
 		coreEV << "message with mac addr " << src
 			   << " for me (dest=" << dest
 			   << ") -> forward packet to upper layer\n";
@@ -270,14 +270,14 @@ BaseConnectionManager* BaseMacLayer::getConnectionManager() {
 	return ChannelAccess::getConnectionManager(nic);
 }
 
-const LAddress::L2Type& BaseMacLayer::getUpperDestinationFromControlInfo(const cObject *const pCtrlInfo) {
+const inet::MACAddress& BaseMacLayer::getUpperDestinationFromControlInfo(const cObject *const pCtrlInfo) {
 	return NetwToMacControlInfo::getDestFromControlInfo(pCtrlInfo);
 }
 
 /**
  * Attaches a "control info" (MacToNetw) structure (object) to the message pMsg.
  */
-cObject *const BaseMacLayer::setUpControlInfo(cMessage *const pMsg, const LAddress::L2Type& pSrcAddr)
+cObject *const BaseMacLayer::setUpControlInfo(cMessage *const pMsg, const inet::MACAddress& pSrcAddr)
 {
 	return MacToNetwControlInfo::setControlInfo(pMsg, pSrcAddr);
 }

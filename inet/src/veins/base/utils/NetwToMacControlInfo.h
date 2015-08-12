@@ -25,6 +25,7 @@
 
 #include "veins/base/utils/MiXiMDefs.h"
 #include "veins/base/utils/SimpleAddress.h"
+#include "inet/linklayer/common/MACAddress.h"
 
 /**
  * @brief Control info to pass next hop L2 addr from netw to MAC layer
@@ -43,11 +44,11 @@ class INET_API NetwToMacControlInfo : public cObject
 {
   protected:
     /** @brief MAC address of the sending or receiving node*/
-	LAddress::L2Type nextHopMac;
+    inet::MACAddress nextHopMac;
 
   public:
     /** @brief Default constructor*/
-    NetwToMacControlInfo(const LAddress::L2Type& addr = LAddress::L2NULL)
+    NetwToMacControlInfo(const inet::MACAddress& addr = inet::MACAddress::UNSPECIFIED_ADDRESS)
       : cObject()
       , nextHopMac(addr)
     {
@@ -57,18 +58,18 @@ class INET_API NetwToMacControlInfo : public cObject
     virtual ~NetwToMacControlInfo() {};
 
     /** @brief Getter method */
-    virtual const LAddress::L2Type& getNextHopMac() const {
+    virtual const inet::MACAddress& getNextHopMac() const {
     	return nextHopMac;
     };
-    virtual const LAddress::L2Type& getDest() const {
+    virtual const inet::MACAddress& getDest() const {
     	return nextHopMac;
     };
 
     /** @brief Setter method */
-    virtual void setNextHopMac(const LAddress::L2Type& addr) {
+    virtual void setNextHopMac(const inet::MACAddress& addr) {
     	nextHopMac = addr;
     };
-    virtual void setDest(const LAddress::L2Type& addr) {
+    virtual void setDest(const inet::MACAddress& addr) {
     	nextHopMac = addr;
     };
 
@@ -85,7 +86,7 @@ class INET_API NetwToMacControlInfo : public cObject
      * @param pMsg		The message where the "control info" shall be attached.
      * @param pDestAddr	The MAC address of the message receiver.
      */
-    static cObject *const setControlInfo(cMessage *const pMsg, const LAddress::L2Type& pDestAddr);
+    static cObject *const setControlInfo(cMessage *const pMsg, const inet::MACAddress& pDestAddr);
     /**
      * @brief Extracts the MAC address from the "control info" structure (object).
      *
@@ -94,7 +95,7 @@ class INET_API NetwToMacControlInfo : public cObject
      * @param pCtrlInfo	The "control info" structure (object) prev. set by NetwToMacControlInfo::setControlInfo().
      * @return The MAC address of message receiver.
      */
-    static const LAddress::L2Type& getDestFromControlInfo(const cObject *const pCtrlInfo);
+    static const inet::MACAddress& getDestFromControlInfo(const cObject *const pCtrlInfo);
 };
 
 

@@ -46,14 +46,14 @@ network vnTest
             parameters:
                 @display("p=48,75");
         }
-        R_1: Router6 {
-            parameters:
-                @display("p=230,230");
-        }
-        R_2: Router6 {
-            parameters:
-                @display("p=536,539");
-        }
+//        R_1: Router6 {
+//            parameters:
+//                @display("p=230,230");
+//        }
+//        R_2: Router6 {
+//            parameters:
+//                @display("p=536,539");
+//        }
         //        R_3: Router6 {
         //            parameters:
         //                @display("p=230,570");
@@ -70,10 +70,10 @@ network vnTest
             parameters:
                 @display("p=230,300;i=device/accesspoint_s");
         }
-        AP_2: AccessPoint {
-            parameters:
-                @display("p=437,482;i=device/accesspoint_s");
-        }
+//        AP_2: AccessPoint {
+//            parameters:
+//                @display("p=437,482;i=device/accesspoint_s");
+//        }
         //        AP_3: AccessPoint {
         //        	parameters:
         //        	    @display("p=430,500;i=device/accesspoint_s");
@@ -90,24 +90,24 @@ network vnTest
             parameters:
                 @display("p=1030,30");
         }
-        MN[total_mn]: StandardHost6 {
-            parameters:
-                @display("p=100,400;i=device/wifilaptop");
-                numRadios = default(1);
-        }
+//        MN[total_mn]: StandardHost6 {
+//            parameters:
+//                @display("p=100,400;i=device/wifilaptop");
+//                numRadios = default(1);
+//        }
     connections allowunconnected:
-        R_1.ethg$o++ --> ethernetline --> R_5.ethg$i++;
-        R_1.ethg$i++ <-- ethernetline <-- R_5.ethg$o++;
-        R_2.ethg$o++ --> ethernetline --> R_5.ethg$i++;
-        R_2.ethg$i++ <-- ethernetline <-- R_5.ethg$o++;
+//        R_1.ethg$o++ --> ethernetline --> R_5.ethg$i++;
+//        R_1.ethg$i++ <-- ethernetline <-- R_5.ethg$o++;
+//        R_2.ethg$o++ --> ethernetline --> R_5.ethg$i++;
+//        R_2.ethg$i++ <-- ethernetline <-- R_5.ethg$o++;
         //        R_3.ethg$o++ --> ethernetline --> R_5.ethg$i++;
         //        R_3.ethg$i++ <-- ethernetline <-- R_5.ethg$o++;
         //        R_4.ethg$o++ --> ethernetline --> R_5.ethg$i++;
         //        R_4.ethg$i++ <-- ethernetline <-- R_5.ethg$o++;
-        AP_1.ethg$o++ --> ethernetline --> R_1.ethg$i++;
-        AP_1.ethg$i++ <-- ethernetline <-- R_1.ethg$o++;
-        AP_2.ethg$o++ --> ethernetline --> R_2.ethg$i++;
-        AP_2.ethg$i++ <-- ethernetline <-- R_2.ethg$o++;
+        AP_1.ethg$o++ --> ethernetline --> R_5.ethg$i++;
+        AP_1.ethg$i++ <-- ethernetline <-- R_5.ethg$o++;
+//        AP_2.ethg$o++ --> ethernetline --> R_2.ethg$i++;
+//        AP_2.ethg$i++ <-- ethernetline <-- R_2.ethg$o++;
         //        AP_3.ethg$o++ --> ethernetline --> R_3.ethg$i++;
         //        AP_3.ethg$i++ <-- ethernetline <-- R_3.ethg$o++;
         //        AP_4.ethg$o++ --> ethernetline --> R_4.ethg$i++;

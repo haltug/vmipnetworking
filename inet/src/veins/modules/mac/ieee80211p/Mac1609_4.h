@@ -36,6 +36,8 @@
 #include "veins/base/modules/BaseMacLayer.h"
 
 #include "veins/modules/utility/ConstsPhy.h"
+#include "inet/linklayer/common/MACAddress.h"
+#include "inet/linklayer/ieee80211/mac/Ieee80211Frame_m.h"
 
 /**
  * @brief
@@ -182,7 +184,7 @@ class Mac1609_4 : public BaseMacLayer,
 
 		bool guardActive() const;
 
-		void attachSignal(Mac80211Pkt* mac, simtime_t startTime, double frequency, uint64_t datarate, double txPower_mW);
+		void attachSignal(inet::ieee80211::Ieee80211DataFrame* mac, simtime_t startTime, double frequency, uint64_t datarate, double txPower_mW);
 		Signal* createSignal(simtime_t start, simtime_t length, double power, uint64_t bitrate, double frequency);
 
 		/** @brief maps a application layer priority (up) to an EDCA access category. */
@@ -239,7 +241,7 @@ class Mac1609_4 : public BaseMacLayer,
 		simtime_t statsTotalBusyTime;
 
 		/** @brief This MAC layers MAC address.*/
-		int myMacAddress;
+		inet::MACAddress myMacAddress;
 
 		/** @brief The power (in mW) to transmit with.*/
 		double txPower;

@@ -33,10 +33,10 @@
 class INET_API AddressingInterface {
 public:
     /** @brief Returns the L2 address for the passed mac.*/
-    virtual LAddress::L2Type myMacAddr(const cModule* mac) const = 0;
+    virtual inet::MACAddress myMacAddr(const cModule* mac) const = 0;
 
     /** @brief Returns the L3 address for the passed net.*/
-    virtual LAddress::L3Type myNetwAddr(const cModule* netw) const = 0;
+    virtual inet::MACAddress myNetwAddr(const cModule* netw) const = 0;
 };
 
 #endif /* ADDRESSINGINTERFACE_H_ */

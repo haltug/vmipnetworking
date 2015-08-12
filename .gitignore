@@ -45,6 +45,7 @@ inet/gcc-debug
 
 # ignore backup and temp files
 *.bak
+*.anf
 inet/backups
 *~
 xxx

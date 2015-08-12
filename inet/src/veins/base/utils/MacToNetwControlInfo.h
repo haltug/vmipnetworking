@@ -39,7 +39,7 @@ protected:
 	double bitErrorRate;
 
 	/** @brief MAC address of the last hop of this packet.*/
-	LAddress::L2Type lastHopMac;
+	inet::MACAddress lastHopMac;
 
 	/** @brief The received signal strength for this packet.*/
 	double rssi;
@@ -48,7 +48,7 @@ public:
 	/**
 	 * @brief Initializes with the passed last hop address and bit error rate.
 	 */
-	MacToNetwControlInfo(const LAddress::L2Type& lastHop, double ber = 0, double rssi = 0):
+	MacToNetwControlInfo(const inet::MACAddress& lastHop, double ber = 0, double rssi = 0):
 		bitErrorRate(ber),
 		lastHopMac(lastHop),
 		rssi(rssi)
@@ -76,7 +76,7 @@ public:
 	/**
 	 * @brief Returns the MAC address of the packets last hop.
 	 */
-	const LAddress::L2Type& getLastHopMac() const {
+	const inet::MACAddress& getLastHopMac() const {
 		return lastHopMac;
 	}
 
@@ -85,7 +85,7 @@ public:
 	 *
 	 * @param lastHop The last hops MAC address
 	 */
-	virtual void setLastHopMac(const LAddress::L2Type& lastHop) {
+	virtual void setLastHopMac(const inet::MACAddress& lastHop) {
 		lastHopMac = lastHop;
 	}
 
@@ -119,22 +119,22 @@ public:
      * @param pMsg		The message where the "control info" shall be attached.
      * @param pSrcAddr	The MAC address of the message sender.
      */
-    static cObject *const setControlInfo(cMessage *const pMsg, const LAddress::L2Type& pSrcAddr) {
+    static cObject *const setControlInfo(cMessage *const pMsg, const inet::MACAddress& pSrcAddr) {
     	MacToNetwControlInfo *const cCtrlInfo = new MacToNetwControlInfo(pSrcAddr);
     	pMsg->setControlInfo(cCtrlInfo);
 
     	return cCtrlInfo;
     }
-    static const LAddress::L2Type& getAddress(cMessage *const pMsg) {
+    static const inet::MACAddress& getAddress(cMessage *const pMsg) {
     	return getAddressFromControlInfo(pMsg->getControlInfo());
     }
-    static const LAddress::L2Type& getAddressFromControlInfo(cObject *const pCtrlInfo) {
+    static const inet::MACAddress& getAddressFromControlInfo(cObject *const pCtrlInfo) {
     	MacToNetwControlInfo *const cCtrlInfo = dynamic_cast<MacToNetwControlInfo *const>(pCtrlInfo);
 
     	if (cCtrlInfo)
     		return cCtrlInfo->getLastHopMac();
 
-    	return LAddress::L2NULL;
+    	return inet::MACAddress::UNSPECIFIED_ADDRESS;
     }
 };
 

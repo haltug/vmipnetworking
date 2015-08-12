@@ -69,7 +69,7 @@ module AccessPoint
                 @display("p=208,43");
         }
         macTable: <macTableType> like IMACAddressTable {
-            @display("p=73,19;is=s");
+            @display("p=114,43;is=s");
         }
         relayUnit: <relayUnitType> like IMACRelayUnit if sizeof(ethg)+numRadios>1 && relayUnitType != "" {
             parameters:

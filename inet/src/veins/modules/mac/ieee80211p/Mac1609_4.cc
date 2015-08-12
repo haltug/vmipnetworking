@@ -24,6 +24,7 @@
 #include "veins/modules/phy/DeciderResult80211.h"
 #include "veins/base/phyLayer/PhyToMacControlInfo.h"
 #include "veins/modules/messages/PhyControlMessage_m.h"
+#include "inet/linklayer/common/MACAddress.h"
 
 #define DBG_MAC EV
 //#define DBG_MAC std::cerr << "[" << simTime().raw() << "] " << myId << " "
@@ -50,7 +51,7 @@ void Mac1609_4::initialize(int stage) {
 		setParametersForBitrate(bitrate);
 
 		//mac-adresses
-		myMacAddress = intuniform(0,0xFFFFFFFE);
+		myMacAddress = inet::MACAddress::generateAutoAddress();
 		myId = getParentModule()->getParentModule()->getFullPath();
 		//create frequency mappings
 		frequency.insert(std::pair<int, double>(Channels::CRIT_SOL, 5.86e9));
@@ -176,9 +177,9 @@ void Mac1609_4::handleSelfMsg(cMessage* msg) {
 		DBG_MAC << "MacEvent received. Trying to send packet with priority" << lastAC << std::endl;
 
 		//send the packet
-		Mac80211Pkt* mac = new Mac80211Pkt(pktToSend->getName(), pktToSend->getKind());
-		mac->setDestAddr(LAddress::L2BROADCAST);
-		mac->setSrcAddr(myMacAddress);
+		inet::ieee80211::Ieee80211DataFrame* mac = new inet::ieee80211::Ieee80211DataFrame(pktToSend->getName(), pktToSend->getKind());
+		mac->setReceiverAddress(inet::MACAddress::BROADCAST_ADDRESS);
+		mac->setTransmitterAddress(myMacAddress);
 		mac->encapsulate(pktToSend->dup());
 
 		enum PHY_MCS mcs;
@@ -407,7 +408,7 @@ void Mac1609_4::finish() {
 
 }
 
-void Mac1609_4::attachSignal(Mac80211Pkt* mac, simtime_t startTime, double frequency, uint64_t datarate, double txPower_mW) {
+void Mac1609_4::attachSignal(inet::ieee80211::Ieee80211DataFrame* mac, simtime_t startTime, double frequency, uint64_t datarate, double txPower_mW) {
 
 	simtime_t duration = getFrameDuration(mac->getBitLength());
 
@@ -495,7 +496,7 @@ void Mac1609_4::setCCAThreshold(double ccaThreshold_dBm) {
 }
 
 void Mac1609_4::handleLowerMsg(cMessage* msg) {
-	Mac80211Pkt* macPkt = static_cast<Mac80211Pkt*>(msg);
+    inet::ieee80211::Ieee80211DataFrame* macPkt = static_cast<inet::ieee80211::Ieee80211DataFrame*>(msg);
 	ASSERT(macPkt);
 
 	WaveShortMessage*  wsm =  dynamic_cast<WaveShortMessage*>(macPkt->decapsulate());
@@ -506,19 +507,19 @@ void Mac1609_4::handleLowerMsg(cMessage* msg) {
 	DeciderResult80211 *res = new DeciderResult80211(*macRes);
 	wsm->setControlInfo(new PhyToMacControlInfo(res));
 
-	long dest = macPkt->getDestAddr();
+	inet::MACAddress dest = macPkt->getReceiverAddress();
 
 	DBG_MAC << "Received frame name= " << macPkt->getName()
-	        << ", myState=" << " src=" << macPkt->getSrcAddr()
-	        << " dst=" << macPkt->getDestAddr() << " myAddr="
+	        << ", myState=" << " src=" << macPkt->getTransmitterAddress()
+	        << " dst=" << macPkt->getReceiverAddress() << " myAddr="
 	        << myMacAddress << std::endl;
 
-	if (macPkt->getDestAddr() == myMacAddress) {
+	if (macPkt->getReceiverAddress() == myMacAddress) {
 		DBG_MAC << "Received a data packet addressed to me." << std::endl;
 		statsReceivedPackets++;
 		sendUp(wsm);
 	}
-	else if (dest == LAddress::L2BROADCAST) {
+	else if (dest == inet::MACAddress::BROADCAST_ADDRESS) {
 		statsReceivedBroadcasts++;
 		sendUp(wsm);
 	}

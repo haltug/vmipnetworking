@@ -44,7 +44,7 @@ simple TraCIScenarioManagerLaunchd
         double connectAt @unit("s") = default(0s);  // when to connect to TraCI server (must be the initial timestep of the server)
         double firstStepAt @unit("s") = default(-1s);  // when to start synchronizing with the TraCI server (-1: immediately after connecting)
         double updateInterval @unit("s") = default(1s);  // time interval of hosts' position updates
-        string moduleType = default("inet.nodes.wireless.WirelessHostSimplified");  // module type to be used in the simulation for each managed vehicle
+        string moduleType = default("inet.node.wireless.AccessPoint");  // module type to be used in the simulation for each managed vehicle
         string moduleName = default("host");  // module name to be used in the simulation for each managed vehicle
         string moduleDisplayString = default("i=misc/node2;is=vs;r=0,,#707070,1");  // module displayString to be used in the simulation for each managed vehicle
         string host = default("localhost");  // sumo-launchd.py server hostname
@@ -56,7 +56,7 @@ simple TraCIScenarioManagerLaunchd
         string roiRoads = default("");  // which roads (e.g. "hwy1 hwy2") are considered to consitute the region of interest, if not empty
         string roiRects = default("");  // which rectangles (e.g. "0,0-10,10 20,20-30,30) are considered to consitute the region of interest, if not empty
         double penetrationRate = default(1); //the probability of a vehicle being equipped with Car2X technology
-        int numVehicles = default(0);
+        int numVehicles = default(1);
         bool useRouteDistributions = default(false);
         int vehicleRngIndex = default(0); // index of the RNG stream to be used, all random numbers concerning the managed vehicles
 }

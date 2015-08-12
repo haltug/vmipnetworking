@@ -49,8 +49,8 @@ simple BaseWaveApplLayer like IBaseApplLayer
         int dataPriority = default(3); //the access category for data packets
 
     gates:
-        input lowerLayerIn; // from mac layer
-        output lowerLayerOut; // to mac layer
+        input lowerLayerIn @loose; // from mac layer
+        output lowerLayerOut @loose; // to mac layer
         input lowerControlIn;
         output lowerControlOut;
 }
