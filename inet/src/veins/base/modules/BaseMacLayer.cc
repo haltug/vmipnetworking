@@ -173,6 +173,7 @@ void BaseMacLayer::handleLowerMsg(cMessage *msg)
 
 void BaseMacLayer::handleLowerControl(cMessage* msg)
 {
+    EV << "BaseMacLayer::handleLowerControl" << endl;
 	switch (msg->getKind())
 	{
 		case MacToPhyInterface::TX_OVER:

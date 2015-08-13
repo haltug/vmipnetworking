@@ -74,6 +74,7 @@ void BaseLayer::initialize(int stage)
  **/
 void BaseLayer::handleMessage(cMessage* msg)
 {
+    EV << "BaseLayer: handleMessage" << endl;
     if (msg->isSelfMessage()){
         handleSelfMsg(msg);
     } else if(msg->getArrivalGateId()==upperLayerIn) {

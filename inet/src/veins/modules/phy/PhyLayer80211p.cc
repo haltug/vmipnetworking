@@ -365,12 +365,14 @@ void PhyLayer80211p::changeListeningFrequency(double freq) {
 	dec->changeFrequency(freq);
 }
 void PhyLayer80211p::handleSelfMessage(cMessage* msg) {
-
+    EV << "handleSelfMessage in PhyLayer80211p:";
 	switch(msg->getKind()) {
 	//transmission overBasePhyLayer::
 	case TX_OVER: {
+	    EV << " TX_OVER" << endl;
 		assert(msg == txOverTimer);
 		sendControlMsgToMac(new cMessage("Transmission over", TX_OVER));
+        EV << "ControlMessage send." << endl;
 		//check if there is another packet on the chan, and change the chan-state to idle
 		Decider80211p* dec = dynamic_cast<Decider80211p*>(decider);
 		assert(dec);
@@ -387,17 +389,20 @@ void PhyLayer80211p::handleSelfMessage(cMessage* msg) {
 	}
 	//radio switch over
 	case RADIO_SWITCHING_OVER:
+	    EV << " RADIO_SWITCHING_OVER" << endl;
 		assert(msg == radioSwitchingOverTimer);
 		BasePhyLayer::finishRadioSwitching();
 		break;
 
 	//AirFrame
 	case AIR_FRAME:
+	    EV << " AIR_FRAME" << endl;
 		BasePhyLayer::handleAirFrame(static_cast<AirFrame*>(msg));
 		break;
 
 	//ChannelSenseRequest
 	case CHANNEL_SENSE_REQUEST:
+	    EV << " CHANNEL_SENSE_REQUEST" << endl;
 		BasePhyLayer::handleChannelSenseRequest(msg);
 		break;
 

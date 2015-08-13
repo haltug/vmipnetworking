@@ -54,10 +54,10 @@ module BasicRSU
             parameters:
                 @display("p=200,150");
         }
-        appl: <applType> like veins.base.modules.IBaseApplLayer {
-            parameters:
-                @display("p=100,100");
-        }
+//        appl: <applType> like veins.base.modules.IBaseApplLayer {
+//            parameters:
+//                @display("p=100,100");
+//        }
         nic: <nicType> like veins.modules.nic.INic80211p {
             parameters:
                 @display("p=100,300");
@@ -75,15 +75,15 @@ module BasicRSU
                 @display("p=300,300,row;q=txQueue");
         }
     connections:
-        eth.phys <--> ethg;
-        eth.upperLayerIn <-- relayUnit.ifOut++;
-        eth.upperLayerOut --> relayUnit.ifIn++;
-
         nic.upperLayerOut --> relayUnit.ifIn++;
         nic.upperLayerIn <-- relayUnit.ifOut++;
 
-        nic.upperControlOut --> appl.lowerControlIn;
-        nic.upperControlIn <-- appl.lowerControlOut;
+        nic.upperControlOut --> relayUnit.ifIn++;
+        nic.upperControlIn <-- relayUnit.ifOut++;
 
         veinsradioIn --> nic.radioIn;
+
+        eth.phys <--> ethg;
+        eth.upperLayerIn <-- relayUnit.ifOut++;
+        eth.upperLayerOut --> relayUnit.ifIn++;
 }

@@ -346,6 +346,7 @@ void Wave1609_4::handleUpperMsg(cMessage* msg) {
 }
 
 void Wave1609_4::handleLowerControl(cMessage* msg) {
+    EV << "HandleLowerControl in WAVE1609_4" << endl;
     if (msg->getKind() == MacToPhyInterface::TX_OVER) {
 
         DBG_MAC << "Successfully transmitted a packet on " << lastAC << std::endl;

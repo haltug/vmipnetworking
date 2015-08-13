@@ -4,8 +4,6 @@
 #include "veins/base/utils/MiXiMDefs.h"
 #include "veins/base/connectionManager/NicEntry.h"
 
-namespace inet {
-}
 class ChannelAccess;
 
 /**

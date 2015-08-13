@@ -325,29 +325,29 @@ AnalogueModel* BasePhyLayer::getAnalogueModelFromName(std::string name, Paramete
 //--Message handling--------------------------------------
 
 void BasePhyLayer::handleMessage(cMessage* msg) {
-    EV << "handleMessage in BasePhyLayer" << endl;
 	//self messages
 	if(msg->isSelfMessage()) {
-	    EV << "selfMessage" << endl;
+	    EV << "handleMessage in BasePhyLayer -> selfMessage" << endl;
 		handleSelfMessage(msg);
 
 	//MacPkts <- MacToPhyControlInfo
 	} else if(msg->getArrivalGateId() == upperLayerIn) {
-	    EV << "upperLayer" << endl;
+	    EV << "handleMessage in BasePhyLayer -> upperLayer" << endl;
 		handleUpperMessage(msg);
 
 	//controlmessages
 	} else if(msg->getArrivalGateId() == upperControlIn) {
-	    EV << "upperControl" << endl;
+        EV << "handleMessage in BasePhyLayer -> upperControl" << endl;
 		handleUpperControlMessage(msg);
 
 	//AirFrames
 	} else if(msg->getKind() == AIR_FRAME){
+	    EV << "handleMessage in BasePhyLayer -> airframe" << endl;
 		handleAirFrame(static_cast<AirFrame*>(msg));
 
 	//unknown message
 	} else {
-		ev << "Unknown message received." << endl;
+	    EV << "handleMessage in BasePhyLayer -> unknown message" << endl;
 		delete msg;
 	}
 }
@@ -478,17 +478,14 @@ void BasePhyLayer::handleUpperMessage(cMessage* msg){
         msg = 0;
 		opp_error("Error: message for sending received, but radio already sending");
 	}
-	EV << "handleUpperMessage: ";
 	// build the AirFrame to send
 	assert(dynamic_cast<cPacket*>(msg) != 0);
-	EV << "assert() ->";
 	AirFrame* frame = encapsMsg(static_cast<cPacket*>(msg));
-	EV << "toAirframe ->";
 	// make sure there is no self message of kind TX_OVER scheduled
 	// and schedule the actual one
 	assert (!txOverTimer->isScheduled());
+	EV << "handleUpperMessage in BasePhyLayer. Sending down." << endl;
 	sendSelfMessage(txOverTimer, simTime() + frame->getDuration());
-	EV << "sendFrame down" << endl;
 	sendMessageDown(frame);
 }
 
@@ -577,7 +574,7 @@ void BasePhyLayer::handleUpperControlMessage(cMessage* msg){
 }
 
 void BasePhyLayer::handleSelfMessage(cMessage* msg) {
-
+    EV << "handleSelfMessage in BasePhyLayer" << endl;
 	switch(msg->getKind()) {
 	//transmission over
 	case TX_OVER:
@@ -609,7 +606,12 @@ void BasePhyLayer::handleSelfMessage(cMessage* msg) {
 //--Send messages------------------------------
 
 void BasePhyLayer::sendControlMessageUp(cMessage* msg) {
-	send(msg, upperControlOut);
+    if(msg) {
+        EV << "SendingControlMessageUp: msg defined." << endl;
+        send(msg, upperControlOut);
+    } else {
+        EV << "SendingControlMessageUp XXXXXXX but no msg defined." << endl;
+    }
 }
 
 void BasePhyLayer::sendMacPktUp(cMessage* pkt) {
@@ -725,6 +727,7 @@ int BasePhyLayer::getRadioState() {
 
 void BasePhyLayer::finishRadioSwitching()
 {
+    EV << "finishRadio" << endl;
 	radio->endSwitch(simTime());
 	sendControlMsgToMac(new cMessage("Radio switching over", RADIO_SWITCHING_OVER));
 }
@@ -802,7 +805,9 @@ ConstMapping* BasePhyLayer::getThermalNoise(simtime_t_cref from, simtime_t_cref 
 }
 
 void BasePhyLayer::sendControlMsgToMac(cMessage* msg) {
+    EV << "BasePhyLayer::sending ControlMsg To Mac" << endl;
 	if(msg->getKind() == CHANNEL_SENSE_REQUEST) {
+	    EV << "msg is CHANNEL_SENSE_REQUEST" << endl;
 		if(channelInfo.isRecording()) {
 			channelInfo.stopRecording();
 		}
