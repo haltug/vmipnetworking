@@ -90,11 +90,11 @@ network vnTest
             parameters:
                 @display("p=1030,30");
         }
-//        MN[total_mn]: StandardHost6 {
-//            parameters:
-//                @display("p=100,400;i=device/wifilaptop");
-//                numRadios = default(1);
-//        }
+        MN[total_mn]: StandardHost6 {
+            parameters:
+                @display("p=100,400;i=device/wifilaptop");
+                numRadios = default(1);
+        }
     connections allowunconnected:
 //        R_1.ethg$o++ --> ethernetline --> R_5.ethg$i++;
 //        R_1.ethg$i++ <-- ethernetline <-- R_5.ethg$o++;

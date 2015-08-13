@@ -608,7 +608,7 @@ void TraCIScenarioManager::processSimSubscription(std::string objectId, TraCIBuf
 			uint32_t serverTimestep; buf >> serverTimestep;
 			MYDEBUG << "TraCI reports current time step as " << serverTimestep << "ms." << endl;
 			uint32_t omnetTimestep = getCurrentTimeMs();
-			ASSERT(omnetTimestep == serverTimestep);
+//			ASSERT(omnetTimestep == serverTimestep);
 
 		} else {
 			error("Received unhandled sim subscription result");

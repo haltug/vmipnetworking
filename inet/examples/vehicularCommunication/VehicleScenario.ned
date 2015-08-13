@@ -29,7 +29,7 @@ channel ethernetline extends ned.DatarateChannel
 network VehicleScenario extends Scenario
 {
     parameters:
-        @display("bgb=2500,2500;bgi=background/streetmap,c");
+        @display("bgb=2500,2500;");
     submodules:
         configurator: FlatNetworkConfigurator6 {
             parameters:

@@ -354,8 +354,9 @@ bool BaseConnectionManager::registerNic(cModule* nic,
 
 bool BaseConnectionManager::unregisterNic(cModule* nicModule)
 {
-    assert(nicModule != 0);
-
+//    assert(nicModule != 0);
+    if(!nicModule)
+        return false;
     // find nicEntry
     int nicID = nicModule->getId();
     ccEV << " unregistering nic #" << nicID << endl;
