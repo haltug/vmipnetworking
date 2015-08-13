@@ -157,8 +157,8 @@ enum ChannelNumber {
 }
 
 enum t_channel {
-	type_CCH=0,
-	type_SCH,
+	type_CCH =0,
+	type_SCH =1
 };
 
 #endif

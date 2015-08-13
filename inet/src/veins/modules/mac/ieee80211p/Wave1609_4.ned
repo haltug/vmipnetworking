@@ -19,6 +19,7 @@ import veins.base.modules.BaseMacLayer;
 
 simple Wave1609_4 extends BaseMacLayer
 {
+       
     parameters:
         @class(Wave1609_4);
         string rsuMacAddress; // MAC address of associate AP

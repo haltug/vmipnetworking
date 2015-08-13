@@ -33,10 +33,11 @@ module Ip80211p like INic80211p
     gates:
         input upperLayerIn; // to upper layers
         output upperLayerOut; // from upper layers
-        output upperControlOut; // control information
-        input upperControlIn; // control information
         input radioIn; // radioIn gate for sendDirect
 
+        output upperControlOut @loose; // control information
+        input upperControlIn @loose; // control information
+        
     submodules:
         phy80211p: PhyLayer80211p {
             @display("p=69,218;i=block/process_s");
@@ -51,12 +52,13 @@ module Ip80211p like INic80211p
 
         wave1609_4.lowerControlOut --> phy80211p.upperControlIn;
         wave1609_4.lowerLayerOut --> phy80211p.upperLayerIn;
-        phy80211p.upperLayerOut --> wave1609_4.lowerLayerIn;
-        phy80211p.upperControlOut --> wave1609_4.lowerControlIn;
         
-        wave1609_4.upperControlIn <-- upperControlIn;
+        phy80211p.upperControlOut --> wave1609_4.lowerControlIn;
+        phy80211p.upperLayerOut --> wave1609_4.lowerLayerIn;
+        
         wave1609_4.upperLayerIn <-- upperLayerIn;
-
         wave1609_4.upperLayerOut --> upperLayerOut;
+
+        wave1609_4.upperControlIn <-- upperControlIn;
         wave1609_4.upperControlOut --> upperControlOut;
 }

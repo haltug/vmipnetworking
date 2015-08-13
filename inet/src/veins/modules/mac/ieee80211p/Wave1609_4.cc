@@ -165,24 +165,18 @@ void Wave1609_4::handleSelfMsg(cMessage *msg)
                 phy11p->changeListeningFrequency(frequency[Channels::CCH]);
                 break;
         }
+        DBG_MAC << "Schedule next channel switch in 50ms." << std::endl;
         //schedule next channel switch in 50ms
 
     }
     else if (msg ==  nextMacEvent) {
 
         //we actually came to the point where we can send a packet
+        DBG_MAC << "MacEvent received. Trying to send packet with priority " << lastAC << "; lastIdle=" << lastIdle << std::endl;
         channelBusySelf(true);
-        inet::ieee80211::Ieee80211DataOrMgmtFrame* mac = myEDCA[activeChannel]->initiateTransmit(lastIdle);
-        //check line below
-//        lastAC = AC_VO;
-
-        DBG_MAC << "MacEvent received. Trying to send packet with priority" << lastAC << std::endl;
-
         //send the packet
-//        inet::ieee80211::Ieee80211DataFrame* mac = new inet::ieee80211::Ieee80211DataFrame(pktToSend->getName(), pktToSend->getKind());
-//        mac->setReceiverAddress(inet::MACAddress::BROADCAST_ADDRESS);
-//        mac->setTransmitterAddress(myMacAddress);
-//        mac->encapsulate(pktToSend->dup());
+        inet::ieee80211::Ieee80211DataOrMgmtFrame* frame = myEDCA[activeChannel]->initiateTransmit(lastIdle);
+        inet::ieee80211::Ieee80211DataOrMgmtFrame* mac = frame->dup(); // duplicate message because it is deleted also when its not send
 
         enum PHY_MCS mcs;
         double txPower_mW;
@@ -207,22 +201,20 @@ void Wave1609_4::handleSelfMsg(cMessage *msg)
             mcs = MCS_DEFAULT;
             txPower_mW = txPower;
             datarate = bitrate;
+            DBG_MAC << "Sending with pre-configured settings." << std::endl;
         }
 
         simtime_t sendingDuration = RADIODELAY_11P + getFrameDuration(mac->getBitLength(), mcs);
-        DBG_MAC << "Sending duration will be" << sendingDuration << std::endl;
+        DBG_MAC << "Sending duration will be " << sendingDuration << std::endl;
         if ((!useSCH) || (timeLeftInSlot() > sendingDuration)) {
-            if (useSCH) DBG_MAC << " Time in this slot left: " << timeLeftInSlot() << std::endl;
+            if (useSCH) DBG_MAC << "Time in this slot left:  " << timeLeftInSlot() << std::endl;
             // give time for the radio to be in Tx state before transmitting
             phy->setRadioState(Radio::TX);
-
-
             double freq = (activeChannel == type_CCH) ? frequency[Channels::CCH] : frequency[mSCH];
-
             attachSignal(mac, simTime()+RADIODELAY_11P, freq, datarate, txPower_mW);
+            DBG_MAC << "Sending frame to PhysicalLayer module. Frequency " << freq << " Priority " << lastAC << std::endl;
             MacToPhyControlInfo* phyInfo = dynamic_cast<MacToPhyControlInfo*>(mac->getControlInfo());
             assert(phyInfo);
-            DBG_MAC << "Sending a Packet. Frequency " << freq << " Priority" << lastAC << std::endl;
             sendDelayed(mac, RADIODELAY_11P, lowerLayerOut);
             statsSentPackets++;
         }
@@ -239,16 +231,14 @@ void Wave1609_4::handleSelfMsg(cMessage *msg)
 }
 
 void Wave1609_4::handleUpperControl(cMessage* msg) {
+    EV << "ERROR" << endl;
     cRuntimeError("Wave1609_4 should not receive any upper control message. Not defined.");
 }
 
 void Wave1609_4::handleUpperMsg(cMessage* msg) {
 
-    EV << "Received message from upper layer." << endl;
-
     inet::ieee80211::Ieee80211DataFrameWithSNAP *frame = new inet::ieee80211::Ieee80211DataFrameWithSNAP(msg->getName());
     frame->setToDS(true);
-    // receiver is the AP
     frame->setReceiverAddress(rsuMacAddress);
     frame->setTransmitterAddress(myMacAddress);
     EV << "Config: rsu=" << rsuMacAddress << " mMac=" << myMacAddress << endl;
@@ -258,68 +248,38 @@ void Wave1609_4::handleUpperMsg(cMessage* msg) {
         ASSERT(!ctrl->getDest().isUnspecified());
         frame->setAddress3(ctrl->getDest());
         frame->setEtherType(ctrl->getEtherType());
-    } else {
-        EV << "No Ieee802Ctrl contained." << endl;
     }
     cPacket *pk = PK(msg);
     frame->encapsulate(pk);
-////    inet::IPv6Datagram *ctrl = check_and_cast<inet::Ieee802Ctrl *>(msg->removeControlInfo());
-//    inet::IPv6Datagram* thisMsg;
-//    if ((thisMsg = dynamic_cast<inet::IPv6Datagram*>(msg)) == NULL) {
-//        cRuntimeError("WaveMac only accepts IPv6Datagram.");
-//    }
-//    t_access_category ac = mapPriority(thisMsg->getPriority());
     t_access_category ac;
     switch (mQueue) {
         case 0: ac = AC_BK; break;
         case 1: ac = AC_BE; break;
         case 2: ac = AC_VI; break;
         case 3: ac = AC_VO; break;
-        default: cRuntimeError("Set a queue between 0 and 3"); break;
+        default:
+            ac = AC_VO;
+            cRuntimeError("Set a queue between 0 and 3");
+            break;
     }
-
+    lastAC = ac;
     DBG_MAC << "Received a message from upper layer for channel 174 in"
             << " Access Category (Priority):  "
             << ac << std::endl;
-
-    t_channel chan;
-
-    //rewrite SCH channel to actual SCH the Wave1609_4 is set to
-//    if (thisMsg->getChannelNumber() == Channels::SCH1) {
-    if (true) {
-        ASSERT(useSCH);
-//        thisMsg->setChannelNumber(mySCH);
-        chan = type_SCH;
-    }
-
-
-    //put this packet in its queue
-//    if (thisMsg->getChannelNumber() == Channels::CCH) {
-//        chan = type_CCH;
-//    }
+    // all packets are sent over service channel
+    t_channel chan = type_SCH;
 
     int num = myEDCA[chan]->queuePacket(ac,frame);
-
-    //packet was dropped in Mac
     if (num == -1) {
+        //packet was dropped in Mac
         statsDroppedPackets++;
         return;
     }
-
     //if this packet is not at the front of a new queue we dont have to reevaluate times
-    DBG_MAC << "sorted packet into queue of EDCA " << chan << " this packet is now at position: " << num << std::endl;
-
-    if (chan == activeChannel) {
-        DBG_MAC << "this packet is for the currently active channel" << std::endl;
-    }
-    else {
-        DBG_MAC << "this packet is NOT for the currently active channel" << std::endl;
-    }
-
+    DBG_MAC << "Queue state: Size=" << num << "; Channel state:  Is idle?: " << idleChannel << "; activeChannel " << activeChannel << " sendingChannel " << chan << endl;
     if (num == 1 && idleChannel == true && chan == activeChannel) {
-
+        DBG_MAC << "Result: num == 1 && idleChannel == true && chan == activeChannel" << endl;
         simtime_t nextEvent = myEDCA[chan]->startContent(lastIdle,guardActive());
-
         if (nextEvent != -1) {
             if ((!useSCH) || (nextEvent <= nextChannelSwitch->getArrivalTime())) {
                 if (nextMacEvent->isScheduled()) {
@@ -340,6 +300,7 @@ void Wave1609_4::handleUpperMsg(cMessage* msg) {
         }
     }
     if (num == 1 && idleChannel == false && myEDCA[chan]->myQueues[ac].currentBackoff == 0 && chan == activeChannel) {
+        DBG_MAC << "Result: num == 1 && idleChannel == false && myEDCA[chan]->myQueues[ac].currentBackoff == 0 && chan == activeChannel" << endl;
         myEDCA[chan]->backoff(ac);
     }
     delete controlInfoPtr;
@@ -347,12 +308,10 @@ void Wave1609_4::handleUpperMsg(cMessage* msg) {
 
 void Wave1609_4::handleLowerControl(cMessage* msg) {
     EV << "HandleLowerControl in WAVE1609_4" << endl;
+    assert(msg);
     if (msg->getKind() == MacToPhyInterface::TX_OVER) {
-
-        DBG_MAC << "Successfully transmitted a packet on " << lastAC << std::endl;
-
+        DBG_MAC << "Successfully transmitted a frame on " << lastAC << std::endl;
         phy->setRadioState(Radio::RX);
-
         //message was sent
         //update EDCA queue. go into post-transmit backoff and set cwCur to cwMin
         myEDCA[activeChannel]->postTransmit(lastAC);
@@ -527,6 +486,7 @@ void Wave1609_4::setCCAThreshold(double ccaThreshold_dBm) {
 }
 
 void Wave1609_4::handleLowerMsg(cMessage* msg) {
+    DBG_MAC << "Received frame from lower layer." << endl;
     inet::ieee80211::Ieee80211DataOrMgmtFrame* frame = check_and_cast<inet::ieee80211::Ieee80211DataOrMgmtFrame *>(msg);
     assert(frame);
     cPacket *payload = frame->decapsulate();
@@ -546,7 +506,7 @@ void Wave1609_4::handleLowerMsg(cMessage* msg) {
 
     inet::MACAddress dest = frame->getReceiverAddress();
 
-    DBG_MAC << "Received frame name= " << frame->getName()
+    DBG_MAC << "Frame name= " << frame->getName()
             << ", myState=" << " src=" << frame->getTransmitterAddress()
             << " dst=" << frame->getReceiverAddress() << " myAddr="
             << myMacAddress << std::endl;
@@ -642,36 +602,23 @@ inet::ieee80211::Ieee80211DataOrMgmtFrame* Wave1609_4::EDCA::initiateTransmit(si
 simtime_t Wave1609_4::EDCA::startContent(simtime_t idleSince,bool guardActive) {
 
     DBG_MAC << "Restarting contention." << std::endl;
-
     simtime_t nextEvent = -1;
-
     simtime_t idleTime = SimTime().setRaw(std::max((int64_t)0,(simTime() - idleSince).raw()));;
-
     lastStart = idleSince;
-
     DBG_MAC << "Channel is already idle for:" << idleTime << " since " << idleSince << std::endl;
-
     //this returns the nearest possible event in this EDCA subsystem after a busy channel
-
     for (std::map<t_access_category, EDCAQueue>::iterator iter = myQueues.begin(); iter != myQueues.end(); iter++) {
         if (iter->second.queue.size() != 0) {
-
             /* 1609_4 says that when attempting to send (backoff == 0) when guard is active, a random backoff is invoked */
-
             if (guardActive == true && iter->second.currentBackoff == 0) {
                 //cw is not increased
                 iter->second.currentBackoff = intuniform(0,iter->second.cwCur);
                 statsNumBackoff++;
             }
-
             simtime_t DIFS = iter->second.aifsn * SLOTLENGTH_11P + SIFS_11P;
-
             //the next possible time to send can be in the past if the channel was idle for a long time, meaning we COULD have sent earlier if we had a packet
             simtime_t possibleNextEvent = DIFS + iter->second.currentBackoff * SLOTLENGTH_11P;
-
-
             DBG_MAC << "Waiting Time for Queue " << iter->first <<  ":" << possibleNextEvent << "=" << iter->second.aifsn << " * "  << SLOTLENGTH_11P << " + " << SIFS_11P << "+" << iter->second.currentBackoff << "*" << SLOTLENGTH_11P << "; Idle time: " << idleTime << std::endl;
-
             if (idleTime > possibleNextEvent) {
                 DBG_MAC << "Could have already send if we had it earlier" << std::endl;
                 //we could have already sent. round up to next boundary
@@ -691,15 +638,10 @@ simtime_t Wave1609_4::EDCA::startContent(simtime_t idleSince,bool guardActive) {
 
 void Wave1609_4::EDCA::stopContent(bool allowBackoff, bool generateTxOp) {
     //update all Queues
-
     DBG_MAC << "Stopping Contention at " << simTime().raw() << std::endl;
-
     simtime_t passedTime = simTime() - lastStart;
-
     DBG_MAC << "Channel was idle for " << passedTime << std::endl;
-
     lastStart = -1; //indicate that there was no last start
-
     for (std::map<t_access_category, EDCAQueue>::iterator iter = myQueues.begin(); iter != myQueues.end(); iter++) {
         if (iter->second.currentBackoff != 0 || iter->second.queue.size() != 0) {
             //check how many slots we already waited until the chan became busy
@@ -751,8 +693,16 @@ void Wave1609_4::EDCA::backoff(t_access_category ac) {
 }
 
 void Wave1609_4::EDCA::postTransmit(t_access_category ac) {
-    delete myQueues[ac].queue.front();
+    DBG_MAC << "Removing last frame from queue " << ac << endl;
+    inet::ieee80211::Ieee80211DataOrMgmtFrame* frame = myQueues[ac].queue.front();
+    assert(frame);
+    delete frame;
+    // Erasing the front element from queue
     myQueues[ac].queue.pop();
+    if(!myQueues[ac].queue.empty())
+        DBG_MAC << "Further elements in queue contained" << endl;
+    else
+        DBG_MAC << "No further elements in queue exists" << endl;
     myQueues[ac].cwCur = myQueues[ac].cwMin;
     //post transmit backoff
     myQueues[ac].currentBackoff = intuniform(0,myQueues[ac].cwCur);
@@ -831,6 +781,7 @@ void Wave1609_4::channelIdle(bool afterSwitch) {
     if (nextMacEvent->isScheduled() == true) {
         //this rare case can happen when another node's time has such a big offset that the node sent a packet although we already changed the channel
         //the workaround is not trivial and requires a lot of changes to the phy and decider
+        DBG_MAC << "Channel turned idle but contention timer was scheduled! This case is not handled." << endl;
         return;
         //opp_error("channel turned idle but contention timer was scheduled!");
     }

@@ -152,7 +152,7 @@ void BaseMacLayer::handleUpperMsg(cMessage *mac)
 
 void BaseMacLayer::handleLowerMsg(cMessage *msg)
 {
-    inet::ieee80211::Ieee80211DataOrMgmtFrame*          mac  = static_cast<inet::ieee80211::Ieee80211DataOrMgmtFrame *>(msg);
+    inet::ieee80211::Ieee80211DataOrMgmtFrame* mac  = static_cast<inet::ieee80211::Ieee80211DataOrMgmtFrame *>(msg);
     inet::MACAddress dest = mac->getReceiverAddress();
     inet::MACAddress src  = mac->getTransmitterAddress();
 
@@ -173,7 +173,6 @@ void BaseMacLayer::handleLowerMsg(cMessage *msg)
 
 void BaseMacLayer::handleLowerControl(cMessage* msg)
 {
-    EV << "BaseMacLayer::handleLowerControl" << endl;
 	switch (msg->getKind())
 	{
 		case MacToPhyInterface::TX_OVER:

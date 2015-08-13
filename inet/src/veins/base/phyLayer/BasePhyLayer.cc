@@ -327,27 +327,22 @@ AnalogueModel* BasePhyLayer::getAnalogueModelFromName(std::string name, Paramete
 void BasePhyLayer::handleMessage(cMessage* msg) {
 	//self messages
 	if(msg->isSelfMessage()) {
-	    EV << "handleMessage in BasePhyLayer -> selfMessage" << endl;
 		handleSelfMessage(msg);
 
 	//MacPkts <- MacToPhyControlInfo
 	} else if(msg->getArrivalGateId() == upperLayerIn) {
-	    EV << "handleMessage in BasePhyLayer -> upperLayer" << endl;
 		handleUpperMessage(msg);
 
 	//controlmessages
 	} else if(msg->getArrivalGateId() == upperControlIn) {
-        EV << "handleMessage in BasePhyLayer -> upperControl" << endl;
 		handleUpperControlMessage(msg);
 
 	//AirFrames
 	} else if(msg->getKind() == AIR_FRAME){
-	    EV << "handleMessage in BasePhyLayer -> airframe" << endl;
 		handleAirFrame(static_cast<AirFrame*>(msg));
 
 	//unknown message
 	} else {
-	    EV << "handleMessage in BasePhyLayer -> unknown message" << endl;
 		delete msg;
 	}
 }
@@ -574,7 +569,6 @@ void BasePhyLayer::handleUpperControlMessage(cMessage* msg){
 }
 
 void BasePhyLayer::handleSelfMessage(cMessage* msg) {
-    EV << "handleSelfMessage in BasePhyLayer" << endl;
 	switch(msg->getKind()) {
 	//transmission over
 	case TX_OVER:
@@ -606,12 +600,7 @@ void BasePhyLayer::handleSelfMessage(cMessage* msg) {
 //--Send messages------------------------------
 
 void BasePhyLayer::sendControlMessageUp(cMessage* msg) {
-    if(msg) {
-        EV << "SendingControlMessageUp: msg defined." << endl;
         send(msg, upperControlOut);
-    } else {
-        EV << "SendingControlMessageUp XXXXXXX but no msg defined." << endl;
-    }
 }
 
 void BasePhyLayer::sendMacPktUp(cMessage* pkt) {
@@ -805,9 +794,7 @@ ConstMapping* BasePhyLayer::getThermalNoise(simtime_t_cref from, simtime_t_cref 
 }
 
 void BasePhyLayer::sendControlMsgToMac(cMessage* msg) {
-    EV << "BasePhyLayer::sending ControlMsg To Mac" << endl;
 	if(msg->getKind() == CHANNEL_SENSE_REQUEST) {
-	    EV << "msg is CHANNEL_SENSE_REQUEST" << endl;
 		if(channelInfo.isRecording()) {
 			channelInfo.stopRecording();
 		}

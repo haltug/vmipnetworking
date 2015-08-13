@@ -510,9 +510,13 @@ simtime_t Decider80211p::processSignalEnd(AirFrame* msg) {
 
 void Decider80211p::setChannelIdleStatus(bool isIdle) {
 	isChannelIdle = isIdle;
+	EV << "Decider80211p::setChannelIdleStatus is called" << endl;
 	channelStateChanged();
-	if (isIdle) phy->sendControlMsgToMac(new cMessage("ChannelStatus",Mac80211pToPhy11pInterface::CHANNEL_IDLE));
-	else phy->sendControlMsgToMac(new cMessage("ChannelStatus",Mac80211pToPhy11pInterface::CHANNEL_BUSY));
+	if (isIdle)
+	    phy->sendControlMsgToMac(new cMessage("ChannelStatus",Mac80211pToPhy11pInterface::CHANNEL_IDLE));
+	else
+	    phy->sendControlMsgToMac(new cMessage("ChannelStatus",Mac80211pToPhy11pInterface::CHANNEL_BUSY));
+	EV << "Decider80211p::setChannelIdleStatus finished" << endl;
 }
 
 void Decider80211p::changeFrequency(double freq) {

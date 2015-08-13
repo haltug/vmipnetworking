@@ -52,11 +52,16 @@ TraCIScenarioManager::TraCIScenarioManager() :
 }
 
 TraCIScenarioManager::~TraCIScenarioManager() {
-	cancelAndDelete(connectAndStartTrigger);
-	cancelAndDelete(executeOneTimestepTrigger);
-	cancelAndDelete(myAddVehicleTimer);
-	delete commandIfc;
-	delete connection;
+	if(connectAndStartTrigger)
+	    cancelAndDelete(connectAndStartTrigger);
+	if(executeOneTimestepTrigger)
+	    cancelAndDelete(executeOneTimestepTrigger);
+	if(myAddVehicleTimer)
+	    cancelAndDelete(myAddVehicleTimer);
+	if(commandIfc)
+	    delete commandIfc;
+	if(connection)
+	    delete connection;
 }
 
 void TraCIScenarioManager::initialize(int stage) {

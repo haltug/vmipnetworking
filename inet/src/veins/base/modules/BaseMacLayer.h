@@ -140,12 +140,12 @@ protected:
     virtual void handleLowerMsg(cMessage *msg);
 
     virtual void handleSelfMsg(cMessage* msg){
-	error("BaseMacLayer does not handle self messages");
+        cRuntimeError("BaseMacLayer does not handle self messages");
     };
     virtual void handleLowerControl(cMessage* msg);
 
     virtual void handleUpperControl(cMessage* msg){
-	error("BaseMacLayer does not handle control messages from upper layers");
+        cRuntimeError("BaseMacLayer does not handle control messages from upper layers");
     };
 
 

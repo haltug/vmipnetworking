@@ -33,7 +33,6 @@ module BasicRSU
         @labels(node,ethernet-node,wireless-node);
         @display("i=device/accesspoint");
         bool hasStatus = default(false);
-        string applType; //type of the application layer
         string nicType = default("Ip80211p"); // type of network interface card
         string relayUnitType = default(firstAvailable("MACRelayUnit"));
         string macTableType = default("MACAddressTable"); // type of the ~IMACAddressTable
@@ -78,8 +77,8 @@ module BasicRSU
         nic.upperLayerOut --> relayUnit.ifIn++;
         nic.upperLayerIn <-- relayUnit.ifOut++;
 
-        nic.upperControlOut --> relayUnit.ifIn++;
-        nic.upperControlIn <-- relayUnit.ifOut++;
+//        nic.upperControlOut --> relayUnit.ifIn++;
+//        nic.upperControlIn <-- relayUnit.ifOut++;
 
         veinsradioIn --> nic.radioIn;
 
