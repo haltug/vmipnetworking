@@ -26,7 +26,7 @@ import inet.linklayer.contract.IWirelessNic;
 import inet.networklayer.common.InterfaceTable;
 import inet.networklayer.configurator.ipv6.FlatNetworkConfigurator6;
 
-module BasicCar
+module BasicOBU
 {
     parameters:
         @node();

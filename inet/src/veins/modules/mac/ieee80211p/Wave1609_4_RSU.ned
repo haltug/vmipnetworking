@@ -21,42 +21,17 @@ simple Wave1609_4_RSU extends BaseMacLayer
 {
     parameters:
         @class(Wave1609_4);
-
-        string ssid = default("RSU_AP");
-		double beaconInterval @unit("s") = default(100ms);
-		string macModule;               // The path to the MAC module
-		
-        // cycle between an SCH and the CCH (or stay on CCH all the time)
-        bool useServiceChannel = default(true);
-
-        // the service channel this maclayer listens on
-        int serviceChannel = default(1);
-		
-		// set the queue to be used
-		int queue = default(0);
-		
-        // debug switch
-        bool debug = default(false);
-
-        // length of MAC header, header is already added at 1609_4
-        headerLength @unit(bit) = default(0 bit);
-
-        // bit rate 
-        double bitrate @unit(bps) = default(18 Mbps);
-
-        // little asynchronization between cars
-        double syncOffset @unit(s) = default(0.0003s);
-
-        //tx power [mW]
-        double txPower @unit(mW);
-
-        int queueSize = default(0);
-
-        // signal informing interested application about channel busy state
-        @signal[sigChannelBusy](type=bool);
-        // signal informing interested application about a collision
-        @signal[sigCollision](type=bool);
+        string rsuMacAddress; // MAC address of associate AP
+        bool useServiceChannel = default(true); // cycle between an SCH and the CCH (or stay on CCH all the time)
+        int serviceChannel = default(1); // the service channel this maclayer listens on
+		int queue = default(0); // set the queue to be used
         
-//        @signal[NF_L2_AP_ASSOCIATED](type="Ieee80211MgmtAP::NotificationInfoSta");
-//        @signal[NF_L2_AP_DISASSOCIATED](type="Ieee80211MgmtAP::NotificationInfoSta");
+        bool debug = default(false); // debug switch
+        headerLength @unit(bit) = default(0 bit); // length of MAC header, header is already added at 1609_4
+        double bitrate @unit(bps) = default(18 Mbps); // bit rate 
+        double syncOffset @unit(s) = default(0.0003s); // little asynchronization between cars
+        double txPower @unit(mW); //tx power [mW]
+        int queueSize = default(0);
+        @signal[sigChannelBusy](type=bool); // signal informing interested application about channel busy state
+        @signal[sigCollision](type=bool); // signal informing interested application about a collision
 }

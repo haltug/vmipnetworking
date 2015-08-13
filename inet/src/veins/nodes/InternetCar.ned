@@ -21,7 +21,7 @@ import inet.transportlayer.contract.ITCP;
 import inet.transportlayer.contract.IUDP;
 
 
-module InternetCar extends BasicCar
+module InternetCar extends BasicOBU
 {
     parameters:
         @display("i=device/adam");

@@ -1,20 +1,5 @@
-//
-// This program is free software: you can redistribute it and/or modify
-// it under the terms of the GNU Lesser General Public License as published by
-// the Free Software Foundation, either version 3 of the License, or
-// (at your option) any later version.
-// 
-// This program is distributed in the hope that it will be useful,
-// but WITHOUT ANY WARRANTY; without even the implied warranty of
-// MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-// GNU Lesser General Public License for more details.
-// 
-// You should have received a copy of the GNU Lesser General Public License
-// along with this program.  If not, see http://www.gnu.org/licenses/.
-// 
-
-#ifndef WAVE1609_4_RSU_H_
-#define WAVE1609_4_RSU_H_
+#ifndef __INET_WAVE1609_4_RSU_H_
+#define __INET_WAVE1609_4_RSU_H_
 
 #include <assert.h>
 #include <omnetpp.h>
@@ -32,12 +17,12 @@
 #include "veins/modules/utility/ConstsPhy.h"
 
 #include "inet/networklayer/ipv6/IPv6Datagram.h"
-#include "inet/linklayer/ieee80211/mgmt/Ieee80211MgmtAPBase.h"
-
+#include "inet/linklayer/common/MACAddress.h"
+#include "inet/linklayer/ieee80211/mac/Ieee80211Frame_m.h"
 /**
  * TODO - Generated class
  */
-class INET_API Wave1609_4_RSU : public BaseMacLayer, public WaveAppToMac1609_4Interface, public inet::ieee80211::Ieee80211MgmtAPBase
+class INET_API Wave1609_4_RSU : public BaseMacLayer, public WaveAppToMac1609_4Interface
 {
 public:
 
@@ -53,7 +38,7 @@ public:
             class EDCAQueue {
                 public:
 
-                    std::queue<inet::IPv6Datagram*> queue;
+                    std::queue<inet::ieee80211::Ieee80211DataOrMgmtFrame*> queue;
                     int aifsn; //number of aifs slots for this queue
                     int cwMin; //minimum contention window
                     int cwMax; //maximum contention size
@@ -75,7 +60,7 @@ public:
              * Currently you have to call createQueue in the right order. First Call is priority 0, second 1 and so on...
              */
             int createQueue(int aifsn, int cwMin, int cwMax,t_access_category);
-            int queuePacket(t_access_category AC,inet::IPv6Datagram* cmsg);
+            int queuePacket(t_access_category AC,inet::ieee80211::Ieee80211DataOrMgmtFrame* cmsg);
             void backoff(t_access_category ac);
             simtime_t startContent(simtime_t idleSince, bool guardActive);
             void stopContent(bool allowBackoff, bool generateTxOp);
@@ -85,7 +70,7 @@ public:
             void cleanUp();
 
             /** @brief return the next packet to send, send all lower Queues into backoff */
-            inet::IPv6Datagram* initiateTransmit(simtime_t idleSince);
+            inet::ieee80211::Ieee80211DataOrMgmtFrame* initiateTransmit(simtime_t idleSince);
 
         public:
             std::map<t_access_category,EDCAQueue> myQueues;
@@ -164,7 +149,7 @@ protected:
 
     bool guardActive() const;
 
-    void attachSignal(Mac80211Pkt* mac, simtime_t startTime, double frequency, uint64_t datarate, double txPower_mW);
+    void attachSignal(inet::ieee80211::Ieee80211DataOrMgmtFrame* mac, simtime_t startTime, double frequency, uint64_t datarate, double txPower_mW);
     Signal* createSignal(simtime_t start, simtime_t length, double power, uint64_t bitrate, double frequency);
 
     /** @brief maps a application layer priority (up) to an EDCA access category. */
@@ -223,8 +208,8 @@ protected:
     simtime_t statsTotalBusyTime;
 
     /** @brief This MAC layers MAC address.*/
-    int myMacAddress;
-
+    inet::MACAddress myMacAddress;
+    inet::MACAddress rsuMacAddress;
     /** @brief The power (in mW) to transmit with.*/
     double txPower;
 
@@ -245,4 +230,5 @@ protected:
     simsignal_t sigCollision;
 };
 
-#endif /* WAVE1609_4_RSU_H_ */
+
+#endif

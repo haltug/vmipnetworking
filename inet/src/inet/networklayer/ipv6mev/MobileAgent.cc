@@ -929,18 +929,18 @@ void MobileAgent::receiveSignal(cComponent *source, simsignal_t signalID, cObjec
                 createInterfaceDownMessage(ie->getInterfaceId());
         }
     }
-    if(signalID == NF_INTERFACE_STATE_CHANGED) { // is triggered when carrier setting is changed
-        EV << "-------- RECEIVED STATE SIGNAL ---------" << endl;
-        if(dynamic_cast<InterfaceEntryChangeDetails *>(obj)) {
-            InterfaceEntry *ie = check_and_cast<const InterfaceEntryChangeDetails *>(obj)->getInterfaceEntry();
-            if(ie->ipv6Data()->getPreferredAddress().isGlobal()) {
-                if(ie->isUp())
-                    createInterfaceUpMessage(ie->getInterfaceId());
-                else
-                    createInterfaceDownMessage(ie->getInterfaceId());
-            }
-        }
-    }
+//    if(signalID == NF_INTERFACE_STATE_CHANGED) { // is triggered when carrier setting is changed
+//        EV << "-------- RECEIVED STATE SIGNAL ---------" << endl;
+//        if(dynamic_cast<InterfaceEntryChangeDetails *>(obj)) {
+//            InterfaceEntry *ie = check_and_cast<const InterfaceEntryChangeDetails *>(obj)->getInterfaceEntry();
+//            if(ie->ipv6Data()->getPreferredAddress().isGlobal()) {
+//                if(ie->isUp())
+//                    createInterfaceUpMessage(ie->getInterfaceId());
+//                else
+//                    createInterfaceDownMessage(ie->getInterfaceId());
+//            }
+//        }
+//    }
 }
 
 void MobileAgent::receiveSignal(cComponent *source, simsignal_t signalID, double d)

@@ -279,6 +279,9 @@ void Ieee80211MgmtSTA::changeChannel(int channelNum)
 void Ieee80211MgmtSTA::beaconLost()
 {
     EV << "Missed a few consecutive beacons -- AP is considered lost\n";
+    EV << "===============================================================================" << endl;
+    EV << "========    Beacon Lost    ========" << endl;
+    EV << "===============================================================================" << endl;
     emit(NF_L2_BEACON_LOST, myIface);
 }
 

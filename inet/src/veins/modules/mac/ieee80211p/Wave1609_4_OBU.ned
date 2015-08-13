@@ -15,9 +15,24 @@
 
 package veins.modules.mac.ieee80211p;
 
-//
-// TODO auto-generated module
-//
-simple Wave1609_4_OBU
+import veins.base.modules.BaseMacLayer;
+
+simple Wave1609_4_OBU extends BaseMacLayer
 {
+	parameters:
+        @class(Wave1609_4);
+        string rsuMacAddress; // MAC address of associate AP
+        bool useServiceChannel = default(true); // cycle between an SCH and the CCH (or stay on CCH all the time)
+        int serviceChannel = default(1); // the service channel this maclayer listens on
+		int queue = default(0); // set the queue to be used
+        
+        bool debug = default(false); // debug switch
+        headerLength @unit(bit) = default(0 bit); // length of MAC header, header is already added at 1609_4
+        double bitrate @unit(bps) = default(18 Mbps); // bit rate 
+        double syncOffset @unit(s) = default(0.0003s); // little asynchronization between cars
+        double txPower @unit(mW); //tx power [mW]
+        int queueSize = default(0);
+        @signal[sigChannelBusy](type=bool); // signal informing interested application about channel busy state
+        @signal[sigCollision](type=bool); // signal informing interested application about a collision
+    
 }
