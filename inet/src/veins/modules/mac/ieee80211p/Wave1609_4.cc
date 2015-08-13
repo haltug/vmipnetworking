@@ -32,8 +32,7 @@ void Wave1609_4::initialize(int stage)
     BaseMacLayer::initialize(stage);
     if (stage == 0) {
 
-        phy11p = FindModule<Mac80211pToPhy11pInterface*>::findSubModule(
-                     getParentModule());
+        phy11p = FindModule<Mac80211pToPhy11pInterface*>::findSubModule(getParentModule());
         assert(phy11p);
 
         //this is required to circumvent double precision issues with constants from CONST80211p.h
@@ -48,7 +47,7 @@ void Wave1609_4::initialize(int stage)
         setParametersForBitrate(bitrate);
 
         //mac-adresses
-        myMacAddress = inet::MACAddress::generateAutoAddress();
+        myMacAddress = myMacAddr;
         myId = getParentModule()->getParentModule()->getFullPath();
         //create frequency mappings
         frequency.insert(std::pair<int, double>(Channels::CRIT_SOL, 5.86e9));
@@ -138,6 +137,9 @@ void Wave1609_4::initialize(int stage)
         lastBusy = simTime();
         channelIdle(true);
     }
+    if (stage == inet::INITSTAGE_LAST) {
+        rsuMacAddress.setAddress(par("rsuMacAddress").stringValue());
+    }
 }
 
 void Wave1609_4::handleSelfMsg(cMessage *msg)
@@ -170,23 +172,22 @@ void Wave1609_4::handleSelfMsg(cMessage *msg)
 
         //we actually came to the point where we can send a packet
         channelBusySelf(true);
-        inet::IPv6Datagram* pktToSend = myEDCA[activeChannel]->initiateTransmit(lastIdle);
-
-        //    inet::IPv6Datagram *ctrl = check_and_cast<inet::Ieee802Ctrl *>(msg->removeControlInfo());
-        lastAC = AC_VO;
+        inet::ieee80211::Ieee80211DataOrMgmtFrame* mac = myEDCA[activeChannel]->initiateTransmit(lastIdle);
+        //check line below
+//        lastAC = AC_VO;
 
         DBG_MAC << "MacEvent received. Trying to send packet with priority" << lastAC << std::endl;
 
         //send the packet
-        inet::ieee80211::Ieee80211DataFrame* mac = new inet::ieee80211::Ieee80211DataFrame(pktToSend->getName(), pktToSend->getKind());
-        mac->setReceiverAddress(inet::MACAddress::BROADCAST_ADDRESS);
-        mac->setTransmitterAddress(myMacAddress);
-        mac->encapsulate(pktToSend->dup());
+//        inet::ieee80211::Ieee80211DataFrame* mac = new inet::ieee80211::Ieee80211DataFrame(pktToSend->getName(), pktToSend->getKind());
+//        mac->setReceiverAddress(inet::MACAddress::BROADCAST_ADDRESS);
+//        mac->setTransmitterAddress(myMacAddress);
+//        mac->encapsulate(pktToSend->dup());
 
         enum PHY_MCS mcs;
         double txPower_mW;
         uint64_t datarate;
-        PhyControlMessage *controlInfo = dynamic_cast<PhyControlMessage *>(pktToSend->getControlInfo());
+        PhyControlMessage *controlInfo = dynamic_cast<PhyControlMessage *>(mac->getControlInfo());
         if (controlInfo) {
             //if MCS is not specified, just use the default one
             mcs = (enum PHY_MCS)controlInfo->getMcs();
@@ -243,12 +244,30 @@ void Wave1609_4::handleUpperControl(cMessage* msg) {
 
 void Wave1609_4::handleUpperMsg(cMessage* msg) {
 
-//    inet::IPv6Datagram *ctrl = check_and_cast<inet::Ieee802Ctrl *>(msg->removeControlInfo());
-    inet::IPv6Datagram* thisMsg;
-    if ((thisMsg = dynamic_cast<inet::IPv6Datagram*>(msg)) == NULL) {
-        cRuntimeError("WaveMac only accepts IPv6Datagram.");
-    }
+    EV << "Received message from upper layer." << endl;
 
+    inet::ieee80211::Ieee80211DataFrameWithSNAP *frame = new inet::ieee80211::Ieee80211DataFrameWithSNAP(msg->getName());
+    frame->setToDS(true);
+    // receiver is the AP
+    frame->setReceiverAddress(rsuMacAddress);
+    frame->setTransmitterAddress(myMacAddress);
+    EV << "Config: rsu=" << rsuMacAddress << " mMac=" << myMacAddress << endl;
+    cObject *controlInfoPtr = msg->removeControlInfo();
+    if (dynamic_cast<inet::Ieee802Ctrl *>(controlInfoPtr) != nullptr){
+        inet::Ieee802Ctrl *ctrl = (inet::Ieee802Ctrl *) controlInfoPtr;
+        ASSERT(!ctrl->getDest().isUnspecified());
+        frame->setAddress3(ctrl->getDest());
+        frame->setEtherType(ctrl->getEtherType());
+    } else {
+        EV << "No Ieee802Ctrl contained." << endl;
+    }
+    cPacket *pk = PK(msg);
+    frame->encapsulate(pk);
+////    inet::IPv6Datagram *ctrl = check_and_cast<inet::Ieee802Ctrl *>(msg->removeControlInfo());
+//    inet::IPv6Datagram* thisMsg;
+//    if ((thisMsg = dynamic_cast<inet::IPv6Datagram*>(msg)) == NULL) {
+//        cRuntimeError("WaveMac only accepts IPv6Datagram.");
+//    }
 //    t_access_category ac = mapPriority(thisMsg->getPriority());
     t_access_category ac;
     switch (mQueue) {
@@ -279,7 +298,7 @@ void Wave1609_4::handleUpperMsg(cMessage* msg) {
 //        chan = type_CCH;
 //    }
 
-    int num = myEDCA[chan]->queuePacket(ac,thisMsg);
+    int num = myEDCA[chan]->queuePacket(ac,frame);
 
     //packet was dropped in Mac
     if (num == -1) {
@@ -323,7 +342,7 @@ void Wave1609_4::handleUpperMsg(cMessage* msg) {
     if (num == 1 && idleChannel == false && myEDCA[chan]->myQueues[ac].currentBackoff == 0 && chan == activeChannel) {
         myEDCA[chan]->backoff(ac);
     }
-
+    delete controlInfoPtr;
 }
 
 void Wave1609_4::handleLowerControl(cMessage* msg) {
@@ -419,7 +438,7 @@ void Wave1609_4::finish() {
 
 }
 
-void Wave1609_4::attachSignal(inet::ieee80211::Ieee80211DataFrame* mac, simtime_t startTime, double frequency, uint64_t datarate, double txPower_mW) {
+void Wave1609_4::attachSignal(inet::ieee80211::Ieee80211DataOrMgmtFrame* mac, simtime_t startTime, double frequency, uint64_t datarate, double txPower_mW) {
 
     simtime_t duration = getFrameDuration(mac->getBitLength());
 
@@ -507,46 +526,47 @@ void Wave1609_4::setCCAThreshold(double ccaThreshold_dBm) {
 }
 
 void Wave1609_4::handleLowerMsg(cMessage* msg) {
-    inet::ieee80211::Ieee80211DataFrame* macPkt = static_cast<inet::ieee80211::Ieee80211DataFrame*>(msg);
-    ASSERT(macPkt);
-
-    inet::IPv6Datagram*  datagram =  dynamic_cast<inet::IPv6Datagram*>(macPkt->decapsulate());
+    inet::ieee80211::Ieee80211DataOrMgmtFrame* frame = check_and_cast<inet::ieee80211::Ieee80211DataOrMgmtFrame *>(msg);
+    assert(frame);
+    cPacket *payload = frame->decapsulate();
 
     //pass information about received frame to the upper layers
-    DeciderResult80211 *macRes = dynamic_cast<DeciderResult80211 *>(PhyToMacControlInfo::getDeciderResult(msg));
-    ASSERT(macRes);
+//    DeciderResult80211 *macRes = dynamic_cast<DeciderResult80211 *>(PhyToMacControlInfo::getDeciderResult(msg));
+//    ASSERT(macRes);
 //    DeciderResult80211 *res = new DeciderResult80211(*macRes);
 
     inet::Ieee802Ctrl *ctrl = new inet::Ieee802Ctrl();
-    ctrl->setSrc(inet::MACAddress(macPkt->getAddress3()));
-    ctrl->setDest(inet::MACAddress(macPkt->getReceiverAddress()));
-    ctrl->setEtherType(inet::ETHERTYPE_IPv6);
-    datagram->setControlInfo(ctrl);
+    ctrl->setSrc(inet::MACAddress(frame->getAddress3()));
+    ctrl->setDest(inet::MACAddress(frame->getReceiverAddress()));
+    inet::ieee80211::Ieee80211DataFrameWithSNAP *frameWithSNAP = dynamic_cast<inet::ieee80211::Ieee80211DataFrameWithSNAP *>(frame);
+    if (frameWithSNAP)
+        ctrl->setEtherType(frameWithSNAP->getEtherType());
+    payload->setControlInfo(ctrl);
 
-    inet::MACAddress dest = macPkt->getReceiverAddress();
+    inet::MACAddress dest = frame->getReceiverAddress();
 
-    DBG_MAC << "Received frame name= " << macPkt->getName()
-            << ", myState=" << " src=" << macPkt->getTransmitterAddress()
-            << " dst=" << macPkt->getReceiverAddress() << " myAddr="
+    DBG_MAC << "Received frame name= " << frame->getName()
+            << ", myState=" << " src=" << frame->getTransmitterAddress()
+            << " dst=" << frame->getReceiverAddress() << " myAddr="
             << myMacAddress << std::endl;
 
-    if (macPkt->getReceiverAddress() == myMacAddress) {
+    if (frame->getReceiverAddress() == myMacAddress) {
         DBG_MAC << "Received a data packet addressed to me." << std::endl;
         statsReceivedPackets++;
-        sendUp(datagram);
+        sendUp(payload);
     }
     else if (dest == inet::MACAddress::BROADCAST_ADDRESS) {
         statsReceivedBroadcasts++;
-        sendUp(datagram);
+        sendUp(payload);
     }
     else {
         DBG_MAC << "Packet not for me, deleting..." << std::endl;
-        delete datagram;
+        delete payload;
     }
-    delete macPkt;
+    delete frame;
 }
-
-int Wave1609_4::EDCA::queuePacket(t_access_category ac,inet::IPv6Datagram* msg) {
+// hier weiter und mach upperMSG vollenden
+int Wave1609_4::EDCA::queuePacket(t_access_category ac,inet::ieee80211::Ieee80211DataOrMgmtFrame* msg) {
 
     if (maxQueueSize && myQueues[ac].queue.size() >= maxQueueSize) {
         delete msg;
@@ -580,10 +600,10 @@ Wave1609_4::t_access_category Wave1609_4::mapPriority(int prio) {
     return AC_VO;
 }
 
-inet::IPv6Datagram* Wave1609_4::EDCA::initiateTransmit(simtime_t lastIdle) {
+inet::ieee80211::Ieee80211DataOrMgmtFrame* Wave1609_4::EDCA::initiateTransmit(simtime_t lastIdle) {
 
     //iterate through the queues to return the packet we want to send
-    inet::IPv6Datagram* pktToSend = NULL;
+    inet::ieee80211::Ieee80211DataOrMgmtFrame* pktToSend = NULL;
 
     simtime_t idleTime = simTime() - lastIdle;
 

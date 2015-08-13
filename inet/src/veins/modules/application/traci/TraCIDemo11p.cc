@@ -21,7 +21,6 @@
 #include "veins/modules/application/traci/TraCIDemo11p.h"
 
 using inet::TraCIMobilityAccess;
-using inet::AnnotationManagerAccess;
 
 const simsignalwrap_t TraCIDemo11p::parkingStateChangedSignal = simsignalwrap_t(TRACI_SIGNAL_PARKING_CHANGE_NAME);
 

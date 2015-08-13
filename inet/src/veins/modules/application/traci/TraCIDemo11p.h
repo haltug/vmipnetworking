@@ -24,10 +24,11 @@
 #include "veins/modules/application/ieee80211p/BaseWaveApplLayer.h"
 #include "veins/modules/mobility/traci/TraCIMobility.h"
 #include "veins/modules/mobility/traci/TraCICommandInterface.h"
+#include "veins/modules/world/annotations/AnnotationManager.h"
 
 using inet::TraCIMobility;
 using inet::TraCICommandInterface;
-using inet::AnnotationManager;
+//using inet::AnnotationManager;
 
 /**
  * Small IVC Demo using 11p

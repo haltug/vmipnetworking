@@ -24,11 +24,11 @@
 #include "veins/modules/mobility/traci/TraCIScenarioManager.h"
 #include "veins/modules/mobility/traci/TraCICommandInterface.h"
 
-Define_Module(inet::AnnotationManager);
+Define_Module(AnnotationManager);
 
 using inet::TraCIScenarioManager;
 using inet::TraCIScenarioManagerAccess;
-using inet::AnnotationManager;
+//using inet::AnnotationManager;
 
 namespace {
 	const short EVT_SCHEDULED_ERASE = 3;
@@ -142,7 +142,7 @@ void AnnotationManager::addFromXml(cXMLElement* xml) {
 			std::vector<double> p1a = cStringTokenizer(points[0].c_str(), ",").asDoubleVector();
 			ASSERT(p1a.size() == 2);
 
-			drawPoint(Coord(p1a[0], p1a[1]), color, text);
+			drawPoint(inet::Coord(p1a[0], p1a[1]), color, text);
 		}
 		else if (tag == "line") {
 			ASSERT(e->getAttribute("color"));
@@ -157,7 +157,7 @@ void AnnotationManager::addFromXml(cXMLElement* xml) {
 			std::vector<double> p2a = cStringTokenizer(points[1].c_str(), ",").asDoubleVector();
 			ASSERT(p2a.size() == 2);
 
-			drawLine(Coord(p1a[0], p1a[1]), Coord(p2a[0], p2a[1]), color);
+			drawLine(inet::Coord(p1a[0], p1a[1]), inet::Coord(p2a[0], p2a[1]), color);
 		}
 		else if (tag == "poly") {
 			ASSERT(e->getAttribute("color"));
@@ -167,11 +167,11 @@ void AnnotationManager::addFromXml(cXMLElement* xml) {
 			std::vector<std::string> points = cStringTokenizer(shape.c_str(), " ").asVector();
 			ASSERT(points.size() >= 2);
 
-			std::vector<Coord> coords;
+			std::vector<inet::Coord> coords;
 			for (std::vector<std::string>::const_iterator i = points.begin(); i != points.end(); ++i) {
 				std::vector<double> pa = cStringTokenizer(i->c_str(), ",").asDoubleVector();
 				ASSERT(pa.size() == 2);
-				coords.push_back(Coord(pa[0], pa[1]));
+				coords.push_back(inet::Coord(pa[0], pa[1]));
 			}
 
 			drawPolygon(coords, color);
@@ -190,7 +190,7 @@ AnnotationManager::Group* AnnotationManager::createGroup(std::string title) {
 	return group;
 }
 
-AnnotationManager::Point* AnnotationManager::drawPoint(Coord p, std::string color, std::string text, Group* group) {
+AnnotationManager::Point* AnnotationManager::drawPoint(inet::Coord p, std::string color, std::string text, Group* group) {
 	Point* o = new Point(p, color, text);
 	o->group = group;
 
@@ -201,7 +201,7 @@ AnnotationManager::Point* AnnotationManager::drawPoint(Coord p, std::string colo
 	return o;
 }
 
-AnnotationManager::Line* AnnotationManager::drawLine(Coord p1, Coord p2, std::string color, Group* group) {
+AnnotationManager::Line* AnnotationManager::drawLine(inet::Coord p1, inet::Coord p2, std::string color, Group* group) {
 	Line* l = new Line(p1, p2, color);
 	l->group = group;
 
@@ -212,7 +212,7 @@ AnnotationManager::Line* AnnotationManager::drawLine(Coord p1, Coord p2, std::st
 	return l;
 }
 
-AnnotationManager::Polygon* AnnotationManager::drawPolygon(std::list<Coord> coords, std::string color, Group* group) {
+AnnotationManager::Polygon* AnnotationManager::drawPolygon(std::list<inet::Coord> coords, std::string color, Group* group) {
 	Polygon* p = new Polygon(coords, color);
 	p->group = group;
 
@@ -223,11 +223,11 @@ AnnotationManager::Polygon* AnnotationManager::drawPolygon(std::list<Coord> coor
 	return p;
 }
 
-AnnotationManager::Polygon* AnnotationManager::drawPolygon(std::vector<Coord> coords, std::string color, Group* group) {
-	return drawPolygon(std::list<Coord>(coords.begin(), coords.end()), color, group);
+AnnotationManager::Polygon* AnnotationManager::drawPolygon(std::vector<inet::Coord> coords, std::string color, Group* group) {
+	return drawPolygon(std::list<inet::Coord>(coords.begin(), coords.end()), color, group);
 }
 
-void AnnotationManager::drawBubble(Coord p1, std::string text) {
+void AnnotationManager::drawBubble(inet::Coord p1, std::string text) {
 	std::string pxOld = getDisplayString().getTagArg("p", 0);
 	std::string pyOld = getDisplayString().getTagArg("p", 1);
 
@@ -292,7 +292,7 @@ cModule* AnnotationManager::createDummyModule(std::string displayString) {
 	return mod;
 }
 
-cModule* AnnotationManager::createDummyModuleLine(Coord p1, Coord p2, std::string color) {
+cModule* AnnotationManager::createDummyModuleLine(inet::Coord p1, inet::Coord p2, std::string color) {
 	double w = std::abs(p2.x - p1.x);
 	double h = std::abs(p2.y - p1.y);
 	double px = 0;
@@ -334,7 +334,7 @@ void AnnotationManager::show(const Annotation* annotation) {
 		TraCIScenarioManager* traci = TraCIScenarioManagerAccess().get();
 		if (traci && traci->isConnected()) {
 			std::stringstream nameBuilder; nameBuilder << o->text << " " << ev.getUniqueNumber();
-			traci->getCommandInterface()->addPoi(nameBuilder.str(), "Annotation", TraCIColor::fromTkColor(o->color), 6, o->pos);
+			traci->getCommandInterface()->addPoi(nameBuilder.str(), "Annotation", inet::TraCIColor::fromTkColor(o->color), 6, o->pos);
 			annotation->traciPoiIds.push_back(nameBuilder.str());
 		}
 	}
@@ -356,9 +356,9 @@ void AnnotationManager::show(const Annotation* annotation) {
 
 		TraCIScenarioManager* traci = TraCIScenarioManagerAccess().get();
 		if (traci && traci->isConnected()) {
-			std::list<Coord> coords; coords.push_back(l->p1); coords.push_back(l->p2);
+			std::list<inet::Coord> coords; coords.push_back(l->p1); coords.push_back(l->p2);
 			std::stringstream nameBuilder; nameBuilder << "Annotation" << ev.getUniqueNumber();
-			traci->getCommandInterface()->addPolygon(nameBuilder.str(), "Annotation", TraCIColor::fromTkColor(l->color), false, 5, coords);
+			traci->getCommandInterface()->addPolygon(nameBuilder.str(), "Annotation", inet::TraCIColor::fromTkColor(l->color), false, 5, coords);
 			annotation->traciLineIds.push_back(nameBuilder.str());
 		}
 	}
@@ -370,7 +370,7 @@ void AnnotationManager::show(const Annotation* annotation) {
 #if OMNETPP_CANVAS_VERSION == 0x20140709
 			cPolygonFigure* figure = new cPolygonFigure();
 			std::vector<cFigure::Point> points;
-			for (std::list<Coord>::const_iterator i = p->coords.begin(); i != p->coords.end(); ++i) {
+			for (std::list<inet::Coord>::const_iterator i = p->coords.begin(); i != p->coords.end(); ++i) {
 				points.push_back(cFigure::Point(i->x, i->y));
 			}
 			figure->setPoints(points);
@@ -379,10 +379,10 @@ void AnnotationManager::show(const Annotation* annotation) {
 			annotation->figure = figure;
 			annotationLayer->addFigure(annotation->figure);
 #else
-			Coord lastCoords = *p->coords.rbegin();
-			for (std::list<Coord>::const_iterator i = p->coords.begin(); i != p->coords.end(); ++i) {
-				Coord c1 = *i;
-				Coord c2 = lastCoords;
+			inet::Coord lastCoords = *p->coords.rbegin();
+			for (std::list<inet::Coord>::const_iterator i = p->coords.begin(); i != p->coords.end(); ++i) {
+				inet::Coord c1 = *i;
+				inet::Coord c2 = lastCoords;
 				lastCoords = c1;
 
 				cModule* mod = createDummyModuleLine(c1, c2, p->color);
@@ -394,7 +394,7 @@ void AnnotationManager::show(const Annotation* annotation) {
 		TraCIScenarioManager* traci = TraCIScenarioManagerAccess().get();
 		if (traci && traci->isConnected()) {
 			std::stringstream nameBuilder; nameBuilder << "Annotation" << ev.getUniqueNumber();
-			traci->getCommandInterface()->addPolygon(nameBuilder.str(), "Annotation", TraCIColor::fromTkColor(p->color), false, 4, p->coords);
+			traci->getCommandInterface()->addPolygon(nameBuilder.str(), "Annotation", inet::TraCIColor::fromTkColor(p->color), false, 4, p->coords);
 			annotation->traciPolygonsIds.push_back(nameBuilder.str());
 		}
 

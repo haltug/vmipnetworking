@@ -3,8 +3,8 @@
 
 #include "veins/base/utils/MiXiMDefs.h"
 #include "veins/base/phyLayer/BaseDecider.h"
-
-using inet::AirFrame;
+#include "veins/base/messages/AirFrame_m.h"
+//using inet::AirFrame;
 
 /**
  * @brief Decider implementation which decides a signals

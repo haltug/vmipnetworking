@@ -13,8 +13,8 @@
 #include "veins/base/phyLayer/DeciderToPhyInterface.h"
 #include "veins/base/messages/ChannelSenseRequest_m.h"
 #include "veins/base/phyLayer/ChannelState.h"
-
-using inet::AirFrame;
+#include "veins/base/messages/AirFrame_m.h"
+//using inet::AirFrame;
 
 
 

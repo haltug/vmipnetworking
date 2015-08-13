@@ -24,8 +24,8 @@
 #include "veins/base/phyLayer/AnalogueModel.h"
 #include "veins/base/modules/BaseWorldUtility.h"
 #include "veins/base/phyLayer/MappingBase.h"
-
-using inet::AirFrame;
+#include "veins/base/messages/AirFrame_m.h"
+//using inet::AirFrame;
 
 /**
  * @brief

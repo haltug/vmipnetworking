@@ -20,7 +20,7 @@
 #include <set>
 #include "veins/modules/obstacle/Obstacle.h"
 
-using inet::Obstacle;
+//using inet::Obstacle;
 
 Obstacle::Obstacle(std::string id, double attenuationPerWall, double attenuationPerMeter) :
 	visualRepresentation(0),

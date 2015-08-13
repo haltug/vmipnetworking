@@ -5,8 +5,8 @@
 #include "veins/base/connectionManager/NicEntry.h"
 
 namespace inet {
-class ChannelAccess;
 }
+class ChannelAccess;
 
 /**
  * @brief Module to control the channel and handle all connection

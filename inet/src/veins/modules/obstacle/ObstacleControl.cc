@@ -23,9 +23,9 @@
 
 #include "veins/modules/obstacle/ObstacleControl.h"
 
-using inet::ObstacleControl;
+//using inet::ObstacleControl;
 
-Define_Module(inet::ObstacleControl);
+Define_Module(ObstacleControl);
 
 ObstacleControl::~ObstacleControl() {
 
@@ -94,13 +94,13 @@ void ObstacleControl::addFromXml(cXMLElement* xml) {
 		if (type == "building") { attenuationPerWall = 50; attenuationPerMeter = 1; }
 		else error("unknown obstacle type: %s", type.c_str());
 		Obstacle obs(id, attenuationPerWall, attenuationPerMeter);
-		std::vector<Coord> sh;
+		std::vector<inet::Coord> sh;
 		cStringTokenizer st(shape.c_str());
 		while (st.hasMoreTokens()) {
 			std::string xy = st.nextToken();
 			std::vector<double> xya = cStringTokenizer(xy.c_str(), ",").asDoubleVector();
 			ASSERT(xya.size() == 2);
-			sh.push_back(Coord(xya[0], xya[1]));
+			sh.push_back(inet::Coord(xya[0], xya[1]));
 		}
 		obs.setShape(sh);
 		add(obs);
@@ -150,7 +150,7 @@ void ObstacleControl::erase(const Obstacle* obstacle) {
 	cacheEntries.clear();
 }
 
-double ObstacleControl::calculateAttenuation(const Coord& senderPos, const Coord& receiverPos) const {
+double ObstacleControl::calculateAttenuation(const inet::Coord& senderPos, const inet::Coord& receiverPos) const {
 	Enter_Method_Silent();
 
 	// return cached result, if available
@@ -159,8 +159,8 @@ double ObstacleControl::calculateAttenuation(const Coord& senderPos, const Coord
 	if (cacheEntryIter != cacheEntries.end()) return cacheEntryIter->second;
 
 	// calculate bounding box of transmission
-	Coord bboxP1 = Coord(std::min(senderPos.x, receiverPos.x), std::min(senderPos.y, receiverPos.y));
-	Coord bboxP2 = Coord(std::max(senderPos.x, receiverPos.x), std::max(senderPos.y, receiverPos.y));
+	inet::Coord bboxP1 = inet::Coord(std::min(senderPos.x, receiverPos.x), std::min(senderPos.y, receiverPos.y));
+	inet::Coord bboxP2 = inet::Coord(std::max(senderPos.x, receiverPos.x), std::max(senderPos.y, receiverPos.y));
 
 	size_t fromRow = std::max(0, int(bboxP1.x / GRIDCELL_SIZE));
 	size_t toRow = std::max(0, int(bboxP2.x / GRIDCELL_SIZE));

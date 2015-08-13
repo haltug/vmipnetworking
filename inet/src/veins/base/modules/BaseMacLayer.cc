@@ -35,8 +35,8 @@
 #include "veins/base/connectionManager/ChannelAccess.h"
 #include "veins/base/utils/FindModule.h"
 #include "veins/base/messages/MacPkt_m.h"
-
-using inet::ChannelAccess;
+#include "inet/linklayer/common/Ieee802Ctrl.h"
+#include "veins/base/connectionManager/ChannelAccess.h"
 
 Define_Module(BaseMacLayer);
 
@@ -68,8 +68,10 @@ void BaseMacLayer::initialize(int stage)
             myMacAddr = addrScheme->myMacAddr(this);
         } else {
             const std::string addressString = par("address").stringValue();
-            if (addressString.empty() || addressString == "auto")
+            if (addressString.empty() || addressString == "auto") {
                 myMacAddr = inet::MACAddress::generateAutoAddress();
+                EV << "BaseMacLayer: MAC address is automatically configured. MAC=" << myMacAddr.str() << endl;
+            }
             else
                 myMacAddr = inet::MACAddress(addressString.c_str());
             // use streaming operator for string conversion, this makes it more
@@ -110,7 +112,7 @@ inet::ieee80211::Ieee80211DataOrMgmtFrame* BaseMacLayer::encapsMsg(cPacket *netw
     // copy dest address from the Control Info attached to the network
     // message by the network layer
     cObject* cInfo = netwPkt->removeControlInfo();
-
+    // TODO remove the below functions
     coreEV <<"CInfo removed, mac addr="<< getUpperDestinationFromControlInfo(cInfo) << endl;
     pkt->setReceiverAddress(getUpperDestinationFromControlInfo(cInfo));
 
@@ -271,7 +273,13 @@ BaseConnectionManager* BaseMacLayer::getConnectionManager() {
 }
 
 const inet::MACAddress& BaseMacLayer::getUpperDestinationFromControlInfo(const cObject *const pCtrlInfo) {
-	return NetwToMacControlInfo::getDestFromControlInfo(pCtrlInfo);
+//	return NetwToMacControlInfo::getDestFromControlInfo(pCtrlInfo);
+    const inet::Ieee802Ctrl* ctrl = dynamic_cast<const inet::Ieee802Ctrl *>(pCtrlInfo);
+    if(ctrl) {
+        return ctrl->getSourceAddress();
+    } else {
+        cRuntimeError("BaseMacLayer: Could not extract MAC address of ControlInfo from received message.");
+    }
 }
 
 /**
@@ -279,7 +287,11 @@ const inet::MACAddress& BaseMacLayer::getUpperDestinationFromControlInfo(const c
  */
 cObject *const BaseMacLayer::setUpControlInfo(cMessage *const pMsg, const inet::MACAddress& pSrcAddr)
 {
-	return MacToNetwControlInfo::setControlInfo(pMsg, pSrcAddr);
+//    return MacToNetwControlInfo::setControlInfo(pMsg, pSrcAddr);
+    inet::Ieee802Ctrl* ctrl = new inet::Ieee802Ctrl();
+    ctrl->setSrc(pSrcAddr);
+    pMsg->setControlInfo(ctrl);
+    return pMsg;
 }
 
 /**

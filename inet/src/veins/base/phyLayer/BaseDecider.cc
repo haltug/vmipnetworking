@@ -11,7 +11,7 @@
 
 #include "veins/base/messages/AirFrame_m.h"
 
-using inet::AirFrame;
+//using inet::AirFrame;
 
 simtime_t BaseDecider::processSignal(AirFrame* frame) {
 

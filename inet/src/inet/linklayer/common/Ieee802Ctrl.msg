@@ -20,6 +20,8 @@ cplusplus {{
 #include "inet/linklayer/common/MACAddress.h"
 }}
 class noncobject MACAddress;
+class noncobject Ieee802Ctrl;
+
 namespace inet;
 
 
@@ -76,7 +78,6 @@ enum EtherType
 class Ieee802Ctrl
 {
     @customize(true);
-
     MACAddress src;  // src MAC address (can be left empty when sending)
     MACAddress dest; // dest MAC address
     int etherType @enum(EtherType);   // used with ~EthernetIIFrame
@@ -85,4 +86,10 @@ class Ieee802Ctrl
     int ssap;        // used with IEEE 802 LLC (see ~EtherFrameWithLLC)
     int dsap;        // used with IEEE 802 LLC (see ~EtherFrameWithLLC)
     int pauseUnits;  // used with IEEE802CTRL_SENDPAUSE
+// extended for transmitting signal attributes to higher layers - HA
+	double snir;
+	double ber;
+	double ser;
+	double per;
+	double rssi;
 }

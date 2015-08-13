@@ -5,8 +5,8 @@
 
 #include "veins/base/utils/MiXiMDefs.h"
 #include "veins/base/phyLayer/AnalogueModel.h"
-
-using inet::AirFrame;
+#include "veins/base/messages/AirFrame_m.h"
+//using inet::AirFrame;
 
 /**
  * @brief Basic implementation of a BreakpointPathlossModel.

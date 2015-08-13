@@ -35,8 +35,7 @@ void Mac1609_4::initialize(int stage) {
 	BaseMacLayer::initialize(stage);
 	if (stage == 0) {
 
-		phy11p = FindModule<Mac80211pToPhy11pInterface*>::findSubModule(
-		             getParentModule());
+		phy11p = FindModule<Mac80211pToPhy11pInterface*>::findSubModule(getParentModule());
 		assert(phy11p);
 
 		//this is required to circumvent double precision issues with constants from CONST80211p.h
@@ -51,7 +50,7 @@ void Mac1609_4::initialize(int stage) {
 		setParametersForBitrate(bitrate);
 
 		//mac-adresses
-		myMacAddress = inet::MACAddress::generateAutoAddress();
+		myMacAddress = myMacAddr;
 		myId = getParentModule()->getParentModule()->getFullPath();
 		//create frequency mappings
 		frequency.insert(std::pair<int, double>(Channels::CRIT_SOL, 5.86e9));
@@ -510,7 +509,7 @@ void Mac1609_4::handleLowerMsg(cMessage* msg) {
 	inet::MACAddress dest = macPkt->getReceiverAddress();
 
 	DBG_MAC << "Received frame name= " << macPkt->getName()
-	        << ", myState=" << " src=" << macPkt->getTransmitterAddress()
+	        << ", src=" << macPkt->getTransmitterAddress()
 	        << " dst=" << macPkt->getReceiverAddress() << " myAddr="
 	        << myMacAddress << std::endl;
 

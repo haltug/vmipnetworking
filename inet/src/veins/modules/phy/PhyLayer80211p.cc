@@ -37,8 +37,8 @@
 #include "veins/modules/utility/Consts80211p.h"
 #include "veins/modules/messages/AirFrame11p_m.h"
 #include "veins/base/phyLayer/MacToPhyControlInfo.h"
-
-using inet::ObstacleControlAccess;
+#include "veins/modules/obstacle/ObstacleControl.h"
+//using inet::ObstacleControlAccess;
 
 Define_Module(PhyLayer80211p);
 

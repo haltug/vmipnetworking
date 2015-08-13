@@ -7,8 +7,8 @@
 #include "veins/base/phyLayer/AnalogueModel.h"
 #include "veins/base/phyLayer/Mapping.h"
 #include "veins/base/modules/BaseWorldUtility.h"
-
-using inet::AirFrame;
+#include "veins/base/messages/AirFrame_m.h"
+//using inet::AirFrame;
 
 class SimplePathlossModel;
 

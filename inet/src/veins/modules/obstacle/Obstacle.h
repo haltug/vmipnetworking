@@ -28,8 +28,8 @@
 /**
  * stores information about an Obstacle for ObstacleControl
  */
-namespace inet {
-class Obstacle {
+//namespace inet {
+class INET_API Obstacle {
 	public:
 		typedef std::vector<inet::Coord> Coords;
 
@@ -52,6 +52,6 @@ class Obstacle {
 		inet::Coord bboxP1;
 		inet::Coord bboxP2;
 };
-}
+//}
 
 #endif

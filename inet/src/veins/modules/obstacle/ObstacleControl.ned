@@ -27,7 +27,7 @@ simple ObstacleControl
     parameters:
         bool debug = default(false);  // emit debug messages?
         xml obstacles = default(xml("<obstacles/>")); // obstacles to add at startup
-	    @class(inet::ObstacleControl);
+	    @class(ObstacleControl);
         @display("i=misc/town");
         @labels(node);
 }

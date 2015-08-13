@@ -31,8 +31,8 @@
 #include "veins/base/connectionManager/BaseConnectionManager.h"
 #include "veins/modules/phy/Decider80211pToPhy80211pInterface.h"
 #include "veins/base/utils/Move.h"
-
-using inet::AirFrame;
+#include "veins/base/messages/AirFrame_m.h"
+//using inet::AirFrame;
 
 #ifndef DBG
 #define DBG EV

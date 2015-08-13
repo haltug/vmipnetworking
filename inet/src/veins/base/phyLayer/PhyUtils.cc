@@ -1,11 +1,11 @@
 #include "veins/base/phyLayer/PhyUtils.h"
 
 #include "veins/base/messages/AirFrame_m.h"
-
-using inet::AirFrame;
+//#include "veins/base/phyLayer/PhyUtils.h"
+//using inet::AirFrame;
 
 using namespace std;
-using inet::Radio;
+//using Radio;
 
 void RadioStateAnalogueModel::filterSignal(AirFrame *frame, const inet::Coord& sendersPos, const inet::Coord& receiverPos)
 {

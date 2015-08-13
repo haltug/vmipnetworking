@@ -3,7 +3,8 @@
 #include <iostream>
 #include <assert.h>
 
-using inet::AirFrame;
+//#include "veins/base/messages/AirFrame_m.h"
+//using inet::AirFrame;
 
 void ChannelInfo::addAirFrame(AirFrame* frame, simtime_t_cref startTime)
 {

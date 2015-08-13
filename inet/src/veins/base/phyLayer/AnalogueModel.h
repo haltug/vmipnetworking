@@ -3,11 +3,12 @@
 
 #include "veins/base/utils/MiXiMDefs.h"
 #include "inet/common/geometry/common/Coord.h"
-
-namespace inet {
-class AirFrame;
-}
-using inet::AirFrame;
+#include "veins/base/messages/AirFrame_m.h"
+//
+//namespace inet {
+//class AirFrame;
+//}
+//using inet::AirFrame;
 
 /**
  * @brief Interface for the analogue models of the physical layer.

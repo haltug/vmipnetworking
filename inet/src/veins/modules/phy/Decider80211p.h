@@ -26,8 +26,8 @@
 #include "veins/modules/utility/Consts80211p.h"
 #include "veins/modules/mac/ieee80211p/Mac80211pToPhy11pInterface.h"
 #include "veins/modules/phy/Decider80211pToPhy80211pInterface.h"
-
-using inet::AirFrame;
+#include "veins/base/messages/AirFrame_m.h"
+//using inet::AirFrame;
 
 #ifndef DBG_D11P
 #define DBG_D11P EV

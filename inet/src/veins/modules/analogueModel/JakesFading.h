@@ -19,8 +19,10 @@
 #include "veins/base/utils/MiXiMDefs.h"
 #include "veins/base/phyLayer/AnalogueModel.h"
 #include "veins/base/phyLayer/Mapping.h"
+#include "veins/base/messages/AirFrame_m.h"
 
-using inet::AirFrame;
+
+//using inet::AirFrame;
 
 class JakesFading;
 

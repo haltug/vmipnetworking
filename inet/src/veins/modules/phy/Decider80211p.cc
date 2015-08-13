@@ -31,9 +31,10 @@
 #include "veins/modules/messages/AirFrame11p_m.h"
 #include "veins/modules/phy/NistErrorRate.h"
 #include "veins/modules/utility/ConstsPhy.h"
-
-using inet::AirFrame;
-using inet::Radio;
+#include "veins/base/messages/AirFrame_m.h"
+#include "veins/base/phyLayer/PhyUtils.h"
+//using inet::AirFrame;
+//using inet::Radio;
 
 simtime_t Decider80211p::processNewSignal(AirFrame* msg) {
 

@@ -1,6 +1,6 @@
 #include "veins/base/phyLayer/Decider.h"
 
-using inet::AirFrame;
+//using inet::AirFrame;
 
 
 bool DeciderResult::isSignalCorrect() const {

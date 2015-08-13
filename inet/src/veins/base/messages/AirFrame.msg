@@ -28,7 +28,7 @@ class noncobject Signal;
 // If you need more fields for whatever reason, please do NOT create
 // your own packet! Just extend (subclass) this packet format 
 //
-namespace inet;
+//namespace inet;
 packet AirFrame
 {
     Signal signal;		// Contains the physical data of this AirFrame

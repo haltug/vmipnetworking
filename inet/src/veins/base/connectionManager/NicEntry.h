@@ -27,11 +27,7 @@
 
 #include "veins/base/utils/MiXiMDefs.h"
 #include "inet/common/geometry/common/Coord.h"
-
-namespace inet {
-class ChannelAccess;
-}
-using inet::ChannelAccess;
+#include "veins/base/connectionManager/ChannelAccess.h"
 
 
 /**

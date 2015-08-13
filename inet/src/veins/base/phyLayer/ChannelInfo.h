@@ -7,7 +7,7 @@
 #include "veins/base/utils/MiXiMDefs.h"
 #include "veins/base/messages/AirFrame_m.h"
 
-using inet::AirFrame;
+//using inet::AirFrame;
 
 /**
  * @brief This class is used by the BasePhyLayer to keep track of the AirFrames

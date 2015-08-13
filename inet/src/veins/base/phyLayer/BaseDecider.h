@@ -10,10 +10,10 @@
 
 #include "veins/base/utils/MiXiMDefs.h"
 #include "veins/base/phyLayer/Decider.h"
-
+#include "veins/base/messages/AirFrame_m.h"
 class Mapping;
 
-using inet::AirFrame;
+//using inet::AirFrame;
 
 #define deciderEV (ev.isDisabled()||!debug) ? ev : ev << "[Host " << myIndex << "] - PhyLayer(Decider): "
 

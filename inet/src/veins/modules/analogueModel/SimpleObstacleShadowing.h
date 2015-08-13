@@ -8,9 +8,9 @@
 #include "veins/base/utils/Move.h"
 #include "veins/base/phyLayer/Signal_.h"
 #include "veins/base/messages/AirFrame_m.h"
-
-using inet::AirFrame;
-using inet::ObstacleControl;
+#include "veins/modules/obstacle/ObstacleControl.h"
+//using inet::AirFrame;
+//using inet::ObstacleControl;
 
 #include <cstdlib>
 

@@ -24,12 +24,9 @@
  *              last modified:   $Date: 2006-06-07 16:55:24 +0200 (Mi, 07 Jun 2006) $
  *              by:              $Author: willkomm $
  **************************************************************************/
-
-
 #include "veins/base/connectionManager/ChannelAccess.h"
 
 #include <cassert>
-
 #include "veins/base/utils/FindModule.h"
 #include "veins/base/modules/BaseWorldUtility.h"
 #include "veins/base/connectionManager/BaseConnectionManager.h"
@@ -143,8 +140,8 @@ simtime_t ChannelAccess::calculatePropagationDelay(const NicEntry* nic) {
 	assert(senderModule); assert(receiverModule);
 
 	/** claim the Move pattern of the sender from the Signal */
-	Coord           sendersPos  = senderModule->getMobilityModule()->getCurrentPosition(/*sStart*/);
-	Coord           receiverPos = receiverModule->getMobilityModule()->getCurrentPosition(/*sStart*/);
+	inet::Coord sendersPos  = senderModule->getMobilityModule()->getCurrentPosition(/*sStart*/);
+	inet::Coord receiverPos = receiverModule->getMobilityModule()->getCurrentPosition(/*sStart*/);
 
 	// this time-point is used to calculate the distance between sending and receiving host
 	return receiverPos.distance(sendersPos) / BaseWorldUtility::speedOfLight;
@@ -154,7 +151,7 @@ void ChannelAccess::receiveSignal(cComponent *source, simsignal_t signalID, cObj
 {
     if(signalID == mobilityStateChangedSignal) {
     	ChannelMobilityPtrType const mobility = check_and_cast<ChannelMobilityPtrType>(obj);
-        Coord                        pos      = mobility->getCurrentPosition();
+    	inet::Coord pos = mobility->getCurrentPosition();
 
         if(isRegistered) {
             cc->updateNicPos(getParentModule()->getId(), &pos);

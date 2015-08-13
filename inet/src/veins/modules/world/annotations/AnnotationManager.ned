@@ -30,6 +30,6 @@ simple AnnotationManager
         xml annotations = default(xml("<annotations/>")); // annotations to add at startup
         @display("i=msg/paperclip");
         @labels(node);
-        @class(inet::AnnotationManager);
+        @class(AnnotationManager);
 }
 

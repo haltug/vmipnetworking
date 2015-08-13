@@ -35,8 +35,8 @@
  * Transmissions that cross one of the polygon's lines will have
  * their receive power set to zero.
  */
-namespace inet {
-class ObstacleControl : public cSimpleModule
+//namespace inet {
+class INET_API ObstacleControl : public cSimpleModule
 {
 	public:
 		~ObstacleControl();
@@ -93,10 +93,10 @@ class ObstacleControl : public cSimpleModule
 		AnnotationManager::Group* annotationGroup;
 		mutable CacheEntries cacheEntries;
 };
-}
+//}
 
-namespace inet {
-class ObstacleControlAccess
+//namespace inet {
+class INET_API ObstacleControlAccess
 {
 	public:
 		ObstacleControlAccess() {
@@ -106,7 +106,7 @@ class ObstacleControlAccess
 			return dynamic_cast<ObstacleControl*>(simulation.getModuleByPath("obstacles"));
 		}
 };
-}
+//}
 
 #endif
 

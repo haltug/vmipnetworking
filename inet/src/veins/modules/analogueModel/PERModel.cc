@@ -2,7 +2,7 @@
 
 #include "veins/base/messages/AirFrame_m.h"
 
-using inet::AirFrame;
+//using inet::AirFrame;
 
 void PERModel::filterSignal(AirFrame *frame, const inet::Coord& sendersPos, const inet::Coord& receiverPos) {
 	Signal&   signal = frame->getSignal();

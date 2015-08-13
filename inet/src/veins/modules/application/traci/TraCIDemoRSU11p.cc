@@ -20,8 +20,6 @@
 
 #include "veins/modules/application/traci/TraCIDemoRSU11p.h"
 
-using inet::AnnotationManagerAccess;
-
 Define_Module(TraCIDemoRSU11p);
 
 void TraCIDemoRSU11p::initialize(int stage) {

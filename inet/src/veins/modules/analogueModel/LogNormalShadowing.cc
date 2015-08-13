@@ -19,7 +19,7 @@
 #include "veins/base/messages/AirFrame_m.h"
 #include "veins/base/utils/FWMath.h"
 
-using inet::AirFrame;
+//using inet::AirFrame;
 
 LogNormalShadowing::LogNormalShadowing(double mean, double stdDev, simtime_t_cref interval):
 	mean(mean), stdDev(stdDev), interval(interval)

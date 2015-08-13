@@ -30,8 +30,8 @@
 /**
  * manages annotations on the OMNeT++ canvas.
  */
-namespace inet {
-class AnnotationManager : public cSimpleModule
+//namespace inet {
+class INET_API AnnotationManager : public cSimpleModule
 {
 	public:
 		class Group;
@@ -158,17 +158,17 @@ class AnnotationManager : public cSimpleModule
 #endif
 
 };
-}
+//}
 
-namespace inet {
-class AnnotationManagerAccess
+//namespace inet {
+class INET_API AnnotationManagerAccess
 {
 	public:
 		AnnotationManager* getIfExists() {
 			return FindModule<AnnotationManager*>::findGlobalModule();
 		};
 };
-}
+//}
 
 #endif
 

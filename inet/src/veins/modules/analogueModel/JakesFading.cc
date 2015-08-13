@@ -16,11 +16,11 @@
 #include "veins/modules/analogueModel/JakesFading.h"
 
 #include "veins/base/modules/BaseWorldUtility.h"
-#include "veins/base/messages/AirFrame_m.h"
 #include "veins/base/connectionManager/ChannelAccess.h"
+#include "veins/base/messages/AirFrame_m.h"
 
-using inet::AirFrame;
-using inet::ChannelAccess;
+
+//using inet::AirFrame;
 
 DimensionSet JakesFadingMapping::dimensions(Dimension::time);
 

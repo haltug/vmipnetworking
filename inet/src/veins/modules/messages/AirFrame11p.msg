@@ -15,7 +15,6 @@
 
 cplusplus {{
 #include "veins/base/messages/AirFrame_m.h"
-using inet::AirFrame;
 }}
 class AirFrame;
 

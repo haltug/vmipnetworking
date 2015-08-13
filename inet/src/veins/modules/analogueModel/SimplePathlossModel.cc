@@ -2,7 +2,7 @@
 
 #include "veins/base/messages/AirFrame_m.h"
 
-using inet::AirFrame;
+//using inet::AirFrame;
 
 #define splmEV (ev.isDisabled()||!debug) ? ev : ev << "PhyLayer(SimplePathlossModel): "
 

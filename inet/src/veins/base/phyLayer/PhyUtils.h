@@ -8,8 +8,8 @@
 #include "veins/base/utils/MiXiMDefs.h"
 #include "veins/base/phyLayer/AnalogueModel.h"
 #include "veins/base/phyLayer/Mapping.h"
-
-using inet::AirFrame;
+#include "veins/base/messages/AirFrame_m.h"
+//using inet::AirFrame;
 
 class RSAMMapping;
 
@@ -195,7 +195,7 @@ public:
  *
  * @ingroup phyLayer
  */
-namespace inet {
+//namespace inet {
 class INET_API Radio
 {
 public:
@@ -419,7 +419,7 @@ protected:
 		}
 	}
 }; // end class Radio
-}
+//}
 
 
 /**

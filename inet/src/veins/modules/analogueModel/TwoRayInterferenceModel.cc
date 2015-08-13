@@ -23,7 +23,7 @@
 #include "veins/base/utils/FWMath.h"
 
 
-using inet::AirFrame;
+//using inet::AirFrame;
 
 #define debugEV (ev.isDisabled()||!debug) ? ev : ev << "PhyLayer(TwoRayInterferenceModel): "
 

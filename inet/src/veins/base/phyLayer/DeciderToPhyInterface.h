@@ -12,11 +12,12 @@
 #include <omnetpp.h>
 
 #include "veins/base/utils/MiXiMDefs.h"
+#include "veins/base/messages/AirFrame_m.h"
 
-namespace inet {
-class AirFrame;
-}
-using inet::AirFrame;
+//namespace inet {
+//class AirFrame;
+//}
+//using inet::AirFrame;
 
 class BaseWorldUtility;
 class ConstMapping;

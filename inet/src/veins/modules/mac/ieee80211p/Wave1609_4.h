@@ -53,7 +53,7 @@ public:
             class EDCAQueue {
                 public:
 
-                    std::queue<inet::IPv6Datagram*> queue;
+                    std::queue<inet::ieee80211::Ieee80211DataOrMgmtFrame*> queue;
                     int aifsn; //number of aifs slots for this queue
                     int cwMin; //minimum contention window
                     int cwMax; //maximum contention size
@@ -75,7 +75,7 @@ public:
              * Currently you have to call createQueue in the right order. First Call is priority 0, second 1 and so on...
              */
             int createQueue(int aifsn, int cwMin, int cwMax,t_access_category);
-            int queuePacket(t_access_category AC,inet::IPv6Datagram* cmsg);
+            int queuePacket(t_access_category AC,inet::ieee80211::Ieee80211DataOrMgmtFrame* cmsg);
             void backoff(t_access_category ac);
             simtime_t startContent(simtime_t idleSince, bool guardActive);
             void stopContent(bool allowBackoff, bool generateTxOp);
@@ -85,7 +85,7 @@ public:
             void cleanUp();
 
             /** @brief return the next packet to send, send all lower Queues into backoff */
-            inet::IPv6Datagram* initiateTransmit(simtime_t idleSince);
+            inet::ieee80211::Ieee80211DataOrMgmtFrame* initiateTransmit(simtime_t idleSince);
 
         public:
             std::map<t_access_category,EDCAQueue> myQueues;
@@ -164,7 +164,7 @@ protected:
 
     bool guardActive() const;
 
-    void attachSignal(inet::ieee80211::Ieee80211DataFrame* mac, simtime_t startTime, double frequency, uint64_t datarate, double txPower_mW);
+    void attachSignal(inet::ieee80211::Ieee80211DataOrMgmtFrame* mac, simtime_t startTime, double frequency, uint64_t datarate, double txPower_mW);
     Signal* createSignal(simtime_t start, simtime_t length, double power, uint64_t bitrate, double frequency);
 
     /** @brief maps a application layer priority (up) to an EDCA access category. */
@@ -224,7 +224,7 @@ protected:
 
     /** @brief This MAC layers MAC address.*/
     inet::MACAddress myMacAddress;
-
+    inet::MACAddress rsuMacAddress;
     /** @brief The power (in mW) to transmit with.*/
     double txPower;
 

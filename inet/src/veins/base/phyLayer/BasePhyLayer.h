@@ -11,15 +11,17 @@
 #include "veins/base/phyLayer/MacToPhyInterface.h"
 
 #include "veins/base/phyLayer/ChannelInfo.h"
+#include "veins/base/connectionManager/ChannelAccess.h"
+#include "veins/base/messages/AirFrame_m.h"
+#include "veins/base/phyLayer/PhyUtils.h"
 
 class AnalogueModel;
 class Decider;
 class BaseWorldUtility;
 class cXMLElement;
 
-using inet::AirFrame;
-using inet::ChannelAccess;
-using inet::Radio;
+//using inet::AirFrame;
+//using inet::Radio;
 
 /**
  * @brief The BasePhyLayer represents the physical layer of a nic.

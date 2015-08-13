@@ -9,8 +9,7 @@
 #include "veins/base/phyLayer/Decider.h"
 #include "veins/base/modules/BaseWorldUtility.h"
 #include "veins/base/connectionManager/BaseConnectionManager.h"
-
-using inet::AirFrame;
+#include "veins/base/messages/AirFrame_m.h"
 
 //introduce BasePhyLayer as module to OMNet
 Define_Module(BasePhyLayer);
@@ -326,17 +325,20 @@ AnalogueModel* BasePhyLayer::getAnalogueModelFromName(std::string name, Paramete
 //--Message handling--------------------------------------
 
 void BasePhyLayer::handleMessage(cMessage* msg) {
-
+    EV << "handleMessage in BasePhyLayer" << endl;
 	//self messages
 	if(msg->isSelfMessage()) {
+	    EV << "selfMessage" << endl;
 		handleSelfMessage(msg);
 
 	//MacPkts <- MacToPhyControlInfo
 	} else if(msg->getArrivalGateId() == upperLayerIn) {
+	    EV << "upperLayer" << endl;
 		handleUpperMessage(msg);
 
 	//controlmessages
 	} else if(msg->getArrivalGateId() == upperControlIn) {
+	    EV << "upperControl" << endl;
 		handleUpperControlMessage(msg);
 
 	//AirFrames
@@ -476,17 +478,17 @@ void BasePhyLayer::handleUpperMessage(cMessage* msg){
         msg = 0;
 		opp_error("Error: message for sending received, but radio already sending");
 	}
-
+	EV << "handleUpperMessage: ";
 	// build the AirFrame to send
 	assert(dynamic_cast<cPacket*>(msg) != 0);
-
+	EV << "assert() ->";
 	AirFrame* frame = encapsMsg(static_cast<cPacket*>(msg));
-
+	EV << "toAirframe ->";
 	// make sure there is no self message of kind TX_OVER scheduled
 	// and schedule the actual one
 	assert (!txOverTimer->isScheduled());
 	sendSelfMessage(txOverTimer, simTime() + frame->getDuration());
-
+	EV << "sendFrame down" << endl;
 	sendMessageDown(frame);
 }
 

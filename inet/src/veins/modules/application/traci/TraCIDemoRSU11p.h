@@ -24,8 +24,6 @@
 #include "veins/modules/application/ieee80211p/BaseWaveApplLayer.h"
 #include "veins/modules/world/annotations/AnnotationManager.h"
 
-using inet::AnnotationManager;
-
 /**
  * Small RSU Demo using 11p
  */
