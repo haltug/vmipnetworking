@@ -13,7 +13,7 @@
 // along with this program.  If not, see http://www.gnu.org/licenses/.
 // 
 
-package inet.examples.vehicularNetworking;
+package inet.examples.sumo;
 
 import inet.linklayer.ethernet.EtherHub;
 import inet.physicallayer.ieee80211.packetlevel.Ieee80211ScalarRadioMedium;
@@ -23,6 +23,10 @@ import inet.node.ipv6.*;
 import inet.node.ipv6mev.*;
 import inet.node.wireless.AccessPoint;
 
+import veins.base.modules.BaseWorldUtility;
+import veins.modules.mobility.traci.TraCIScenarioManagerLaunchd;
+import veins.base.connectionManager.ConnectionManager;
+
 channel ethernetline extends ned.DatarateChannel
 {
     parameters:
@@ -30,19 +34,39 @@ channel ethernetline extends ned.DatarateChannel
         datarate = 100Mbps;
 }
 
-network vehicleConnectivity
+network sumoWorld
 {
     parameters:
         double total_mn;
         double total_cn;
         //	    **.mgmt.numChannels = 5;
-        @display("bgb=1176,812;bgi=background/streetmap,s");
+		double playgroundSizeX @unit(m) = default(1000m); // x size of the area the nodes are in (in meters)
+        double playgroundSizeY @unit(m) = default(1000m); // y size of the area the nodes are in (in meters)
+        double playgroundSizeZ @unit(m) = default(2m); // z size of the area the nodes are in (in meters)
+      @display("bgb=2500,2500;bgi=background/streetmap,f");  
+//		@display("bgb=$playgroundSizeX,$playgroundSizeY;bgi=background/streetmap,f");
+//        @display("bgb=1176,812;bgi=background/streetmap,s");
 
     submodules:
 //        environment: PhysicalEnvironment {
 //            parameters:
 //                @display("p=50,180");
 //        }
+        connectionManager: ConnectionManager {
+            parameters:
+                @display("p=50,400;i=abstract/multicast");
+        }
+		world: BaseWorldUtility {
+            parameters:
+                playgroundSizeX = playgroundSizeX;
+                playgroundSizeY = playgroundSizeY;
+                playgroundSizeZ = playgroundSizeZ;
+                @display("p=50,300;i=misc/globe");
+        }
+        manager: TraCIScenarioManagerLaunchd {
+            parameters:
+                @display("p=50,200");
+        }        
         configurator: FlatNetworkConfigurator6 {
             parameters:
                 @display("p=50,20");
@@ -73,7 +97,7 @@ network vehicleConnectivity
         }
         AP_1: AccessPoint {
             parameters:
-                @display("p=200,300;i=device/accesspoint_s");
+                @display("p=1000,1700;i=device/accesspoint_s");
         }
         //        AP_2: AccessPoint {
         //            parameters:
@@ -81,11 +105,11 @@ network vehicleConnectivity
         //        }
         AP_3: AccessPoint {
             parameters:
-                @display("p=370,500;i=device/accesspoint_s");
+                @display("p=1800,1800;i=device/accesspoint_s");
         }
         AP_4: AccessPoint {
             parameters:
-                @display("p=900,500;i=device/accesspoint_s");
+                @display("p=2000,2000;i=device/accesspoint_s");
         }
         //        HUB_1: EtherHub {
         //            parameters:
@@ -103,11 +127,11 @@ network vehicleConnectivity
             parameters:
                 @display("p=700,30");
         }
-        MA[total_mn]: MobileAgent {
-            parameters:
-                @display("p=150,400;");
-                numRadios = default(1);
-        }
+//        MA[total_mn]: MobileAgent {
+//            parameters:
+//                @display("p=150,400;");
+//                numRadios = default(1);
+//        }
     connections allowunconnected:
         R_1.ethg$o++ --> ethernetline --> R_5.ethg$i++;
         R_1.ethg$i++ <-- ethernetline <-- R_5.ethg$o++;
