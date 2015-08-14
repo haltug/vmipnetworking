@@ -1,4 +1,5 @@
 # ignore generated files
+*.zip
 .metadata/
 .settings/
 inet/.settings/

@@ -23,9 +23,8 @@ import inet.node.ipv6.*;
 import inet.node.ipv6mev.*;
 import inet.node.wireless.AccessPoint;
 
-import veins.base.modules.BaseWorldUtility;
-import veins.modules.mobility.traci.TraCIScenarioManagerLaunchd;
-import veins.base.connectionManager.ConnectionManager;
+import inet.mobility.traci.BaseWorldUtility;
+import inet.mobility.traci.TraCIScenarioManagerLaunchd;
 
 channel ethernetline extends ned.DatarateChannel
 {
@@ -52,10 +51,6 @@ network sumoWorld
 //            parameters:
 //                @display("p=50,180");
 //        }
-        connectionManager: ConnectionManager {
-            parameters:
-                @display("p=50,400;i=abstract/multicast");
-        }
 		world: BaseWorldUtility {
             parameters:
                 playgroundSizeX = playgroundSizeX;

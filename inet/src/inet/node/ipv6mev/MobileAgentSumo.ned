@@ -25,7 +25,8 @@ import inet.node.inet.NodeBase;
 import inet.transportlayer.contract.ISCTP;
 import inet.transportlayer.contract.ITCP;
 import inet.transportlayer.contract.IUDP;
-import veins.base.modules.IMobility;
+import inet.mobility.traci.TraCIMobility;
+//import veins.base.modules.IMobility;
 //
 // TODO auto-generated type
 //
@@ -52,7 +53,7 @@ module MobileAgentSumo extends NodeBase
         networkLayer.proxyARP = default(false);
         string veinsmobilityType;  //type of the mobility module
     submodules:
-        veinsmobility: <veinsmobilityType> like veins.base.modules.IMobility {
+        veinsmobility: TraCIMobility {
             parameters:
                 @display("p=147,200;i=block/cogwheel");
         }

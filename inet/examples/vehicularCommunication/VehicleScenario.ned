@@ -14,8 +14,6 @@
 // 
 package inet.examples.vehicularCommunication;
 
-import veins.nodes.BasicRSU;
-import veins.nodes.Scenario;
 import inet.networklayer.configurator.ipv6.FlatNetworkConfigurator6;
 import inet.node.ipv6.*;
 
@@ -26,7 +24,7 @@ channel ethernetline extends ned.DatarateChannel
         datarate = 100Mbps;
 }
 
-network VehicleScenario extends Scenario
+network VehicleScenario
 {
     parameters:
         @display("bgb=2500,2500;");
@@ -39,9 +37,6 @@ network VehicleScenario extends Scenario
             parameters:
                 @display("p=600,600");
         }
-        rsu: BasicRSU {
-            @display("p=900,600");
-        }
         CN: StandardHost6 {
             parameters:
                 @display("p=300,300");
@@ -49,6 +44,4 @@ network VehicleScenario extends Scenario
     connections allowunconnected:
         CN.ethg$o++ --> ethernetline --> R_1.ethg$i++;
         CN.ethg$i++ <-- ethernetline <-- R_1.ethg$o++;
-        rsu.ethg$o --> ethernetline --> R_1.ethg$i++;
-        rsu.ethg$i <-- ethernetline <-- R_1.ethg$o++;
 }
