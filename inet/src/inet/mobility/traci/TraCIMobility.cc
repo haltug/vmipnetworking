@@ -26,6 +26,7 @@
 
 #include "inet/mobility/traci/BorderMsg_m.h"
 #include "inet/mobility/traci/BaseWorldUtility.h"
+#include "inet/environment/contract/IPhysicalEnvironment.h"
 
 namespace inet {
 
@@ -34,42 +35,6 @@ Define_Module(TraCIMobility);
 const simsignalwrap_t TraCIMobility::parkingStateChangedSignal = simsignalwrap_t(TRACI_SIGNAL_PARKING_CHANGE_NAME);
 const simsignalwrap_t TraCIMobility::catHostStateSignal = simsignalwrap_t(MIXIM_SIGNAL_HOSTSTATE_NAME);
 const simsignalwrap_t TraCIMobility::mobilityStateChangedSignal = simsignalwrap_t(MIXIM_SIGNAL_MOBILITY_CHANGE_NAME);
-
-namespace {
-	const double MY_INFINITY = (std::numeric_limits<double>::has_infinity ? std::numeric_limits<double>::infinity() : std::numeric_limits<double>::max());
-}
-
-void TraCIMobility::Statistics::initialize()
-{
-	firstRoadNumber = MY_INFINITY;
-	startTime = simTime();
-	totalTime = 0;
-	stopTime = 0;
-	minSpeed = MY_INFINITY;
-	maxSpeed = -MY_INFINITY;
-	totalDistance = 0;
-	totalCO2Emission = 0;
-}
-
-void TraCIMobility::Statistics::watch(cSimpleModule& )
-{
-	WATCH(totalTime);
-	WATCH(minSpeed);
-	WATCH(maxSpeed);
-	WATCH(totalDistance);
-}
-
-void TraCIMobility::Statistics::recordScalars(cSimpleModule& module)
-{
-	if (firstRoadNumber != MY_INFINITY) module.recordScalar("firstRoadNumber", firstRoadNumber);
-	module.recordScalar("startTime", startTime);
-	module.recordScalar("totalTime", totalTime);
-	module.recordScalar("stopTime", stopTime);
-	if (minSpeed != MY_INFINITY) module.recordScalar("minSpeed", minSpeed);
-	if (maxSpeed != -MY_INFINITY) module.recordScalar("maxSpeed", maxSpeed);
-	module.recordScalar("totalDistance", totalDistance);
-	module.recordScalar("totalCO2Emission", totalCO2Emission);
-}
 
 void TraCIMobility::initialize(int stage)
 {
@@ -87,19 +52,34 @@ void TraCIMobility::initialize(int stage)
         hasPar("coreDebug") ? coreDebug = par("coreDebug").boolValue() : coreDebug = false;
         EV_DETAIL << "initializing BaseMobility stage " << stage << endl;
         hasPar("scaleNodeByDepth") ? scaleNodeByDepth = par("scaleNodeByDepth").boolValue() : scaleNodeByDepth = true;
-        world = FindModule<BaseWorldUtility*>::findGlobalModule();
-        if (world == NULL)
-            error("Could not find BaseWorldUtility module");
+//        world = FindModule<BaseWorldUtility*>::findGlobalModule();
+//        if (world == NULL)
+//            error("Could not find BaseWorldUtility module");
         EV_DETAIL << "initializing BaseUtility stage " << stage << endl; // for node position
         if (hasPar("updateInterval")) {
             updateInterval = par("updateInterval");
         } else {
             updateInterval = 0;
         }
+        if (hasPar("dim2d")) {
+            dim2d = par("dim2d").boolValue();
+        } else {
+            dim2d = false;
+        }
+//        environment: PhysicalEnvironment;
+//        PhysicalEnvironment *environment = dynamic_cast<PhysicalEnvironment *>(findContainingNode(this)->getSubmodule("environmentModule"));
+//        isOperational = (!environment) || environment->getState() == NodeStatus::UP;
+//        physicalenvironment::IPhysicalEnvironment *ipe = findModuleFromPar<physicalenvironment::IPhysicalEnvironment> (par("environmentModule"), this);
+        environment = check_and_cast<physicalenvironment::IPhysicalEnvironment *>(getModuleByPath(par("environmentModule")));
+
         // initialize Move parameter
-        bool use2D = world->use2D();
+//        bool use2D = world->use2D();
         //initalize position with random values
-        inet::Coord pos = world->getRandomPosition();
+//        Coord pos = world->getRandomPosition();
+        Coord pos(
+                uniform(environment->getSpaceMin().x, environment->getSpaceMax().x),
+                uniform(environment->getSpaceMin().y, environment->getSpaceMax().y),
+                uniform(environment->getSpaceMin().z, environment->getSpaceMax().z));
         //read coordinates from parameters if available
         double x = hasPar("x") ? par("x").doubleValue() : -1;
         double y = hasPar("y") ? par("y").doubleValue() : -1;
@@ -107,12 +87,12 @@ void TraCIMobility::initialize(int stage)
         //set position with values from parameters if available
         if(x > -1) pos.x = x;
         if(y > -1) pos.y = y;
-        if(!use2D && z > -1) pos.z = z;
+        if(z > -1) pos.z = z;
         // set start-position and start-time (i.e. current simulation-time) of the Move
         move.setStart(pos);
         EV_DETAIL << "start pos: " << move.getStartPos().info() << endl;
         //check whether position is within the playground
-        if (!isInBoundary(move.getStartPos(), inet::Coord::ZERO, *world->getPgs())) {
+        if (!isInBoundary(move.getStartPos(), Coord::ZERO, environment->getSpaceMax())) {
             error("node position specified in omnetpp.ini exceeds playgroundsize");
         }
         // set speed and direction of the Move
@@ -165,30 +145,30 @@ void TraCIMobility::initialize(int stage)
 	{
         EV_DETAIL << "initializing BaseMobility stage " << stage << endl;
         //get playground scaling
-        if (world->getParentModule() != NULL )
-        {
-            const cDisplayString& dispWorldOwner
-                    = world->getParentModule()->getDisplayString();
-
-            if( dispWorldOwner.containsTag("bgb") )
-            {
-                double origPGWidth = 0.0;
-                double origPGHeight= 0.0;
-                // normally this should be equal to playground size
-                std::istringstream(dispWorldOwner.getTagArg("bgb", 0))
-                        >> origPGWidth;
-                std::istringstream(dispWorldOwner.getTagArg("bgb", 1))
-                        >> origPGHeight;
-
-                //bgb of zero means size isn't set manually
-                if(origPGWidth > 0) {
-                    playgroundScaleX = origPGWidth / playgroundSizeX();
-                }
-                if(origPGHeight > 0) {
-                    playgroundScaleY = origPGHeight / playgroundSizeY();
-                }
-            }
-        }
+//        if (world->getParentModule() != NULL )
+//        {
+//            const cDisplayString& dispWorldOwner
+//                    = world->getParentModule()->getDisplayString();
+//
+//            if( dispWorldOwner.containsTag("bgb") )
+//            {
+//                double origPGWidth = 0.0;
+//                double origPGHeight= 0.0;
+//                // normally this should be equal to playground size
+//                std::istringstream(dispWorldOwner.getTagArg("bgb", 0))
+//                        >> origPGWidth;
+//                std::istringstream(dispWorldOwner.getTagArg("bgb", 1))
+//                        >> origPGHeight;
+//
+//                //bgb of zero means size isn't set manually
+//                if(origPGWidth > 0) {
+//                    playgroundScaleX = origPGWidth / playgroundSizeX();
+//                }
+//                if(origPGHeight > 0) {
+//                    playgroundScaleY = origPGHeight / playgroundSizeY();
+//                }
+//            }
+//        }
         //get original display of host
         cDisplayString& disp = findHost()->getDisplayString();
         //get host width and height
@@ -372,7 +352,8 @@ void TraCIMobility::updatePosition() {
         }
             disp.setTagArg("p", 1, osDisplayTag.str().data());
 
-        if(!world->use2D() && scaleNodeByDepth)
+//            if(!world->use2D() && scaleNodeByDepth)
+        if(scaleNodeByDepth)
         {
             const double minScale = 0.25;
             const double maxScale = 1.0;
@@ -535,7 +516,8 @@ TraCIMobility::BorderHandling TraCIMobility::checkIfOutside( inet::Coord targetP
     }
 
     // Testing z-value
-    if (!world->use2D())
+//    if (!world->use2D())
+    if (!dim2d)
     {
         // going to reach the lower z-border
         if (targetPos.z < 0)
@@ -615,7 +597,7 @@ void TraCIMobility::goToBorder(BorderPolicy policy, BorderHandling wo,
     case X_SMALLER:
         factor = borderStep.x / move.getDirection().x;
         borderStep.y = (factor * move.getDirection().y);
-        if (!world->use2D())
+        if (!dim2d)
         {
             borderStep.z = (factor * move.getDirection().z); // 3D case
         }
@@ -624,7 +606,7 @@ void TraCIMobility::goToBorder(BorderPolicy policy, BorderHandling wo,
         {
             borderStart.x = (playgroundSizeX());
             borderStart.y = (move.getStartPos().y + borderStep.y);
-            if (!world->use2D())
+            if (!dim2d)
             {
                 borderStart.z = (move.getStartPos().z
                                  + borderStep.z); // 3D case
@@ -635,7 +617,7 @@ void TraCIMobility::goToBorder(BorderPolicy policy, BorderHandling wo,
     case X_BIGGER:
         factor = borderStep.x / move.getDirection().x;
         borderStep.y = (factor * move.getDirection().y);
-        if (!world->use2D())
+        if (!dim2d)
         {
             borderStep.z = (factor * move.getDirection().z); // 3D case
         }
@@ -644,7 +626,7 @@ void TraCIMobility::goToBorder(BorderPolicy policy, BorderHandling wo,
         {
             borderStart.x = (0);
             borderStart.y = (move.getStartPos().y + borderStep.y);
-            if (!world->use2D())
+            if (!dim2d)
             {
                 borderStart.z = (move.getStartPos().z
                                  + borderStep.z); // 3D case
@@ -655,7 +637,7 @@ void TraCIMobility::goToBorder(BorderPolicy policy, BorderHandling wo,
     case Y_SMALLER:
         factor = borderStep.y / move.getDirection().y;
         borderStep.x = (factor * move.getDirection().x);
-        if (!world->use2D())
+        if (!dim2d)
         {
             borderStep.z = (factor * move.getDirection().z); // 3D case
         }
@@ -664,7 +646,7 @@ void TraCIMobility::goToBorder(BorderPolicy policy, BorderHandling wo,
         {
             borderStart.y = (playgroundSizeY());
             borderStart.x = (move.getStartPos().x + borderStep.x);
-            if (!world->use2D())
+            if (!dim2d)
             {
                 borderStart.z = (move.getStartPos().z
                                  + borderStep.z); // 3D case
@@ -675,7 +657,7 @@ void TraCIMobility::goToBorder(BorderPolicy policy, BorderHandling wo,
     case Y_BIGGER:
         factor = borderStep.y / move.getDirection().y;
         borderStep.x = (factor * move.getDirection().x);
-        if (!world->use2D())
+        if (!dim2d)
         {
             borderStep.z = (factor * move.getDirection().z); // 3D case
         }
@@ -684,7 +666,7 @@ void TraCIMobility::goToBorder(BorderPolicy policy, BorderHandling wo,
         {
             borderStart.y = (0);
             borderStart.x = (move.getStartPos().x + borderStep.x);
-            if (!world->use2D())
+            if (!dim2d)
             {
                 borderStart.z = (move.getStartPos().z
                                  + borderStep.z); // 3D case
@@ -826,7 +808,10 @@ bool TraCIMobility::handleIfOutside(BorderPolicy policy, inet::Coord& stepTarget
 
 void TraCIMobility::placeRandomlyIfOutside( inet::Coord& targetPos )
 {
-    targetPos = world->getRandomPosition();
+    targetPos = Coord(
+        uniform(environment->getSpaceMin().x, environment->getSpaceMax().x),
+        uniform(environment->getSpaceMin().y, environment->getSpaceMax().y),
+        uniform(environment->getSpaceMin().z, environment->getSpaceMax().z));
 }
 
 cModule *const TraCIMobility::findHost(void)
@@ -1013,7 +998,7 @@ void TraCIMobility::fixIfHostGetsOutside()
 
 	bool outsideX = (pos.x < 0) || (pos.x >= playgroundSizeX());
 	bool outsideY = (pos.y < 0) || (pos.y >= playgroundSizeY());
-	bool outsideZ = (!world->use2D()) && ((pos.z < 0) || (pos.z >= playgroundSizeZ()));
+	bool outsideZ = (!dim2d) && ((pos.z < 0) || (pos.z >= playgroundSizeZ()));
 	if (outsideX || outsideY || outsideZ) {
 		error("Tried moving host to (%f, %f) which is outside the playground", pos.x, pos.y);
 	}
@@ -1064,4 +1049,38 @@ inet::Coord TraCIMobility::calculateAntennaPosition(const inet::Coord& vehiclePo
 	}
 	return corPos;
 }
+
+// ================================ STATISTICS ================================
+void TraCIMobility::Statistics::initialize()
+{
+    firstRoadNumber = MY_INFINITY;
+    startTime = simTime();
+    totalTime = 0;
+    stopTime = 0;
+    minSpeed = MY_INFINITY;
+    maxSpeed = -MY_INFINITY;
+    totalDistance = 0;
+    totalCO2Emission = 0;
 }
+
+void TraCIMobility::Statistics::watch(cSimpleModule& )
+{
+    WATCH(totalTime);
+    WATCH(minSpeed);
+    WATCH(maxSpeed);
+    WATCH(totalDistance);
+}
+
+void TraCIMobility::Statistics::recordScalars(cSimpleModule& module)
+{
+    if (firstRoadNumber != MY_INFINITY) module.recordScalar("firstRoadNumber", firstRoadNumber);
+    module.recordScalar("startTime", startTime);
+    module.recordScalar("totalTime", totalTime);
+    module.recordScalar("stopTime", stopTime);
+    if (minSpeed != MY_INFINITY) module.recordScalar("minSpeed", minSpeed);
+    if (maxSpeed != -MY_INFINITY) module.recordScalar("maxSpeed", maxSpeed);
+    module.recordScalar("totalDistance", totalDistance);
+    module.recordScalar("totalCO2Emission", totalCO2Emission);
+}
+
+} // namespace inet

@@ -27,16 +27,16 @@
 #include <list>
 #include <stdexcept>
 
-#include "inet/mobility/traci/BaseMobility.h"
-#include "inet/mobility/traci/FindModule.h"
+//#include "inet/mobility/traci/FindModule.h"
 #include "inet/mobility/traci/TraCIScenarioManager.h"
 #include "inet/mobility/traci/TraCICommandInterface.h"
 #include "inet/common/geometry/common/Coord.h"
 
 #include "inet/mobility/traci/MiXiMDefs.h"
 #include "inet/mobility/traci/Move.h"
-#include "inet/mobility/traci/BaseWorldUtility.h"
+//#include "inet/mobility/traci/BaseWorldUtility.h"
 #include "inet/mobility/traci/HostState.h"
+#include "inet/environment/contract/IPhysicalEnvironment.h"
 
 
 /**
@@ -62,6 +62,9 @@ namespace inet {
 class INET_API TraCIMobility : public cSimpleModule, public cListener
 {
 	public:
+    physicalenvironment::IPhysicalEnvironment *environment;
+
+
     enum BorderPolicy {
             REFLECT,       ///< reflect off the wall
             WRAP,          ///< reappear at the opposite edge (torus)
@@ -97,7 +100,7 @@ class INET_API TraCIMobility : public cSimpleModule, public cListener
 
         bool notAffectedByHostState;
         /** @brief Pointer to BaseWorldUtility -- these two must know each other */
-        BaseWorldUtility *world;
+//        BaseWorldUtility *world;
 
         /** @brief Stores the current position and move pattern of the host*/
         Move move;
@@ -138,7 +141,6 @@ class INET_API TraCIMobility : public cSimpleModule, public cListener
 		~TraCIMobility() {
             cancelAndDelete(moveMsg);
 			delete vehicleCommandInterface;
-            delete world;
 		}
 	    virtual void handleMessage(cMessage *msg);
 		virtual void initialize(int);
@@ -190,10 +192,13 @@ class INET_API TraCIMobility : public cSimpleModule, public cListener
 	    virtual const char* iconSizeToTag(double size);
 	    virtual void handleBorderMsg( cMessage* );
 	    virtual void updatePosition();
-	    double playgroundSizeX() const  {return world->getPgs()->x;}
-	    double playgroundSizeY() const  {return world->getPgs()->y;}
-	    double playgroundSizeZ() const  {return world->getPgs()->z;}
-	    Coord getRandomPosition() { return world->getRandomPosition();}
+	    double playgroundSizeX() const  {return environment->getSpaceMax().x;}
+	    double playgroundSizeY() const  {return environment->getSpaceMax().y;}
+	    double playgroundSizeZ() const  {return environment->getSpaceMax().z;}
+	    Coord getRandomPosition() { return Coord(
+                uniform(environment->getSpaceMin().x, environment->getSpaceMax().x),
+                uniform(environment->getSpaceMin().y, environment->getSpaceMax().y),
+                uniform(environment->getSpaceMin().z, environment->getSpaceMax().z));}
 	    bool handleIfOutside(BorderPolicy, inet::Coord&, inet::Coord&, inet::Coord&, double&);
 	    BorderHandling checkIfOutside(Coord,Coord& );
 	    void goToBorder( BorderPolicy, BorderHandling, inet::Coord&, inet::Coord& );
@@ -207,12 +212,12 @@ class INET_API TraCIMobility : public cSimpleModule, public cListener
 	    const cModule *const getNode() const {
 	        return findHost();
 	    };
-	    bool isInBoundary(inet::Coord c, inet::Coord lowerBound, inet::Coord upperBound) {
+	    bool isInBoundary(Coord c, Coord lowerBound, Coord upperBound) {
 	        return  lowerBound.x <= c.x && c.x <= upperBound.x &&
 	                lowerBound.y <= c.y && c.y <= upperBound.y &&
 	                lowerBound.z <= c.z && c.z <= upperBound.z;
 	    }
-
+	    bool dim2d;
 	    virtual void fixIfHostGetsOutside(); /**< called after each read to check for (and handle) invalid positions */
 
 		/**
@@ -265,8 +270,6 @@ class INET_API TraCIMobility : public cSimpleModule, public cListener
 		bool isParking;
 
 
-
-
 		/**
 		 * Returns the amount of CO2 emissions in grams/second, calculated for an average Car
 		 * @param v speed in m/s
@@ -293,7 +296,7 @@ class INET_API TraCIMobility : public cSimpleModule, public cListener
                 double maxSpeed; /**< for statistics: maximum value of currentSpeed */
                 double totalDistance; /**< for statistics: total distance travelled */
                 double totalCO2Emission; /**< for statistics: total CO2 emission */
-
+                const double MY_INFINITY = (std::numeric_limits<double>::has_infinity ? std::numeric_limits<double>::infinity() : std::numeric_limits<double>::max());
                 void initialize();
                 void watch(cSimpleModule& module);
                 void recordScalars(cSimpleModule& module);

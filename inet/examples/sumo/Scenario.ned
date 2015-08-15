@@ -45,12 +45,12 @@ network sumoWorld
       @display("bgb=2500,2500;bgi=background/streetmap,f");  
 //		@display("bgb=$playgroundSizeX,$playgroundSizeY;bgi=background/streetmap,f");
 //        @display("bgb=1176,812;bgi=background/streetmap,s");
-
+		
     submodules:
-//        environment: PhysicalEnvironment {
-//            parameters:
-//                @display("p=50,180");
-//        }
+        environment: PhysicalEnvironment {
+            parameters:
+                @display("p=50,180");
+        }
 		world: BaseWorldUtility {
             parameters:
                 playgroundSizeX = playgroundSizeX;
