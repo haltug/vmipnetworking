@@ -33,6 +33,12 @@
 #include "inet/mobility/traci/TraCICommandInterface.h"
 #include "inet/common/geometry/common/Coord.h"
 
+#include "inet/mobility/traci/MiXiMDefs.h"
+#include "inet/mobility/traci/Move.h"
+#include "inet/mobility/traci/BaseWorldUtility.h"
+#include "inet/mobility/traci/HostState.h"
+
+
 /**
  * @brief
  * Used in modules created by the TraCIScenarioManager.
@@ -52,29 +58,89 @@
 #define TRACI_SIGNAL_PARKING_CHANGE_NAME "parkingStateChanged"
 
 namespace inet {
-class TraCIMobility : public BaseMobility
+
+class INET_API TraCIMobility : public cSimpleModule, public cListener
 {
 	public:
-		class Statistics {
-			public:
-				double firstRoadNumber; /**< for statistics: number of first road we encountered (if road id can be expressed as a number) */
-				simtime_t startTime; /**< for statistics: start time */
-				simtime_t totalTime; /**< for statistics: total time travelled */
-				simtime_t stopTime; /**< for statistics: stop time */
-				double minSpeed; /**< for statistics: minimum value of currentSpeed */
-				double maxSpeed; /**< for statistics: maximum value of currentSpeed */
-				double totalDistance; /**< for statistics: total distance travelled */
-				double totalCO2Emission; /**< for statistics: total CO2 emission */
+    enum BorderPolicy {
+            REFLECT,       ///< reflect off the wall
+            WRAP,          ///< reappear at the opposite edge (torus)
+            PLACERANDOMLY, ///< placed at a randomly chosen position on the playground
+            RAISEERROR     ///< stop the simulation with error
+        };
 
-				void initialize();
-				void watch(cSimpleModule& module);
-				void recordScalars(cSimpleModule& module);
-		};
+        /**
+         * @brief The kind field of messages
+         *
+         * that are used internally by this class have one of these values
+         */
+        enum BaseMobilityMsgKinds {
+            MOVE_HOST = 21311,
+            MOVE_TO_BORDER,
+            /** Stores the id on which classes extending BaseMobility should
+             * continue their own kinds.*/
+            LAST_BASE_MOBILITY_KIND,
+        };
 
-		TraCIMobility() : BaseMobility(), isPreInitialized(false), manager(0), commandInterface(0), vehicleCommandInterface(0) {}
+        /**
+         * @brief Specifies which border actually has been reached
+         */
+        enum BorderHandling {
+            NOWHERE,   ///< not outside the playground
+            X_SMALLER, ///< x smaller than 0
+            X_BIGGER,  ///< x bigger or equal than playground size
+            Y_SMALLER, ///< y smaller than 0
+            Y_BIGGER,  ///< y bigger or equal than playground size
+            Z_SMALLER, ///< z smaller than 0
+            Z_BIGGER   ///< z bigger or equal than playground size
+        };
+
+        bool notAffectedByHostState;
+        /** @brief Pointer to BaseWorldUtility -- these two must know each other */
+        BaseWorldUtility *world;
+
+        /** @brief Stores the current position and move pattern of the host*/
+        Move move;
+
+        /** @brief Store the category of HostMove */
+        const static simsignalwrap_t mobilityStateChangedSignal;
+
+        /** @brief Time interval (in seconds) to update the hosts position*/
+        simtime_t updateInterval;
+
+        /** @brief Self message to trigger movement */
+        cMessage* moveMsg;
+
+        /** @brief debug this core module? */
+        bool coreDebug;
+
+        /** @brief Enable depth dependent scaling of nodes when 3d and tkenv is
+         * used. */
+        bool scaleNodeByDepth;
+
+        /** @brief Scaling of the playground in X direction.*/
+        double playgroundScaleX;
+        /** @brief Scaling of the playground in Y direction.*/
+        double playgroundScaleY;
+
+        /** @brief The original width the node is displayed width.*/
+        double origDisplayWidth;
+        /** @brief The original height the node is displayed width.*/
+        double origDisplayHeight;
+
+        /** @brief The original size of the icon of the node.*/
+        double origIconSize;
+
+        virtual void receiveSignal(cComponent *source, simsignal_t signalID, cObject *obj);
+        virtual void handleHostState(const HostState& state);
+
+		TraCIMobility() : isPreInitialized(false), manager(0), commandInterface(0), vehicleCommandInterface(0) {}
 		~TraCIMobility() {
+            cancelAndDelete(moveMsg);
 			delete vehicleCommandInterface;
+            delete world;
 		}
+	    virtual void handleMessage(cMessage *msg);
 		virtual void initialize(int);
 		virtual void finish();
 
@@ -112,6 +178,43 @@ class TraCIMobility : public BaseMobility
 			if (signals == -1) throw cRuntimeError("TraCIMobility::getSignals called with no signals set yet");
 			return signals;
 		}
+
+	    virtual Coord getCurrentPosition() const {
+	        return move.getStartPos();
+	    }
+	    virtual Coord getCurrentSpeed() const {
+	        return move.getDirection() * move.getSpeed();
+	    }
+
+	    virtual int iconSizeTagToSize(const char* tag);
+	    virtual const char* iconSizeToTag(double size);
+	    virtual void handleBorderMsg( cMessage* );
+	    virtual void updatePosition();
+	    double playgroundSizeX() const  {return world->getPgs()->x;}
+	    double playgroundSizeY() const  {return world->getPgs()->y;}
+	    double playgroundSizeZ() const  {return world->getPgs()->z;}
+	    Coord getRandomPosition() { return world->getRandomPosition();}
+	    bool handleIfOutside(BorderPolicy, inet::Coord&, inet::Coord&, inet::Coord&, double&);
+	    BorderHandling checkIfOutside(Coord,Coord& );
+	    void goToBorder( BorderPolicy, BorderHandling, inet::Coord&, inet::Coord& );
+	    void reflectCoordinate(BorderHandling border, inet::Coord& c);
+	    void reflectIfOutside(BorderHandling, inet::Coord&, inet::Coord&, inet::Coord&, double&);
+	    void wrapIfOutside(BorderHandling, inet::Coord&, inet::Coord&);
+	    void placeRandomlyIfOutside( inet::Coord& );
+	    const static simsignalwrap_t catHostStateSignal;
+	    cModule *const findHost(void);
+	    const cModule *const findHost(void) const;
+	    const cModule *const getNode() const {
+	        return findHost();
+	    };
+	    bool isInBoundary(inet::Coord c, inet::Coord lowerBound, inet::Coord upperBound) {
+	        return  lowerBound.x <= c.x && c.x <= upperBound.x &&
+	                lowerBound.y <= c.y && c.y <= upperBound.y &&
+	                lowerBound.z <= c.z && c.z <= upperBound.z;
+	    }
+
+	    virtual void fixIfHostGetsOutside(); /**< called after each read to check for (and handle) invalid positions */
+
 		/**
 		 * returns angle in rads, 0 being east, with -M_PI <= angle < M_PI.
 		 */
@@ -137,13 +240,6 @@ class TraCIMobility : public BaseMobility
 		bool debug; /**< whether to emit debug messages */
 		int accidentCount; /**< number of accidents */
 
-		cOutVector currentPosXVec; /**< vector plotting posx */
-		cOutVector currentPosYVec; /**< vector plotting posy */
-		cOutVector currentSpeedVec; /**< vector plotting speed */
-		cOutVector currentAccelerationVec; /**< vector plotting acceleration */
-		cOutVector currentCO2EmissionVec; /**< vector plotting current CO2 emission */
-
-		Statistics statistics; /**< everything statistics-related */
 
 		bool isPreInitialized; /**< true if preInitialize() has been called immediately before initialize() */
 
@@ -169,7 +265,7 @@ class TraCIMobility : public BaseMobility
 		bool isParking;
 
 
-		virtual void fixIfHostGetsOutside(); /**< called after each read to check for (and handle) invalid positions */
+
 
 		/**
 		 * Returns the amount of CO2 emissions in grams/second, calculated for an average Car
@@ -183,11 +279,35 @@ class TraCIMobility : public BaseMobility
 		 * Calculates where the antenna of this car is, given its front bumper position
 		 */
 		inet::Coord calculateAntennaPosition(const inet::Coord& vehiclePos) const;
-};
-}
 
-namespace inet {
-class TraCIMobilityAccess
+
+
+
+        class Statistics {
+            public:
+                double firstRoadNumber; /**< for statistics: number of first road we encountered (if road id can be expressed as a number) */
+                simtime_t startTime; /**< for statistics: start time */
+                simtime_t totalTime; /**< for statistics: total time travelled */
+                simtime_t stopTime; /**< for statistics: stop time */
+                double minSpeed; /**< for statistics: minimum value of currentSpeed */
+                double maxSpeed; /**< for statistics: maximum value of currentSpeed */
+                double totalDistance; /**< for statistics: total distance travelled */
+                double totalCO2Emission; /**< for statistics: total CO2 emission */
+
+                void initialize();
+                void watch(cSimpleModule& module);
+                void recordScalars(cSimpleModule& module);
+        };
+
+        cOutVector currentPosXVec; /**< vector plotting posx */
+        cOutVector currentPosYVec; /**< vector plotting posy */
+        cOutVector currentSpeedVec; /**< vector plotting speed */
+        cOutVector currentAccelerationVec; /**< vector plotting acceleration */
+        cOutVector currentCO2EmissionVec; /**< vector plotting current CO2 emission */
+        Statistics statistics; /**< everything statistics-related */
+};
+
+class INET_API TraCIMobilityAccess
 {
 	public:
 		TraCIMobility* get(cModule* host) {

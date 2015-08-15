@@ -26,7 +26,7 @@
 #include <omnetpp.h>
 
 #include "inet/common/geometry/common/Coord.h"
-#include "inet/mobility/traci/FWMath.h"
+#include "inet/common/INETMath.h"
 
 /**
  * @brief Class to store object position and movement
@@ -131,8 +131,8 @@ public:
 	 */
 	void setDirectionByVector(const inet::Coord& direction)
 	{
-		assert(	FWMath::close(direction.squareLength(), 1.0)
-				|| FWMath::close(direction.squareLength(), 0.0));
+		assert(	math::close(direction.squareLength(), 1.0)
+				|| math::close(direction.squareLength(), 0.0));
 		this->direction = direction;
 	}
 
@@ -147,7 +147,7 @@ public:
 	{
     	direction = target - startPos;
 
-    	assert( !FWMath::close(direction.length(), 0.0) );
+    	assert( !math::close(direction.length(), 0.0) );
     	direction /= direction.length();
     }
 
@@ -164,7 +164,7 @@ public:
     virtual inet::Coord getPositionAt(simtime_t_cref actualTime = simTime()) const
     {
     	// if speed is very close to 0.0, the host is practically standing still
-    	if ( FWMath::close(speed, 0.0) ) return startPos;
+    	if ( math::close(speed, 0.0) ) return startPos;
 
     	// otherwise: actualPos = startPos + ( direction * v * t )
     	return startPos + ( direction * speed * SIMTIME_DBL(actualTime - startTime) );

@@ -35,7 +35,7 @@ package inet.mobility.traci;
 // @see TraCIScenarioManager
 // @see TraCIScenarioManagerLaunchd
 //
-simple TraCIMobility extends BaseMobility
+simple TraCIMobility 
 {
     parameters:
         @class(TraCIMobility);
@@ -46,5 +46,10 @@ simple TraCIMobility extends BaseMobility
         double accidentStart @unit("s") = default(uniform(30s,60s));  // time until first accident, relative to departure time
         volatile double accidentDuration @unit("s") = default(uniform(30s,60s));  // duration of accident
         volatile double accidentInterval @unit("s") = default(uniform(30s,60s));  // time between accidents
+        bool notAffectedByHostState = default(true);
+        bool coreDebug = default(false); // debug switch for the core framework
+        double x; // x coordinate of the nodes' position (-1 = random)
+        double y; // y coordinate of the nodes' position (-1 = random)
+        double z; // z coordinate of the nodes' position (-1 = random)
 }
 
