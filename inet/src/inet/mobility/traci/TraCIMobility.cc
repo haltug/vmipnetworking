@@ -28,11 +28,13 @@
 #include "inet/environment/contract/IPhysicalEnvironment.h"
 
 namespace inet {
+using namespace inet::physicalenvironment;
+
 
 Define_Module(TraCIMobility);
 
-const simsignalwrap_t TraCIMobility::parkingStateChangedSignal = simsignalwrap_t(TRACI_SIGNAL_PARKING_CHANGE_NAME);
-const simsignalwrap_t TraCIMobility::mobilityStateChangedSignal = simsignalwrap_t(MIXIM_SIGNAL_MOBILITY_CHANGE_NAME);
+simsignal_t TraCIMobility::parkingStateChangedSignal = cComponent::registerSignal("parkingStateChangedSignal");
+simsignal_t TraCIMobility::mobilityStateChangedSignal = cComponent::registerSignal("veinsmobilityStateChanged");
 
 void TraCIMobility::initialize(int stage)
 {
@@ -44,7 +46,6 @@ void TraCIMobility::initialize(int stage)
         origDisplayHeight = 0;
         origIconSize = 0;
 
-        hasPar("coreDebug") ? coreDebug = par("coreDebug").boolValue() : coreDebug = false;
         EV_DETAIL << "initializing BaseMobility stage " << stage << endl;
         hasPar("scaleNodeByDepth") ? scaleNodeByDepth = par("scaleNodeByDepth").boolValue() : scaleNodeByDepth = true;
         EV_DETAIL << "initializing BaseUtility stage " << stage << endl; // for node position
@@ -58,7 +59,7 @@ void TraCIMobility::initialize(int stage)
         } else {
             dim2d = false;
         }
-        environment = check_and_cast<physicalenvironment::IPhysicalEnvironment *>(getModuleByPath(par("environmentModule")));
+        environment = check_and_cast<IPhysicalEnvironment *>(getModuleByPath(par("environmentModule")));
 
         Coord pos(
                 uniform(environment->getSpaceMin().x, environment->getSpaceMax().x),
@@ -67,24 +68,24 @@ void TraCIMobility::initialize(int stage)
         //read coordinates from parameters if available
         double x = hasPar("x") ? par("x").doubleValue() : -1;
         double y = hasPar("y") ? par("y").doubleValue() : -1;
-        double z = hasPar("z") ? par("z").doubleValue() : -1;
+        double z = hasPar("z") ? par("z").doubleValue() : 0;
         //set position with values from parameters if available
         if(x > -1) pos.x = x;
         if(y > -1) pos.y = y;
         if(z > -1) pos.z = z;
         // set start-position and start-time (i.e. current simulation-time) of the Move
-        move.setStart(pos);
-        EV_DETAIL << "start pos: " << move.getStartPos().info() << endl;
+        lastPos = pos;
+        startPos = pos;
+        startTime = simTime();
+        EV_DETAIL << "start pos: " << startPos << endl;
         //check whether position is within the playground
-        if (!isInBoundary(move.getStartPos(), Coord::ZERO, environment->getSpaceMax())) {
+        if (!isInBoundary(startPos, Coord::ZERO, environment->getSpaceMax())) {
             error("node position specified in omnetpp.ini exceeds playgroundsize");
         }
         // set speed and direction of the Move
-        move.setSpeed(0);
-        move.setDirectionByVector(inet::Coord::ZERO);
+        mSpeed = 0;
+        direction = Coord::ZERO;
 
-
-		debug = par("debug");
 		antennaPositionOffset = par("antennaPositionOffset");
 		accidentCount = par("accidentCount");
 
@@ -100,12 +101,17 @@ void TraCIMobility::initialize(int stage)
 		ASSERT(isPreInitialized);
 		isPreInitialized = false;
 
-		inet::Coord nextPos = calculateAntennaPosition(roadPosition);
-		nextPos.z = move.getCurrentPosition().z;
+		Coord nextPos = calculateAntennaPosition(roadPosition);
+        if (lastPos.z != DBL_MAX)
+            nextPos.z = lastPos.z;
+        else
+            nextPos.z = startPos.z;
 
-		move.setStart(nextPos);
-		move.setDirectionByVector(inet::Coord(cos(angle), -sin(angle)));
-		move.setSpeed(speed);
+		lastPos = nextPos;
+        startPos = nextPos;
+        startTime = simTime();
+		direction = Coord(cos(angle), -sin(angle));
+		mSpeed = speed;
 
 		WATCH(road_id);
 		WATCH(speed);
@@ -167,9 +173,9 @@ void TraCIMobility::initialize(int stage)
         }
         // print new host position on the screen and update bb info
         updatePosition();
-        if (move.getSpeed() > 0 && updateInterval > 0)
+        if (mSpeed > 0 && updateInterval > 0)
         {
-            EV_DETAIL << "Host is moving, speed=" << move.getSpeed() << " updateInterval=" << updateInterval << endl;
+            EV_DETAIL << "Host is moving, speed=" << mSpeed << " updateInterval=" << updateInterval << endl;
             moveMsg = new cMessage("move", MOVE_HOST);
             //host moves the first time after some random delay to avoid synchronized movements
             scheduleAt(simTime() + uniform(0, updateInterval), moveMsg);
@@ -240,7 +246,7 @@ void TraCIMobility::handleSelfMsg(cMessage *msg)
 {
     updatePosition();
 
-    if( !moveMsg->isScheduled() && move.getSpeed() > 0) {
+    if( !moveMsg->isScheduled() && mSpeed > 0) {
         scheduleAt(simTime() + updateInterval, msg);
     } else {
         delete msg;
@@ -263,23 +269,29 @@ void TraCIMobility::handleSelfMsg(cMessage *msg)
 
 void TraCIMobility::handleBorderMsg(cMessage * msg)
 {
-    EV_DETAIL << "start MOVE_TO_BORDER:" << move.info() << endl;
+//    EV_DETAIL << "start MOVE_TO_BORDER:" << move.info() << endl;
 
     BorderMsg* bMsg = static_cast<BorderMsg*>(msg);
 
     switch( bMsg->getPolicy() ){
     case REFLECT:
-        move.setStart(bMsg->getStartPos());
-        move.setDirectionByVector(bMsg->getDirection());
+        lastPos = bMsg->getStartPos();
+        startPos = bMsg->getStartPos();
+        startTime = simTime();
+        direction = bMsg->getDirection();
         break;
 
     case WRAP:
-        move.setStart(bMsg->getStartPos());
+        lastPos = bMsg->getStartPos();
+        startPos = bMsg->getStartPos();
+        startTime = simTime();
         break;
 
     case PLACERANDOMLY:
-        move.setStart(bMsg->getStartPos());
-        EV_DETAIL << "new random position: " << move.getStartPos().info() << endl;
+        lastPos = bMsg->getStartPos();
+        startPos = bMsg->getStartPos();
+        startTime = simTime();
+//        EV_DETAIL << "new random position: " << move.getStartPos().info() << endl;
         break;
 
     case RAISEERROR:
@@ -297,11 +309,11 @@ void TraCIMobility::handleBorderMsg(cMessage * msg)
 
     delete bMsg;
 
-    EV_DETAIL << "end MOVE_TO_BORDER:" << move.info() << endl;
+//    EV_DETAIL << "end MOVE_TO_BORDER:" << move.info() << endl;
 }
 
 void TraCIMobility::updatePosition() {
-    EV << "updatePosition: " << move.info() << endl;
+//    EV << "updatePosition: " << move.info() << endl;
 
     //publish the the new move
     emit(mobilityStateChangedSignal, this);
@@ -320,19 +332,19 @@ void TraCIMobility::updatePosition() {
         osDisplayTag << std::fixed; osDisplayTag.precision(iPrecis);
 
         if (playgroundScaleX != 1.0) {
-            osDisplayTag << (move.getStartPos().x * playgroundScaleX);
+            osDisplayTag << (startPos.x * playgroundScaleX);
         }
         else {
-            osDisplayTag << (move.getStartPos().x);
+            osDisplayTag << (startPos.x);
         }
             disp.setTagArg("p", 0, osDisplayTag.str().data());
 
         osDisplayTag.str(""); // reset
         if (playgroundScaleY != 1.0) {
-            osDisplayTag << (move.getStartPos().y * playgroundScaleY);
+            osDisplayTag << (startPos.y * playgroundScaleY);
         }
         else {
-            osDisplayTag << (move.getStartPos().y);
+            osDisplayTag << (startPos.y);
         }
             disp.setTagArg("p", 1, osDisplayTag.str().data());
 
@@ -348,7 +360,7 @@ void TraCIMobility::updatePosition() {
             //z-coordinate of playground size z maps to size of minScale (far away)
             double depthScale = minScale
                                 + (maxScale - minScale)
-                                  * (1.0 - move.getStartPos().z
+                                  * (1.0 - startPos.z
                                            / playgroundSizeZ());
 
             if (origDisplayWidth > 0.0 && origDisplayHeight > 0.0) {
@@ -469,31 +481,31 @@ TraCIMobility::BorderHandling TraCIMobility::checkIfOutside( inet::Coord targetP
 
     // Testing x-value
     if (targetPos.x < 0){
-        borderStep.x = (-move.getStartPos().x);
+        borderStep.x = (-startPos.x);
         outside = X_SMALLER;
     }
     else if (targetPos.x >= playgroundSizeX()){
-        borderStep.x = (playgroundSizeX() - move.getStartPos().x);
+        borderStep.x = (playgroundSizeX() - startPos.x);
         outside = X_BIGGER;
     }
 
     // Testing y-value
     if (targetPos.y < 0){
-        borderStep.y = (-move.getStartPos().y);
+        borderStep.y = (-startPos.y);
 
         if( outside == NOWHERE
-            || fabs(borderStep.x/move.getDirection().x)
-               > fabs(borderStep.y/move.getDirection().y) )
+            || fabs(borderStep.x/direction.x)
+               > fabs(borderStep.y/direction.y) )
         {
             outside = Y_SMALLER;
         }
     }
     else if (targetPos.y >= playgroundSizeY()){
-        borderStep.y = (playgroundSizeY() - move.getStartPos().y);
+        borderStep.y = (playgroundSizeY() - startPos.y);
 
         if( outside == NOWHERE
-            || fabs(borderStep.x/move.getDirection().x)
-               > fabs(borderStep.y/move.getDirection().y) )
+            || fabs(borderStep.x/direction.x)
+               > fabs(borderStep.y/direction.y) )
         {
             outside = Y_BIGGER;
         }
@@ -506,7 +518,7 @@ TraCIMobility::BorderHandling TraCIMobility::checkIfOutside( inet::Coord targetP
         // going to reach the lower z-border
         if (targetPos.z < 0)
         {
-            borderStep.z = (-move.getStartPos().z);
+            borderStep.z = (-startPos.z);
 
             // no border reached so far
             if( outside==NOWHERE )
@@ -516,16 +528,16 @@ TraCIMobility::BorderHandling TraCIMobility::checkIfOutside( inet::Coord targetP
             // an y-border is reached earliest so far, test whether z-border
             // is reached even earlier
             else if( (outside == Y_SMALLER || outside == Y_BIGGER)
-                     && fabs(borderStep.y/move.getDirection().y)
-                        > fabs(borderStep.z/move.getDirection().z) )
+                     && fabs(borderStep.y/direction.y)
+                        > fabs(borderStep.z/direction.z) )
             {
                 outside = Z_SMALLER;
             }
             // an x-border is reached earliest so far, test whether z-border
             // is reached even earlier
             else if( (outside == X_SMALLER || outside == X_BIGGER)
-                     && fabs(borderStep.x/move.getDirection().x)
-                        > fabs(borderStep.z/move.getDirection().z) )
+                     && fabs(borderStep.x/direction.x)
+                        > fabs(borderStep.z/direction.z) )
             {
                 outside = Z_SMALLER;
             }
@@ -534,7 +546,7 @@ TraCIMobility::BorderHandling TraCIMobility::checkIfOutside( inet::Coord targetP
         // going to reach the upper z-border
         else if (targetPos.z >= playgroundSizeZ())
         {
-            borderStep.z = (playgroundSizeZ() - move.getStartPos().z);
+            borderStep.z = (playgroundSizeZ() - startPos.z);
 
             // no border reached so far
             if( outside==NOWHERE )
@@ -544,16 +556,16 @@ TraCIMobility::BorderHandling TraCIMobility::checkIfOutside( inet::Coord targetP
             // an y-border is reached earliest so far, test whether z-border
             // is reached even earlier
             else if( (outside==Y_SMALLER || outside==Y_BIGGER)
-                     && fabs(borderStep.y/move.getDirection().y)
-                        > fabs(borderStep.z/move.getDirection().z) )
+                     && fabs(borderStep.y/direction.y)
+                        > fabs(borderStep.z/direction.z) )
             {
                 outside = Z_BIGGER;
             }
             // an x-border is reached earliest so far, test whether z-border
             // is reached even earlier
             else if( (outside==X_SMALLER || outside==X_BIGGER)
-                      && fabs(borderStep.x/move.getDirection().x)
-                         > fabs(borderStep.z/move.getDirection().z) )
+                      && fabs(borderStep.x/direction.x)
+                         > fabs(borderStep.z/direction.z) )
             {
                 outside = Z_BIGGER;
             }
@@ -572,115 +584,115 @@ void TraCIMobility::goToBorder(BorderPolicy policy, BorderHandling wo,
 {
     double factor;
 
-    EV_DETAIL << "goToBorder: startPos: " << move.getStartPos().info()
+    EV_DETAIL << "goToBorder: startPos: " << startPos.info()
            << " borderStep: " << borderStep.info()
            << " BorderPolicy: " << policy
            << " BorderHandling: " << wo << endl;
 
     switch( wo ) {
     case X_SMALLER:
-        factor = borderStep.x / move.getDirection().x;
-        borderStep.y = (factor * move.getDirection().y);
+        factor = borderStep.x / direction.x;
+        borderStep.y = (factor * direction.y);
         if (!dim2d)
         {
-            borderStep.z = (factor * move.getDirection().z); // 3D case
+            borderStep.z = (factor * direction.z); // 3D case
         }
 
         if( policy == WRAP )
         {
             borderStart.x = (playgroundSizeX());
-            borderStart.y = (move.getStartPos().y + borderStep.y);
+            borderStart.y = (startPos.y + borderStep.y);
             if (!dim2d)
             {
-                borderStart.z = (move.getStartPos().z
+                borderStart.z = (startPos.z
                                  + borderStep.z); // 3D case
             }
         }
         break;
 
     case X_BIGGER:
-        factor = borderStep.x / move.getDirection().x;
-        borderStep.y = (factor * move.getDirection().y);
+        factor = borderStep.x / direction.x;
+        borderStep.y = (factor * direction.y);
         if (!dim2d)
         {
-            borderStep.z = (factor * move.getDirection().z); // 3D case
+            borderStep.z = (factor * direction.z); // 3D case
         }
 
         if( policy == WRAP )
         {
             borderStart.x = (0);
-            borderStart.y = (move.getStartPos().y + borderStep.y);
+            borderStart.y = (startPos.y + borderStep.y);
             if (!dim2d)
             {
-                borderStart.z = (move.getStartPos().z
+                borderStart.z = (startPos.z
                                  + borderStep.z); // 3D case
             }
         }
         break;
 
     case Y_SMALLER:
-        factor = borderStep.y / move.getDirection().y;
-        borderStep.x = (factor * move.getDirection().x);
+        factor = borderStep.y / direction.y;
+        borderStep.x = (factor * direction.x);
         if (!dim2d)
         {
-            borderStep.z = (factor * move.getDirection().z); // 3D case
+            borderStep.z = (factor * direction.z); // 3D case
         }
 
         if( policy == WRAP )
         {
             borderStart.y = (playgroundSizeY());
-            borderStart.x = (move.getStartPos().x + borderStep.x);
+            borderStart.x = (startPos.x + borderStep.x);
             if (!dim2d)
             {
-                borderStart.z = (move.getStartPos().z
+                borderStart.z = (startPos.z
                                  + borderStep.z); // 3D case
             }
         }
         break;
 
     case Y_BIGGER:
-        factor = borderStep.y / move.getDirection().y;
-        borderStep.x = (factor * move.getDirection().x);
+        factor = borderStep.y / direction.y;
+        borderStep.x = (factor * direction.x);
         if (!dim2d)
         {
-            borderStep.z = (factor * move.getDirection().z); // 3D case
+            borderStep.z = (factor * direction.z); // 3D case
         }
 
         if( policy == WRAP )
         {
             borderStart.y = (0);
-            borderStart.x = (move.getStartPos().x + borderStep.x);
+            borderStart.x = (startPos.x + borderStep.x);
             if (!dim2d)
             {
-                borderStart.z = (move.getStartPos().z
+                borderStart.z = (startPos.z
                                  + borderStep.z); // 3D case
             }
         }
         break;
 
     case Z_SMALLER: // here we are definitely in 3D
-        factor = borderStep.z / move.getDirection().z;
-        borderStep.x = (factor * move.getDirection().x);
-        borderStep.y = (factor * move.getDirection().y);
+        factor = borderStep.z / direction.z;
+        borderStep.x = (factor * direction.x);
+        borderStep.y = (factor * direction.y);
 
         if( policy == WRAP )
         {
             borderStart.z = (playgroundSizeZ());
-            borderStart.x = (move.getStartPos().x + borderStep.x);
-            borderStart.y = (move.getStartPos().y + borderStep.y);
+            borderStart.x = (startPos.x + borderStep.x);
+            borderStart.y = (startPos.y + borderStep.y);
         }
         break;
 
     case Z_BIGGER: // here we are definitely in 3D
-        factor = borderStep.z / move.getDirection().z;
-        borderStep.x = (factor * move.getDirection().x);
-        borderStep.y = (factor * move.getDirection().y);
+        factor = borderStep.z / direction.z;
+        borderStep.x = (factor * direction.x);
+        borderStep.y = (factor * direction.y);
 
         if( policy == WRAP )
         {
             borderStart.z = (0);
-            borderStart.x = (move.getStartPos().x + borderStep.x);
-            borderStart.y = (move.getStartPos().y + borderStep.y);
+            borderStart.x = (startPos.x + borderStep.x);
+            borderStart.y = (startPos.y + borderStep.y);
         }
         break;
 
@@ -690,7 +702,7 @@ void TraCIMobility::goToBorder(BorderPolicy policy, BorderHandling wo,
         break;
     }
 
-    EV_DETAIL << "goToBorder: startPos: " << move.getStartPos().info()
+    EV_DETAIL << "goToBorder: startPos: " << startPos.info()
            << " borderStep: " << borderStep.info()
            << " borderStart: " << borderStart.info()
            << " factor: " << factor << endl;
@@ -749,14 +761,14 @@ bool TraCIMobility::handleIfOutside(BorderPolicy policy, inet::Coord& stepTarget
     goToBorder(policy, wo, borderStep, borderStart);
 
     // calculate the time to reach the border
-    borderInterval = (borderStep.length()) / move.getSpeed();
+    borderInterval = (borderStep.length()) / mSpeed;
 
     // calculate new start position
     // NOTE: for WRAP this is done in goToBorder
     switch( policy ){
     case REFLECT:
     {
-        borderStart = move.getStartPos() + borderStep;
+        borderStart = startPos + borderStep;
         double d = stepTarget.distance( borderStart );
         borderDirection = (stepTarget - borderStart) / d;
         break;
@@ -822,19 +834,24 @@ void TraCIMobility::preInitialize(std::string external_id, const inet::Coord& po
 	this->angle = angle;
 	this->antennaPositionOffset = par("antennaPositionOffset");
 
-	inet::Coord nextPos = calculateAntennaPosition(roadPosition);
-	nextPos.z = move.getCurrentPosition().z;
+	Coord nextPos = calculateAntennaPosition(roadPosition);
+    if (lastPos.z != DBL_MAX)
+        nextPos.z = lastPos.z;
+    else
+        nextPos.z = startPos.z;
 
-	move.setStart(nextPos);
-	move.setDirectionByVector(inet::Coord(cos(angle), -sin(angle)));
-	move.setSpeed(speed);
+    lastPos = nextPos;
+    startPos = nextPos;
+    startTime = simTime();
+    direction = Coord(cos(angle), -sin(angle));
+	mSpeed = speed;
 
 	isPreInitialized = true;
 }
 
 void TraCIMobility::nextPosition(const inet::Coord& position, std::string road_id, double speed, double angle, TraCIScenarioManager::VehicleSignal signals)
 {
-	if (debug) EV << "nextPosition " << position.x << " " << position.y << " " << road_id << " " << speed << " " << angle << std::endl;
+	EV_DEBUG << "nextPosition " << position.x << " " << position.y << " " << road_id << " " << speed << " " << angle << std::endl;
 	isPreInitialized = false;
 	this->roadPosition = position;
 	this->road_id = road_id;
@@ -850,17 +867,19 @@ void TraCIMobility::changePosition()
 	ASSERT(lastUpdate != simTime());
 
 	// keep statistics (for current step)
-	currentPosXVec.record(move.getStartPos().x);
-	currentPosYVec.record(move.getStartPos().y);
+	currentPosXVec.record(startPos.x);
+	currentPosYVec.record(startPos.y);
 
 	inet::Coord nextPos = calculateAntennaPosition(roadPosition);
-	nextPos.z = move.getCurrentPosition().z;
+    lastPos = nextPos;
+    startPos = nextPos;
+    startTime = simTime();
 
 	// keep statistics (relative to last step)
 	if (statistics.startTime != simTime()) {
 		simtime_t updateInterval = simTime() - this->lastUpdate;
 
-		double distance = move.getStartPos().distance(nextPos);
+		double distance = startPos.distance(nextPos);
 		statistics.totalDistance += distance;
 		statistics.totalTime += updateInterval;
 		if (speed != -1) {
@@ -882,9 +901,15 @@ void TraCIMobility::changePosition()
 	}
 	this->lastUpdate = simTime();
 
-	move.setStart(inet::Coord(nextPos.x, nextPos.y, move.getCurrentPosition().z)); // keep z position
-	move.setDirectionByVector(inet::Coord(cos(angle), -sin(angle)));
-	move.setSpeed(speed);
+    if (lastPos.z != DBL_MAX)
+        lastPos = Coord(nextPos.x, nextPos.y, lastPos.z);
+    else
+        startPos = Coord(nextPos.x, nextPos.y, startPos.z);
+    startTime = simTime();
+
+
+	direction = Coord(cos(angle), -sin(angle));
+	mSpeed = speed;
 	if (ev.isGUI()) updateDisplayString();
 	fixIfHostGetsOutside();
 	updatePosition();
@@ -953,7 +978,7 @@ void TraCIMobility::updateDisplayString() {
 
 void TraCIMobility::fixIfHostGetsOutside()
 {
-	inet::Coord pos = move.getStartPos();
+	inet::Coord pos = startPos;
 	inet::Coord dummy = inet::Coord::ZERO;
 	double dum;
 
