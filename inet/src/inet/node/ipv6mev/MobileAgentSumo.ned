@@ -51,12 +51,7 @@ module MobileAgentSumo extends NodeBase
         routingTableType = "IPv6RoutingTable";
         routingTable.routes = routes;
         networkLayer.proxyARP = default(false);
-        string veinsmobilityType;  //type of the mobility module
     submodules:
-        veinsmobility: TraCIMobility {
-            parameters:
-                @display("p=147,200;i=block/cogwheel");
-        }
         tunApp[numTunInterfaces]: <> like ITunApp {
             parameters:
                 @display("p=147,258");

@@ -65,7 +65,7 @@ class TraCIScenarioManagerLaunchdAccess
 {
 	public:
 		TraCIScenarioManagerLaunchd* get() {
-			return FindModule<TraCIScenarioManagerLaunchd*>::findGlobalModule();
+			return TraCIModuleFinder<TraCIScenarioManagerLaunchd*>::findGlobalModule();
 		};
 };
 }

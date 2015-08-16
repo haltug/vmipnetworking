@@ -36,4 +36,10 @@ simple MobilityBase like IMobility
         double constraintAreaMaxX @unit(m) = default(1m/0); // max x position of the constraint area, unconstrained by default (positive infinity)
         double constraintAreaMaxY @unit(m) = default(1m/0); // max y position of the constraint area, unconstrained by default (positive infinity)
         double constraintAreaMaxZ @unit(m) = default(1m/0); // max z position of the constraint area, unconstrained by default (positive infinity)
+//======== Start position, if not randomized.
+//        double initialX; 
+//        double initialY;
+//        double initialZ;
+        
+        
 }

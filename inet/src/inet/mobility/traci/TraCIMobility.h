@@ -21,7 +21,6 @@
 #ifndef VEINS_MOBILITY_TRACI_TRACIMOBILITY_H
 #define VEINS_MOBILITY_TRACI_TRACIMOBILITY_H
 
-
 #include <string>
 #include <fstream>
 #include <list>
@@ -29,8 +28,8 @@
 
 #include "inet/common/geometry/common/Coord.h"
 #include "inet/environment/contract/IPhysicalEnvironment.h"
+#include "inet/mobility/base/MovingMobilityBase.h"
 #include "inet/mobility/traci/TraCIScenarioManager.h"
-#include "inet/mobility/traci/TraCICommandInterface.h"
 
 //#include "inet/common/INETMath.h"
 
@@ -45,6 +44,7 @@
  * See the Veins website <a href="http://veins.car2x.org/"> for a tutorial, documentation, and publications </a>.
  *
  * @author Christoph Sommer, David Eckhoff, Luca Bedogni, Bastian Halmos, Stefan Joerer
+ * @author Halis Altug - adapted to INET 3.0; 17.8.2015
  *
  * @see TraCIScenarioManager
  * @see TraCIScenarioManagerLaunchd
@@ -54,182 +54,48 @@
 namespace inet {
 using namespace inet::physicalenvironment;
 
-class INET_API TraCIMobility : public cSimpleModule, public cListener
-{
-	public:
-		TraCIMobility() : isPreInitialized(false), manager(0), commandInterface(0), vehicleCommandInterface(0) {}
-		~TraCIMobility() {
-            cancelAndDelete(moveMsg);
-			delete vehicleCommandInterface;
-		}
-		virtual void initialize(int);
-	    virtual void handleMessage(cMessage *msg);
-		virtual void finish();
-        virtual void receiveSignal(cComponent *source, simsignal_t signalID, cObject *obj);
-
-    enum BorderPolicy {
-            REFLECT,       ///< reflect off the wall
-            WRAP,          ///< reappear at the opposite edge (torus)
-            PLACERANDOMLY, ///< placed at a randomly chosen position on the playground
-            RAISEERROR     ///< stop the simulation with error
-        };
-        enum BaseMobilityMsgKinds {
-            MOVE_HOST = 21311,
-            MOVE_TO_BORDER,
-            LAST_BASE_MOBILITY_KIND,
-        };
-        enum BorderHandling {
-            NOWHERE,   ///< not outside the playground
-            X_SMALLER, ///< x smaller than 0
-            X_BIGGER,  ///< x bigger or equal than playground size
-            Y_SMALLER, ///< y smaller than 0
-            Y_BIGGER,  ///< y bigger or equal than playground size
-            Z_SMALLER, ///< z smaller than 0
-            Z_BIGGER   ///< z bigger or equal than playground size
-
-        };
-		virtual void handleSelfMsg(cMessage *msg);
-		virtual void preInitialize(std::string external_id, const inet::Coord& position, std::string road_id = "", double speed = -1, double angle = -1);
-		virtual void nextPosition(const inet::Coord& position, std::string road_id = "", double speed = -1, double angle = -1, TraCIScenarioManager::VehicleSignal signals = TraCIScenarioManager::VEH_SIGNAL_UNDEF);
-		virtual void changePosition();
-		virtual void changeParkingState(bool);
-		virtual void updateDisplayString();
-		virtual void setExternalId(std::string external_id) {
-			this->external_id = external_id;
-		}
-		virtual std::string getExternalId() const {
-			if (external_id == "") throw cRuntimeError("TraCIMobility::getExternalId called with no external_id set yet");
-			return external_id;
-		}
-		virtual double getAntennaPositionOffset() const {
-			return antennaPositionOffset;
-		}
-		virtual Coord getPositionAt(const simtime_t& actualTime = simTime()) const {
-		    if ( math::close(mSpeed, 0.0) ) return startPos;
-            return startPos + ( direction * mSpeed * SIMTIME_DBL(actualTime - startTime) );
-		}
-		virtual bool getParkingState() const {
-			return isParking;
-		}
-		virtual std::string getRoadId() const {
-			if (road_id == "") throw cRuntimeError("TraCIMobility::getRoadId called with no road_id set yet");
-			return road_id;
-		}
-		virtual double getSpeed() const {
-			if (speed == -1) throw cRuntimeError("TraCIMobility::getSpeed called with no speed set yet");
-			return speed;
-		}
-		virtual TraCIScenarioManager::VehicleSignal getSignals() const {
-			if (signals == -1) throw cRuntimeError("TraCIMobility::getSignals called with no signals set yet");
-			return signals;
-		}
-	    virtual Coord getCurrentPosition() const {
-	        return startPos;
-	    }
-	    virtual Coord getCurrentSpeed() const {
-	        return direction * mSpeed;
-	    }
-
-	    virtual int iconSizeTagToSize(const char* tag);
-	    virtual const char* iconSizeToTag(double size);
-	    virtual void handleBorderMsg( cMessage* );
-	    virtual void updatePosition();
-	    double playgroundSizeX() const  {return environment->getSpaceMax().x;}
-	    double playgroundSizeY() const  {return environment->getSpaceMax().y;}
-	    double playgroundSizeZ() const  {return environment->getSpaceMax().z;}
-	    Coord getRandomPosition() { return Coord(
-                uniform(environment->getSpaceMin().x, environment->getSpaceMax().x),
-                uniform(environment->getSpaceMin().y, environment->getSpaceMax().y),
-                uniform(environment->getSpaceMin().z, environment->getSpaceMax().z));}
-	    bool handleIfOutside(BorderPolicy, inet::Coord&, inet::Coord&, inet::Coord&, double&);
-	    BorderHandling checkIfOutside(Coord,Coord& );
-	    void goToBorder( BorderPolicy, BorderHandling, inet::Coord&, inet::Coord& );
-	    void reflectCoordinate(BorderHandling border, inet::Coord& c);
-	    void reflectIfOutside(BorderHandling, inet::Coord&, inet::Coord&, inet::Coord&, double&);
-	    void wrapIfOutside(BorderHandling, inet::Coord&, inet::Coord&);
-	    void placeRandomlyIfOutside( inet::Coord& );
-	    cModule *const findHost(void);
-	    const cModule *const findHost(void) const;
-		Coord calculateAntennaPosition(const inet::Coord& vehiclePos) const;
-		const cModule *const getNode() const {
-	        return findHost();
-	    };
-	    bool isInBoundary(Coord c, Coord lowerBound, Coord upperBound) {
-	        return  lowerBound.x <= c.x && c.x <= upperBound.x &&
-	                lowerBound.y <= c.y && c.y <= upperBound.y &&
-	                lowerBound.z <= c.z && c.z <= upperBound.z;
-	    }
-	    virtual void fixIfHostGetsOutside(); /**< called after each read to check for (and handle) invalid positions */
-		virtual double getAngleRad() const {
-			if (angle == M_PI) throw cRuntimeError("TraCIMobility::getAngleRad called with no angle set yet");
-			return angle;
-		}
-		virtual TraCIScenarioManager* getManager() const {
-			if (!manager) manager = TraCIScenarioManagerAccess().get();
-			return manager;
-		}
-		virtual TraCICommandInterface* getCommandInterface() const {
-			if (!commandInterface) commandInterface = getManager()->getCommandInterface();
-			return commandInterface;
-		}
-		virtual TraCICommandInterface::Vehicle* getVehicleCommandInterface() const {
-			if (!vehicleCommandInterface) vehicleCommandInterface = new TraCICommandInterface::Vehicle(getCommandInterface()->vehicle(getExternalId()));
-			return vehicleCommandInterface;
-		}
-
-	protected:
+class INET_API TraCIMobility : public MovingMobilityBase {
+    protected:
         IPhysicalEnvironment *environment;
+        TraCIScenarioManager *traciManager;
         static simsignal_t parkingStateChangedSignal;
-        static simsignal_t mobilityStateChangedSignal;
-//	    const static simsignalwrap_t catHostStateSignal;
-	    bool dim2d;
-		bool isPreInitialized; /**< true if preInitialize() has been called immediately before initialize() */
-		std::string external_id; /**< updated by setExternalId() */
-		double antennaPositionOffset; /**< front offset for the antenna on this car */
-		simtime_t lastUpdate; /**< updated by nextPosition() */
-		inet::Coord roadPosition; /**< position of front bumper, updated by nextPosition() */
-		std::string road_id; /**< updated by nextPosition() */
-		double speed; /**< updated by nextPosition() */
-		double angle; /**< updated by nextPosition() */
-		TraCIScenarioManager::VehicleSignal signals; /**<updated by nextPosition() */
-		int accidentCount; /**< number of accidents */
-		cMessage* startAccidentMsg;
-		cMessage* stopAccidentMsg;
-		mutable TraCIScenarioManager* manager;
-		mutable TraCICommandInterface* commandInterface;
-		mutable TraCICommandInterface::Vehicle* vehicleCommandInterface;
-		double last_speed;
-		bool isParking;
-//        Move move;
-        /** @brief Time interval (in seconds) to update the hosts position*/
-        simtime_t updateInterval;
-        /** @brief Self message to trigger movement */
-        cMessage* moveMsg;
-        /** @brief Enable depth dependent scaling of nodes when 3d and tkenv is used. */
-        bool scaleNodeByDepth;
-        /** @brief Scaling of the playground in X direction.*/
-        double playgroundScaleX;
-        /** @brief Scaling of the playground in Y direction.*/
-        double playgroundScaleY;
-        /** @brief The original width the node is displayed width.*/
-        double origDisplayWidth;
-        /** @brief The original height the node is displayed width.*/
-        double origDisplayHeight;
-        /** @brief The original size of the icon of the node.*/
-        double origIconSize;
+        static simsignal_t accidentStateChangedSignal;
 
-//        ====== Move class
-        /** @brief Start position of the host (in meters)**/
-        Coord startPos;
-        /** @brief Last position which was set. */
-        Coord lastPos;
-        /** @brief start time at which host started at startPos **/
-        simtime_t startTime;
-        /** @brief direction the host is moving to, must be normalized **/
-        Coord direction;
-        /** @brief speed of the host in meters per second **/
-        double mSpeed;
+        TraCIScenarioManager::VehicleSignal vehicleState; /**<updated by nextPosition() */
+        bool isParking;
+        bool hasAccident;
+        // current state
+        std::string vehicleId;
+        std::string lastRoadId;
+        double currentSpeed;
+        double currentAngle;
+        Coord currentOrientation;
+        // next state
+        Coord nextPosition;
+        EulerAngles nextOrientation;
+        std::string nextRoadId;
+        double nextSpeed;
+        double nextAngle;
 
+	public:
+		virtual ~TraCIMobility() {};
+	    virtual int numInitStages() const override { return NUM_INIT_STAGES; }
+	    virtual void initialize(int stage) override;
+		virtual void finish();
+
+	    virtual void move() override;
+		virtual void setStartPosition(std::string vehicle_id, const Coord& position, std::string road_id, double speed, double angle, simtime_t nextTime, double updateTime, TraCIScenarioManager::VehicleSignal state);
+		virtual void setNextPosition(const Coord& position, std::string road_id, double speed, double angle, simtime_t nextTime, TraCIScenarioManager::VehicleSignal state);
+//		virtual Coord getNextPosition(const simtime_t& actualTime = simTime());
+
+		virtual void setParkingState(bool state);
+		virtual bool hasParkingState();
+		virtual void setAccidentState(bool state);
+		virtual bool hasAccidentState();
+		virtual std::string getCurrentRoadId();
+		virtual TraCIScenarioManager::VehicleSignal getVehicleState();
+		virtual double getMaxSpeed() const override { return currentSpeed; }
+		double calculateCO2emission(double v, double a);
 // =================================================================================================================================
         class Statistics {
             public:
@@ -259,7 +125,7 @@ class INET_API TraCIMobilityAccess
 {
 	public:
 		TraCIMobility* get(cModule* host) {
-			TraCIMobility* traci = FindModule<TraCIMobility*>::findSubModule(host);
+			TraCIMobility* traci = TraCIModuleFinder<TraCIMobility*>::findSubModule(host);
 			ASSERT(traci);
 			return traci;
 		};

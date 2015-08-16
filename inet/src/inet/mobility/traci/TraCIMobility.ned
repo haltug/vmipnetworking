@@ -20,7 +20,7 @@
 
 package inet.mobility.traci;
 
-//import veins.base.modules.BaseMobility;
+import inet.mobility.base.MovingMobilityBase;
 
 //
 // Used in modules created by the TraCIScenarioManager.
@@ -35,23 +35,19 @@ package inet.mobility.traci;
 // @see TraCIScenarioManager
 // @see TraCIScenarioManagerLaunchd
 //
-simple TraCIMobility 
+simple TraCIMobility extends MovingMobilityBase
 {
     parameters:
         @class(TraCIMobility);
         @display("i=block/cogwheel");
-        double antennaPositionOffset @unit("m") = default(0.0m);  // position offset of the antenna of the front of the car
-        int accidentCount = default(0);  // number of accidents
-        double accidentStart @unit("s") = default(uniform(30s,60s));  // time until first accident, relative to departure time
-        volatile double accidentDuration @unit("s") = default(uniform(30s,60s));  // duration of accident
-        volatile double accidentInterval @unit("s") = default(uniform(30s,60s));  // time between accidents
-        bool notAffectedByHostState = default(true);
-        double x; // x coordinate of the nodes' position (-1 = random)
-        double y; // y coordinate of the nodes' position (-1 = random)
-        double z; // z coordinate of the nodes' position (-1 = random)
-        
+        string traciManager = "manager";
         string environmentModule = "environment";
-        bool dim2d = default(false);
-//        *.environmentModule = default(absPath(environmentModule));
+//		double updateInterval @unit(s) = default(0.1s);
+		
+//======== Start position, if not randomized.
+//        double initialX; 
+//        double initialY;
+//        double initialZ;
+
 }
 

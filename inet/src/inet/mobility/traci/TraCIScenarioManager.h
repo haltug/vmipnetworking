@@ -28,7 +28,7 @@
 
 #include "inet/common/geometry/common/Coord.h"
 #include "inet/environment/contract/IPhysicalEnvironment.h"
-#include "inet/mobility/traci/FindModule.h"
+#include "inet/mobility/traci/TraCIModuleFinder.h"
 #include "inet/mobility/traci/TraCIBuffer.h"
 #include "inet/mobility/traci/TraCIColor.h"
 #include "inet/mobility/traci/TraCIConnection.h"
@@ -184,7 +184,7 @@ class TraCIScenarioManagerAccess
 {
 	public:
 		TraCIScenarioManager* get() {
-			return FindModule<TraCIScenarioManager*>::findGlobalModule();
+			return TraCIModuleFinder<TraCIScenarioManager*>::findGlobalModule();
 		};
 };
 }
