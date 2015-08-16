@@ -111,8 +111,8 @@ void TraCIScenarioManager::initialize(int stage) {
 	drivingVehicleCount = 0;
 	autoShutdownTriggered = false;
 
-	world = FindModule<BaseWorldUtility*>::findGlobalModule();
-	if (world == NULL) error("Could not find BaseWorldUtility module");
+	environment = check_and_cast<physicalenvironment::IPhysicalEnvironment *>(getModuleByPath(par("environmentModule")));
+	if (environment == NULL) error("Could not find IPhysicalEnvironment module");
 
 	ASSERT(firstStepAt > connectAt);
 	connectAndStartTrigger = new cMessage("connect");
@@ -156,8 +156,8 @@ void TraCIScenarioManager::init_traci() {
 		TraCICoord netbounds2 = TraCICoord(x2, y2);
 		EV_DEBUG << "TraCI reports network boundaries (" << x1 << ", " << y1 << ")-(" << x2 << ", " << y2 << ")" << endl;
 		connection->setNetbounds(netbounds1, netbounds2, par("margin"));
-		if ((connection->traci2omnet(netbounds2).x > world->getPgs()->x) || (connection->traci2omnet(netbounds1).y > world->getPgs()->y))
-		    EV_DEBUG << "WARNING: Playground size (" << world->getPgs()->x << ", " << world->getPgs()->y << ") might be too small for vehicle at network bounds (" << connection->traci2omnet(netbounds2).x << ", " << connection->traci2omnet(netbounds1).y << ")" << endl;
+		if ((connection->traci2omnet(netbounds2).x > environment->getSpaceMax().x) || (connection->traci2omnet(netbounds1).y > environment->getSpaceMax().y))
+		    EV_DEBUG << "WARNING: Playground size (" << environment->getSpaceMax().x << ", " << environment->getSpaceMax().y << ") might be too small for vehicle at network bounds (" << connection->traci2omnet(netbounds2).x << ", " << connection->traci2omnet(netbounds1).y << ")" << endl;
 	}
 
 	{
@@ -575,7 +575,7 @@ void TraCIScenarioManager::processSimSubscription(std::string objectId, TraCIBuf
 			ASSERT(varType == TYPE_INTEGER);
 			uint32_t serverTimestep; buf >> serverTimestep;
 			EV_DEBUG << "TraCI reports current time step as " << serverTimestep << "ms." << endl;
-			uint32_t omnetTimestep = getCurrentTimeMs();
+//			uint32_t omnetTimestep = getCurrentTimeMs();
 //			ASSERT(omnetTimestep == serverTimestep);
 
 		} else {

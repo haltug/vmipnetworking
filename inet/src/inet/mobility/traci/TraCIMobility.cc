@@ -25,7 +25,6 @@
 #include <sstream>
 
 #include "inet/mobility/traci/BorderMsg_m.h"
-#include "inet/mobility/traci/BaseWorldUtility.h"
 #include "inet/environment/contract/IPhysicalEnvironment.h"
 
 namespace inet {
@@ -33,28 +32,21 @@ namespace inet {
 Define_Module(TraCIMobility);
 
 const simsignalwrap_t TraCIMobility::parkingStateChangedSignal = simsignalwrap_t(TRACI_SIGNAL_PARKING_CHANGE_NAME);
-//const simsignalwrap_t TraCIMobility::catHostStateSignal = simsignalwrap_t(MIXIM_SIGNAL_HOSTSTATE_NAME);
 const simsignalwrap_t TraCIMobility::mobilityStateChangedSignal = simsignalwrap_t(MIXIM_SIGNAL_MOBILITY_CHANGE_NAME);
 
 void TraCIMobility::initialize(int stage)
 {
 	if (stage == 0)
 	{
-//        move();
         playgroundScaleX = 1;
         playgroundScaleY = 1;
         origDisplayWidth = 0;
         origDisplayHeight = 0;
         origIconSize = 0;
 
-//        TraCIMobility::findHost()->subscribe(catHostStateSignal, this);
-//        notAffectedByHostState =    hasPar("notAffectedByHostState") && par("notAffectedByHostState").boolValue();
         hasPar("coreDebug") ? coreDebug = par("coreDebug").boolValue() : coreDebug = false;
         EV_DETAIL << "initializing BaseMobility stage " << stage << endl;
         hasPar("scaleNodeByDepth") ? scaleNodeByDepth = par("scaleNodeByDepth").boolValue() : scaleNodeByDepth = true;
-//        world = FindModule<BaseWorldUtility*>::findGlobalModule();
-//        if (world == NULL)
-//            error("Could not find BaseWorldUtility module");
         EV_DETAIL << "initializing BaseUtility stage " << stage << endl; // for node position
         if (hasPar("updateInterval")) {
             updateInterval = par("updateInterval");
@@ -66,16 +58,8 @@ void TraCIMobility::initialize(int stage)
         } else {
             dim2d = false;
         }
-//        environment: PhysicalEnvironment;
-//        PhysicalEnvironment *environment = dynamic_cast<PhysicalEnvironment *>(findContainingNode(this)->getSubmodule("environmentModule"));
-//        isOperational = (!environment) || environment->getState() == NodeStatus::UP;
-//        physicalenvironment::IPhysicalEnvironment *ipe = findModuleFromPar<physicalenvironment::IPhysicalEnvironment> (par("environmentModule"), this);
         environment = check_and_cast<physicalenvironment::IPhysicalEnvironment *>(getModuleByPath(par("environmentModule")));
 
-        // initialize Move parameter
-//        bool use2D = world->use2D();
-        //initalize position with random values
-//        Coord pos = world->getRandomPosition();
         Coord pos(
                 uniform(environment->getSpaceMin().x, environment->getSpaceMax().x),
                 uniform(environment->getSpaceMin().y, environment->getSpaceMax().y),
@@ -825,31 +809,8 @@ const cModule *const TraCIMobility::findHost(void) const
 }
 
 void TraCIMobility::receiveSignal(cComponent *source, simsignal_t signalID, cObject *obj) {
-//    Enter_Method_Silent();
-//    if (signalID == catHostStateSignal) {
-//        const HostState *const pHostState = dynamic_cast<const HostState *const>(obj);
-//        if (pHostState) {
-//            handleHostState(*pHostState);
-//        }
-//        else {
-//            opp_warning("Got catHostStateSignal but obj was not a HostState pointer?");
-//        }
-//    }
-}
 
-//void TraCIMobility::handleHostState(const HostState& state)
-//{
-//    if(notAffectedByHostState)
-//        return;
-//
-//    if(state.get() != HostState::ACTIVE) {
-//        error("Hosts state changed to something else than active which"
-//              " is not handled by this module. Either handle this state"
-//              " correctly or if this module really isn't affected by the"
-//              " hosts state set the parameter \"notAffectedByHostState\""
-//              " of this module to true.");
-//    }
-//}
+}
 
 void TraCIMobility::preInitialize(std::string external_id, const inet::Coord& position, std::string road_id, double speed, double angle)
 {
@@ -908,10 +869,10 @@ void TraCIMobility::changePosition()
 			currentSpeedVec.record(speed);
 			if (last_speed != -1) {
 				double acceleration = (speed - last_speed) / updateInterval;
-				double co2emission = calculateCO2emission(speed, acceleration);
+//				double co2emission = calculateCO2emission(speed, acceleration);
 				currentAccelerationVec.record(acceleration);
-				currentCO2EmissionVec.record(co2emission);
-				statistics.totalCO2Emission+=co2emission * updateInterval.dbl();
+//				currentCO2EmissionVec.record(co2emission);
+//				statistics.totalCO2Emission+=co2emission * updateInterval.dbl();
 			}
 			last_speed = speed;
 		} else {
@@ -1006,37 +967,37 @@ void TraCIMobility::fixIfHostGetsOutside()
 	handleIfOutside( RAISEERROR, pos, dummy, dummy, dum);
 }
 
-double TraCIMobility::calculateCO2emission(double v, double a) const {
-	// Calculate CO2 emission parameters according to:
-	// Cappiello, A. and Chabini, I. and Nam, E.K. and Lue, A. and Abou Zeid, M., "A statistical model of vehicle emissions and fuel consumption," IEEE 5th International Conference on Intelligent Transportation Systems (IEEE ITSC), pp. 801-809, 2002
-
-	double A = 1000 * 0.1326; // W/m/s
-	double B = 1000 * 2.7384e-03; // W/(m/s)^2
-	double C = 1000 * 1.0843e-03; // W/(m/s)^3
-	double M = 1325.0; // kg
-
-	// power in W
-	double P_tract = A*v + B*v*v + C*v*v*v + M*a*v; // for sloped roads: +M*g*sin_theta*v
-
-	/*
-	// "Category 7 vehicle" (e.g. a '92 Suzuki Swift)
-	double alpha = 1.01;
-	double beta = 0.0162;
-	double delta = 1.90e-06;
-	double zeta = 0.252;
-	double alpha1 = 0.985;
-	*/
-
-	// "Category 9 vehicle" (e.g. a '94 Dodge Spirit)
-	double alpha = 1.11;
-	double beta = 0.0134;
-	double delta = 1.98e-06;
-	double zeta = 0.241;
-	double alpha1 = 0.973;
-
-	if (P_tract <= 0) return alpha1;
-	return alpha + beta*v*3.6 + delta*v*v*v*(3.6*3.6*3.6) + zeta*a*v;
-}
+//double TraCIMobility::calculateCO2emission(double v, double a) const {
+//	// Calculate CO2 emission parameters according to:
+//	// Cappiello, A. and Chabini, I. and Nam, E.K. and Lue, A. and Abou Zeid, M., "A statistical model of vehicle emissions and fuel consumption," IEEE 5th International Conference on Intelligent Transportation Systems (IEEE ITSC), pp. 801-809, 2002
+//
+//	double A = 1000 * 0.1326; // W/m/s
+//	double B = 1000 * 2.7384e-03; // W/(m/s)^2
+//	double C = 1000 * 1.0843e-03; // W/(m/s)^3
+//	double M = 1325.0; // kg
+//
+//	// power in W
+//	double P_tract = A*v + B*v*v + C*v*v*v + M*a*v; // for sloped roads: +M*g*sin_theta*v
+//
+//	/*
+//	// "Category 7 vehicle" (e.g. a '92 Suzuki Swift)
+//	double alpha = 1.01;
+//	double beta = 0.0162;
+//	double delta = 1.90e-06;
+//	double zeta = 0.252;
+//	double alpha1 = 0.985;
+//	*/
+//
+//	// "Category 9 vehicle" (e.g. a '94 Dodge Spirit)
+//	double alpha = 1.11;
+//	double beta = 0.0134;
+//	double delta = 1.98e-06;
+//	double zeta = 0.241;
+//	double alpha1 = 0.973;
+//
+//	if (P_tract <= 0) return alpha1;
+//	return alpha + beta*v*3.6 + delta*v*v*v*(3.6*3.6*3.6) + zeta*a*v;
+//}
 
 
 inet::Coord TraCIMobility::calculateAntennaPosition(const inet::Coord& vehiclePos) const {

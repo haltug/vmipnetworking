@@ -59,5 +59,6 @@ simple TraCIScenarioManagerLaunchd
         int numVehicles = default(1);
         bool useRouteDistributions = default(false);
         int vehicleRngIndex = default(0); // index of the RNG stream to be used, all random numbers concerning the managed vehicles
+		string environmentModule = "environment";        
 }
 

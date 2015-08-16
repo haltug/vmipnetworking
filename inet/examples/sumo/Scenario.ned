@@ -23,7 +23,6 @@ import inet.node.ipv6.*;
 import inet.node.ipv6mev.*;
 import inet.node.wireless.AccessPoint;
 
-import inet.mobility.traci.BaseWorldUtility;
 import inet.mobility.traci.TraCIScenarioManagerLaunchd;
 
 channel ethernetline extends ned.DatarateChannel
@@ -50,13 +49,6 @@ network sumoWorld
         environment: PhysicalEnvironment {
             parameters:
                 @display("p=50,180");
-        }
-		world: BaseWorldUtility {
-            parameters:
-                playgroundSizeX = playgroundSizeX;
-                playgroundSizeY = playgroundSizeY;
-                playgroundSizeZ = playgroundSizeZ;
-                @display("p=50,300;i=misc/globe");
         }
         manager: TraCIScenarioManagerLaunchd {
             parameters:

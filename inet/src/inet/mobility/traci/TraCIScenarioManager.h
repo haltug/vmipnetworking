@@ -27,7 +27,7 @@
 #include <queue>
 
 #include "inet/common/geometry/common/Coord.h"
-#include "inet/mobility/traci/BaseWorldUtility.h"
+#include "inet/environment/contract/IPhysicalEnvironment.h"
 #include "inet/mobility/traci/FindModule.h"
 #include "inet/mobility/traci/TraCIBuffer.h"
 #include "inet/mobility/traci/TraCIColor.h"
@@ -140,7 +140,7 @@ class TraCIScenarioManager : public cSimpleModule
 		cMessage* connectAndStartTrigger; /**< self-message scheduled for when to connect to TraCI server and start running */
 		cMessage* executeOneTimestepTrigger; /**< self-message scheduled for when to next call executeOneTimestep */
 
-		BaseWorldUtility* world;
+		physicalenvironment::IPhysicalEnvironment *environment;
 
 		uint32_t getCurrentTimeMs(); /**< get current simulation time (in ms) */
 

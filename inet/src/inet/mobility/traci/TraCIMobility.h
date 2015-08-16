@@ -34,8 +34,6 @@
 
 #include "inet/mobility/traci/MiXiMDefs.h"
 #include "inet/mobility/traci/Move.h"
-//#include "inet/mobility/traci/BaseWorldUtility.h"
-//#include "inet/mobility/traci/HostState.h"
 #include "inet/environment/contract/IPhysicalEnvironment.h"
 
 
@@ -98,9 +96,6 @@ class INET_API TraCIMobility : public cSimpleModule, public cListener
             Z_BIGGER   ///< z bigger or equal than playground size
         };
 
-        bool notAffectedByHostState;
-        /** @brief Pointer to BaseWorldUtility -- these two must know each other */
-//        BaseWorldUtility *world;
 
         /** @brief Stores the current position and move pattern of the host*/
         Move move;
@@ -135,7 +130,6 @@ class INET_API TraCIMobility : public cSimpleModule, public cListener
         double origIconSize;
 
         virtual void receiveSignal(cComponent *source, simsignal_t signalID, cObject *obj);
-//        virtual void handleHostState(const HostState& state);
 
 		TraCIMobility() : isPreInitialized(false), manager(0), commandInterface(0), vehicleCommandInterface(0) {}
 		~TraCIMobility() {
@@ -276,7 +270,7 @@ class INET_API TraCIMobility : public cSimpleModule, public cListener
 		 * @param a acceleration in m/s^2
 		 * @returns emission in g/s
 		 */
-		double calculateCO2emission(double v, double a) const;
+//		double calculateCO2emission(double v, double a) const;
 
 		/**
 		 * Calculates where the antenna of this car is, given its front bumper position
