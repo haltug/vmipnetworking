@@ -53,6 +53,7 @@ simple TraCIMobility
         double z; // z coordinate of the nodes' position (-1 = random)
         
         string environmentModule = "environment";
+        bool dim2d = default(false);
 //        *.environmentModule = default(absPath(environmentModule));
 }
 

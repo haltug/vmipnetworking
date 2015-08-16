@@ -33,7 +33,7 @@ namespace inet {
 Define_Module(TraCIMobility);
 
 const simsignalwrap_t TraCIMobility::parkingStateChangedSignal = simsignalwrap_t(TRACI_SIGNAL_PARKING_CHANGE_NAME);
-const simsignalwrap_t TraCIMobility::catHostStateSignal = simsignalwrap_t(MIXIM_SIGNAL_HOSTSTATE_NAME);
+//const simsignalwrap_t TraCIMobility::catHostStateSignal = simsignalwrap_t(MIXIM_SIGNAL_HOSTSTATE_NAME);
 const simsignalwrap_t TraCIMobility::mobilityStateChangedSignal = simsignalwrap_t(MIXIM_SIGNAL_MOBILITY_CHANGE_NAME);
 
 void TraCIMobility::initialize(int stage)
@@ -47,8 +47,8 @@ void TraCIMobility::initialize(int stage)
         origDisplayHeight = 0;
         origIconSize = 0;
 
-        TraCIMobility::findHost()->subscribe(catHostStateSignal, this);
-        notAffectedByHostState =    hasPar("notAffectedByHostState") && par("notAffectedByHostState").boolValue();
+//        TraCIMobility::findHost()->subscribe(catHostStateSignal, this);
+//        notAffectedByHostState =    hasPar("notAffectedByHostState") && par("notAffectedByHostState").boolValue();
         hasPar("coreDebug") ? coreDebug = par("coreDebug").boolValue() : coreDebug = false;
         EV_DETAIL << "initializing BaseMobility stage " << stage << endl;
         hasPar("scaleNodeByDepth") ? scaleNodeByDepth = par("scaleNodeByDepth").boolValue() : scaleNodeByDepth = true;
@@ -825,31 +825,31 @@ const cModule *const TraCIMobility::findHost(void) const
 }
 
 void TraCIMobility::receiveSignal(cComponent *source, simsignal_t signalID, cObject *obj) {
-    Enter_Method_Silent();
-    if (signalID == catHostStateSignal) {
-        const HostState *const pHostState = dynamic_cast<const HostState *const>(obj);
-        if (pHostState) {
-            handleHostState(*pHostState);
-        }
-        else {
-            opp_warning("Got catHostStateSignal but obj was not a HostState pointer?");
-        }
-    }
+//    Enter_Method_Silent();
+//    if (signalID == catHostStateSignal) {
+//        const HostState *const pHostState = dynamic_cast<const HostState *const>(obj);
+//        if (pHostState) {
+//            handleHostState(*pHostState);
+//        }
+//        else {
+//            opp_warning("Got catHostStateSignal but obj was not a HostState pointer?");
+//        }
+//    }
 }
 
-void TraCIMobility::handleHostState(const HostState& state)
-{
-    if(notAffectedByHostState)
-        return;
-
-    if(state.get() != HostState::ACTIVE) {
-        error("Hosts state changed to something else than active which"
-              " is not handled by this module. Either handle this state"
-              " correctly or if this module really isn't affected by the"
-              " hosts state set the parameter \"notAffectedByHostState\""
-              " of this module to true.");
-    }
-}
+//void TraCIMobility::handleHostState(const HostState& state)
+//{
+//    if(notAffectedByHostState)
+//        return;
+//
+//    if(state.get() != HostState::ACTIVE) {
+//        error("Hosts state changed to something else than active which"
+//              " is not handled by this module. Either handle this state"
+//              " correctly or if this module really isn't affected by the"
+//              " hosts state set the parameter \"notAffectedByHostState\""
+//              " of this module to true.");
+//    }
+//}
 
 void TraCIMobility::preInitialize(std::string external_id, const inet::Coord& position, std::string road_id, double speed, double angle)
 {

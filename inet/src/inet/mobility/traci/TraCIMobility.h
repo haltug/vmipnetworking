@@ -35,7 +35,7 @@
 #include "inet/mobility/traci/MiXiMDefs.h"
 #include "inet/mobility/traci/Move.h"
 //#include "inet/mobility/traci/BaseWorldUtility.h"
-#include "inet/mobility/traci/HostState.h"
+//#include "inet/mobility/traci/HostState.h"
 #include "inet/environment/contract/IPhysicalEnvironment.h"
 
 
@@ -135,7 +135,7 @@ class INET_API TraCIMobility : public cSimpleModule, public cListener
         double origIconSize;
 
         virtual void receiveSignal(cComponent *source, simsignal_t signalID, cObject *obj);
-        virtual void handleHostState(const HostState& state);
+//        virtual void handleHostState(const HostState& state);
 
 		TraCIMobility() : isPreInitialized(false), manager(0), commandInterface(0), vehicleCommandInterface(0) {}
 		~TraCIMobility() {
