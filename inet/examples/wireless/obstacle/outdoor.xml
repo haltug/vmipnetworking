@@ -83,20 +83,20 @@
     <object position="center 850 450 0" orientation="0 0 0" shape="cuboid 20 20 1" material="concrete" line-color="112 128 144" fill-color="112 128 144" opacity="0.5"/>
 
     <!-- Houses -->
-    <object position="center 150 100 15" orientation="0 0 0" shape="cuboid 100 50 1" material="brick" fill-color="203 65 84" opacity="0.8"/>
-    <object position="center 350 100 15" orientation="0 0 0" shape="cuboid 100 50 1" material="brick" fill-color="203 65 84" opacity="0.8"/>
-    <object position="center 550 100 15" orientation="0 0 0" shape="cuboid 100 50 1" material="brick" fill-color="203 65 84" opacity="0.8"/>
-    <object position="center 750 100 15" orientation="0 0 0" shape="cuboid 100 50 1" material="brick" fill-color="203 65 84" opacity="0.8"/>
-    <object position="center 150 200 15" orientation="0 0 0" shape="cuboid 100 50 1" material="brick" fill-color="203 65 84" opacity="0.8"/>
-    <object position="center 350 200 15" orientation="0 0 0" shape="cuboid 100 50 1" material="brick" fill-color="203 65 84" opacity="0.8"/>
-    <object position="center 550 200 15" orientation="0 0 0" shape="cuboid 100 50 1" material="brick" fill-color="203 65 84" opacity="0.8"/>
-    <object position="center 750 200 15" orientation="0 0 0" shape="cuboid 100 50 1" material="brick" fill-color="203 65 84" opacity="0.8"/>
-    <object position="center 150 300 15" orientation="0 0 0" shape="cuboid 100 50 1" material="brick" fill-color="203 65 84" opacity="0.8"/>
+    <object position="center 150 100 15" orientation="0 0 0" shape="cuboid 100 50 5" material="brick" fill-color="203 65 84" opacity="0.8"/>
+    <object position="center 350 100 15" orientation="0 0 0" shape="cuboid 100 30 10" material="brick" fill-color="203 65 84" opacity="0.8"/>
+    <object position="center 550 100 15" orientation="0 0 0" shape="cuboid 120 50 3" material="brick" fill-color="203 65 84" opacity="0.8"/>
+    <object position="center 750 100 15" orientation="0 0 0" shape="cuboid 100 50 2" material="brick" fill-color="203 65 84" opacity="0.8"/>
+    <object position="center 150 200 15" orientation="0 0 0" shape="cuboid 100 50 7" material="brick" fill-color="203 65 84" opacity="0.8"/>
+    <object position="center 350 200 15" orientation="0 0 0" shape="cuboid 80 70 20" material="brick" fill-color="203 65 84" opacity="0.8"/>
+    <object position="center 550 200 15" orientation="0 0 0" shape="cuboid 100 50 9" material="brick" fill-color="203 65 84" opacity="0.8"/>
+    <object position="center 750 200 15" orientation="0 0 0" shape="cuboid 100 50 11" material="brick" fill-color="203 65 84" opacity="0.8"/>
+    <object position="center 150 300 15" orientation="0 0 0" shape="cuboid 100 20 13" material="brick" fill-color="203 65 84" opacity="0.8"/>
     <object position="center 350 300 15" orientation="0 0 0" shape="cuboid 100 50 1" material="brick" fill-color="203 65 84" opacity="0.8"/>
-    <object position="center 550 300 15" orientation="0 0 0" shape="cuboid 100 50 1" material="brick" fill-color="203 65 84" opacity="0.8"/>
-    <object position="center 750 300 15" orientation="0 0 0" shape="cuboid 100 50 1" material="brick" fill-color="203 65 84" opacity="0.8"/>
-    <object position="center 150 400 15" orientation="0 0 0" shape="cuboid 100 50 1" material="brick" fill-color="203 65 84" opacity="0.8"/>
+    <object position="center 550 300 15" orientation="0 0 0" shape="cuboid 100 50 4" material="brick" fill-color="203 65 84" opacity="0.8"/>
+    <object position="center 750 300 15" orientation="0 0 0" shape="cuboid 100 10 1" material="brick" fill-color="203 65 84" opacity="0.8"/>
+    <object position="center 150 400 15" orientation="0 0 0" shape="cuboid 100 50 7" material="brick" fill-color="203 65 84" opacity="0.8"/>
     <object position="center 350 400 15" orientation="0 0 0" shape="cuboid 100 50 1" material="brick" fill-color="203 65 84" opacity="0.8"/>
-    <object position="center 550 400 15" orientation="0 0 0" shape="cuboid 100 50 1" material="brick" fill-color="203 65 84" opacity="0.8"/>
+    <object position="center 550 400 15" orientation="0 0 0" shape="cuboid 100 10 2" material="brick" fill-color="203 65 84" opacity="0.8"/>
     <object position="center 750 400 15" orientation="0 0 0" shape="cuboid 100 50 1" material="brick" fill-color="203 65 84" opacity="0.8"/>
 </environment>
