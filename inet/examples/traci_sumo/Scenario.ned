@@ -35,7 +35,7 @@ network sumoExampleFrankfurt
     parameters:
         double total_mn;
         double total_cn;
-        @display("bgb=6700,2100");
+        @display("bgb=6231,2104;bgi=background/map,s");
 
     submodules:
         environment: PhysicalEnvironment {
