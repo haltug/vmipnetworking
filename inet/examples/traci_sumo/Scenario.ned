@@ -1,3 +1,5 @@
+// Halis Altug - mail@halisaltug.de
+// TU Darmstadt - Multimedia Kommunikation
 //
 // This program is free software: you can redistribute it and/or modify
 // it under the terms of the GNU Lesser General Public License as published by
@@ -13,6 +15,10 @@
 // along with this program.  If not, see http://www.gnu.org/licenses/.
 // 
 
+
+// Adapted and updated TraCI module from Veins framework for INET 3.0. 
+// Ping test in a highway-urban scenario in Frankfurt am Main. Map data from
+// OpenStreetMap (OSM). 
 package inet.examples.traci_sumo;
 
 import inet.environment.common.PhysicalEnvironment;
@@ -80,7 +86,7 @@ network sumoExampleFrankfurt
         }
         AP_2: AccessPoint {
             parameters:
-                @display("p=1862,421;i=device/accesspoint_s");
+                @display("p=1778,421;i=device/accesspoint_s");
         }
         AP_3: AccessPoint {
             parameters:
@@ -112,7 +118,7 @@ network sumoExampleFrankfurt
         }
         AP_10: AccessPoint {
             parameters:
-                @display("p=2485,500;i=device/accesspoint_s");
+                @display("p=2469,536;i=device/accesspoint_s");
         }
         AP_11: AccessPoint {
             parameters:
