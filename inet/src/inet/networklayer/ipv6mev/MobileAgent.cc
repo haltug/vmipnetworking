@@ -32,6 +32,7 @@
 #include "inet/transportlayer/tcp_common/TCPSegment.h"
 #include "inet/physicallayer/ieee80211/packetlevel/Ieee80211Radio.h"
 #include "inet/linklayer/ieee80211/mac/Ieee80211Mac.h"
+#include "inet/applications/pingapp/PingPayload_m.h"
 
 #include "inet/common/NotifierConsts.h"
 #include "inet/common/lifecycle/NodeStatus.h"
@@ -80,6 +81,7 @@ void MobileAgent::initialize(int stage)
     }
     if(stage == INITSTAGE_TRANSPORT_LAYER) {
         IPSocket ipSocket(gate("toLowerLayer")); // register own protocol
+        ipSocket.registerProtocol(IP_PROT_IPv6_ICMP);
         ipSocket.registerProtocol(IP_PROT_IPv6EXT_ID);
         interfaceNotifier = getContainingNode(this);
         interfaceNotifier->subscribe(NF_INTERFACE_IPv6CONFIG_CHANGED,this);
@@ -148,6 +150,9 @@ void MobileAgent::handleMessage(cMessage *msg)
         else if(msg->getKind() == MSG_TCP_RETRANSMIT) { // from MA
             processOutgoingTcpPacket(msg);
         }
+        else if(msg->getKind() == MSG_ICMP_RETRANSMIT) { // from MA
+            processOutgoingIcmpPacket(msg);
+        }
         else if(msg->getKind() == MSG_INTERFACE_DELAY) { // from MA
             InterfaceInit *ii = (InterfaceInit *) msg->getContextPointer();
             updateAddressTable(ii->id, ii->iu);
@@ -165,10 +170,23 @@ void MobileAgent::handleMessage(cMessage *msg)
     else if(msg->arrivedOn("fromTCP")) {
         processOutgoingTcpPacket(msg);
     }
+    else if(msg->arrivedOn("icmpIn")) { // icmp messages from ICMP module
+        processOutgoingIcmpPacket(msg);
+    }
     else if(msg->arrivedOn("fromLowerLayer")) {
         if (dynamic_cast<IdentificationHeader *> (msg)) {
             IPv6ControlInfo *controlInfo = check_and_cast<IPv6ControlInfo *>(msg->removeControlInfo());
-            processAgentMessage( (IdentificationHeader *) msg, controlInfo);
+            processAgentMessage((IdentificationHeader *) msg, controlInfo);
+        } else {
+            throw cRuntimeError("MA: IP module should only forward ID packages.");
+        }
+    }
+    else if(msg->arrivedOn("icmpIpIn")) {
+        if (dynamic_cast<ICMPv6Message *> (msg)) { // icmp messages from IP module
+            IPv6ControlInfo *controlInfo = check_and_cast<IPv6ControlInfo *>(msg->removeControlInfo());
+            processIncomingIcmpPacket((ICMPv6Message *) msg, controlInfo);
+        } else {
+            throw cRuntimeError("MA: IP module should only forward ICMP messages");
         }
     }
     else
@@ -406,6 +424,8 @@ void MobileAgent::processAgentMessage(IdentificationHeader *agentHeader, IPv6Con
         performIncomingUdpPacket(agentHeader, controlInfo);
     else if (agentHeader->getIsDataAgent() && agentHeader->getNextHeader() == IP_PROT_TCP && agentHeader->getIsIdInitialized() && agentHeader->getIsIdAcked() && agentHeader->getIsSeqValid())
         performIncomingTcpPacket(agentHeader, controlInfo);
+    else if (agentHeader->getIsDataAgent() && agentHeader->getNextHeader() == IP_PROT_IPv6_ICMP && agentHeader->getIsIdInitialized() && agentHeader->getIsIdAcked() && agentHeader->getIsSeqValid())
+        processIncomingIcmpPacket(agentHeader, controlInfo);
     else
         throw cRuntimeError("MA: Header parameter is wrong. Received messagt cannot be assigned to any function.");
     delete agentHeader;
@@ -540,6 +560,46 @@ void MobileAgent::performIncomingTcpPacket(IdentificationHeader *agentHeader, IP
         send(tcpseg, outgate);
     } else
         throw cRuntimeError("MA:procDAmsg: TCP packet could not be cast.");
+}
+
+void MobileAgent::processIncomingIcmpPacket(IdentificationHeader *agentHeader, IPv6ControlInfo *controlInfo)
+{
+    cPacket *packet = agentHeader->decapsulate();
+    if (dynamic_cast<ICMPv6Message *>(packet) != nullptr) {
+        EV << "MA: Received ICMP from data agent" << endl;
+        ICMPv6Message *icmp =  (ICMPv6Message *) packet;
+        FlowTuple tuple;
+        tuple.protocol = IP_PROT_IPv6_ICMP;
+        tuple.destPort = 0;
+        tuple.sourcePort = 0;
+        tuple.destAddress = IPv6Address::UNSPECIFIED_ADDRESS;
+        tuple.interfaceId = agentHeader->getId();
+        FlowUnit *funit = getFlowUnit(tuple);
+        if(funit->state == UNREGISTERED) {
+            throw cRuntimeError("MA: No tuple match in table for incoming ICMP packet");
+        } else {
+            funit->state = REGISTERED;
+        }
+        IPv6Address fakeIp;
+        fakeIp.set(0x1D << 24, 0, (agentId >> 32) & 0xFFFFFFFF, agentId & 0xFFFFFFFF);
+        IPv6ControlInfo *ipControlInfo = new IPv6ControlInfo();
+        ipControlInfo->setProtocol(IP_PROT_IPv6_ICMP);
+        ipControlInfo->setDestAddr(fakeIp);
+        ipControlInfo->setSrcAddr(funit->nodeAddress);
+        ipControlInfo->setInterfaceId(100);
+        ipControlInfo->setHopLimit(controlInfo->getHopLimit());
+        ipControlInfo->setTrafficClass(controlInfo->getTrafficClass());
+        processIncomingIcmpPacket(icmp, ipControlInfo);
+    } else
+        throw cRuntimeError("MA:procDAmsg: ICMP packet could not be cast.");
+}
+
+void MobileAgent::processIncomingIcmpPacket(ICMPv6Message *icmp, IPv6ControlInfo *controlInfo)
+{
+    EV << "MA: Received ICMP from any node except from data agent (no Id header)." << endl;
+    icmp->setControlInfo(controlInfo);
+    cGate *outgate = gate("icmpOut");
+    send(icmp, outgate);
 }
 
 void MobileAgent::processOutgoingUdpPacket(cMessage *msg)
@@ -783,6 +843,131 @@ void MobileAgent::processOutgoingTcpPacket(cMessage *msg)
         EV << "MA: ControlInfo could not be extracted from TCP packet." << endl;
 }
 
+void MobileAgent::processOutgoingIcmpPacket(cMessage *msg)
+{
+    cObject *ctrl = msg->removeControlInfo();
+    if (dynamic_cast<IPv6ControlInfo *>(ctrl) != nullptr) {
+        IPv6ControlInfo *controlInfo = (IPv6ControlInfo *) ctrl;
+        if (dynamic_cast<ICMPv6Message *>(msg) != nullptr) {
+            ICMPv6Message *icmp = (ICMPv6Message *) msg;
+            if(icmp->getType() == ICMPv6_ECHO_REQUEST) {
+                PacketTimerKey packet(IP_PROT_IPv6_ICMP,controlInfo->getDestinationAddress().toIPv6(),0,0);
+                if(isInterfaceUp()) {
+                    FlowTuple tuple;
+                    tuple.protocol = IP_PROT_IPv6_ICMP;
+                    tuple.destPort = 0;
+                    tuple.sourcePort = 0;
+                    tuple.destAddress = IPv6Address::UNSPECIFIED_ADDRESS;
+                    tuple.interfaceId = controlInfo->getDestinationAddress().toIPv6().getInterfaceId();
+                    FlowUnit *funit = getFlowUnit(tuple);
+                    if(funit->state == UNREGISTERED) {
+                        funit->state = REGISTERING;
+                        funit->nodeAddress = controlInfo->getDestinationAddress().toIPv6();
+                        createFlowRequest(tuple); // invoking flow initialization and delaying pkt by sending in queue of this object (hint: scheduleAt with delay)
+                        PacketTimer *pkt = getPacketTimer(packet); // set packet in queue
+                        pkt->packet = msg; // replaced by new packet
+                        pkt->nextScheduledTime = simTime()+TIMEDELAY_PKT_PROCESS;
+                        msg->setKind(MSG_ICMP_RETRANSMIT);
+                        msg->setControlInfo(controlInfo);
+                        msg->setContextPointer(pkt);
+                        scheduleAt(pkt->nextScheduledTime, msg);
+                    } else if(funit->state == REGISTERING) {
+                        EV << "MA:==> Registering Ping flow. Checking for response." << endl;
+                        if(isAddressAssociated(controlInfo->getDestinationAddress().toIPv6())) {
+                        IPv6Address *ag = getAssociatedAddress(controlInfo->getDestinationAddress().toIPv6());
+                        if(!ag)
+                            throw cRuntimeError("MA:tcpIn: getAssociatedAddr fetched empty pointer instead of address.");
+                        EV << "MA:==> flow response received. Restarting Ping process with associated agent=" << ag->str() << " node=" <<  controlInfo->getDestinationAddress().toIPv6().str() << endl;
+                        funit->state = REGISTERED;
+                        funit->isFlowActive = true;
+                        funit->isAddressCached = true;
+                        funit->dataAgent = *ag;
+                        funit->nodeAddress = controlInfo->getDestinationAddress().toIPv6();
+                        funit->id = agentId;
+                        PacketTimer *pkt = getPacketTimer(packet);
+                        pkt->nextScheduledTime = simTime(); // restart tcp processing
+                        msg->setControlInfo(controlInfo);
+                        scheduleAt(pkt->nextScheduledTime, msg);
+                    } else
+                    { // if code is here, then flow process is not finished
+                        EV << "MA:==> Flow response not yet received. Waiting for response by CA." << endl;
+                        if(isPacketTimerQueued(packet)) { // check is packet is in queue
+                            PacketTimer *pkt = getPacketTimer(packet);
+                            if(msg->getCreationTime() > pkt->packet->getCreationTime()) { // indicates that message is newer,
+                                EV << "MA:==> new message from upper layer arrived. Replacing message and setting scheduling time." << endl;
+                                cancelPacketTimer(packet); // packet is in queue, cancel scheduling
+                                delete pkt->packet; // old packet is...
+                                pkt->packet = msg; // replaced by new packet
+                                pkt->nextScheduledTime = simTime()+TIMEDELAY_PKT_PROCESS;
+                            } else {
+                                EV << "MA:==> processing same message (not new msg from upper layer). Just setting scheduling time." << endl;
+                                pkt->nextScheduledTime = simTime()+TIMEDELAY_PKT_PROCESS;
+                            }
+                            msg->setControlInfo(controlInfo);
+                            scheduleAt(pkt->nextScheduledTime+0.5, msg); // PING RETRANSMISSION 0.5s
+                        } else
+                            throw cRuntimeError("MA:pingIn: Message is not in queue during phase of flow registering.");
+                        }
+                    } else if(funit->state == REGISTERED) {
+    //                        EV << "MA:==> registered flow. preparing transmission." << endl;
+                        if(isPacketTimerQueued(packet)) { // check is packet is in queue
+                            PacketTimer *pkt = getPacketTimer(packet); // pop the relating packet from queue
+                            if(msg->getCreationTime() > pkt->packet->getCreationTime()) { // indicates that message is newer,
+    //                            EV << "MA:=> Deleting older packet. ";
+                                deletePacketTimer(packet); // deletes older message and removes the key from the queue.
+                            } else {
+    //                            EV << "MA:=> Deleting entry in queue as this message is same to previous one and arrived at time:"<< msg->getCreationTime() << " ";
+                                deletePacketTimerEntry(packet); // removes just from the queue but does not delete message
+                            }
+                        } else {
+    //                        EV << "MA:=> New packet from upper layer arrived. No packet in queue. ";
+                        }
+                        sendUpperLayerPacket(icmp, controlInfo, funit->dataAgent, IP_PROT_IPv6_ICMP);
+                    } else
+                        throw cRuntimeError("MA:pingIn: Not known state of flow. What should be done?");
+                } else
+                { // interface is down, so schedule for later transmission
+                    if(isPacketTimerQueued(packet)) { // check if packet is in queue
+                        PacketTimer *pkt = getPacketTimer(packet); // packet is cancelled
+                        if(msg->getCreationTime() > pkt->packet->getCreationTime()) { // indicates that message is newer,
+                            EV << "MA:==> Interface is down and a packet is in queue. Replacing new message with older one." << endl;
+                            cancelPacketTimer(packet); // packet is in queue, cancel scheduling
+                            delete pkt->packet; // old packet is...
+                            pkt->packet = msg; // replaced by new packet
+                            pkt->nextScheduledTime = simTime()+TIMEDELAY_PKT_PROCESS;
+                        } else {
+                            EV << "MA:==> Interface is down and this packet is already in queue. Setting new schedule time." << endl;
+                            pkt->nextScheduledTime = simTime()+TIMEDELAY_PKT_PROCESS;
+                        }
+                        msg->setKind(MSG_ICMP_RETRANSMIT);
+                        msg->setContextPointer(pkt);
+                        msg->setControlInfo(controlInfo);
+                        scheduleAt(pkt->nextScheduledTime, msg);
+                    } else { // first packet of socket
+                        EV << "MA:==> Interface is down and (first) packet of flow is inserted in queue." << endl;
+                        PacketTimer *pkt = getPacketTimer(packet); // inserting packet into queue
+                        pkt->packet = msg;
+                        pkt->nextScheduledTime = simTime()+TIMEDELAY_PKT_PROCESS;
+                        msg->setKind(MSG_ICMP_RETRANSMIT);
+                        msg->setContextPointer(pkt);
+                        msg->setControlInfo(controlInfo);
+                        scheduleAt(pkt->nextScheduledTime, msg);
+                    }
+                }
+            } else { // regular ICMP messages, so forward directly
+                EV << "MA: forwarding regular ICMP packet." << endl;
+                icmp->setControlInfo(controlInfo);
+                cGate *outgate = gate("icmpIpOut");
+                send(icmp, outgate);
+            }
+        } else {
+            EV << "Type of Message: " << msg->getKind() << " " << msg->getFullName() << " " << msg->getFullPath() << " " << controlInfo->getTransportProtocol() << endl;;
+            throw cRuntimeError("MA: Incoming message could not be casted to a ICMP packet.");
+        }
+    } else
+        EV << "MA: ControlInfo could not be extracted from ICMP packet." << endl;
+}
+
 void MobileAgent::sendUpperLayerPacket(cPacket *packet, IPv6ControlInfo *controlInfo, IPv6Address agentAddr, short prot)
 {
 //        EV << "MA:In: Flow is registered. starting sending process." << endl;
@@ -823,8 +1008,8 @@ void MobileAgent::sendUpperLayerPacket(cPacket *packet, IPv6ControlInfo *control
     controlInfo->setSourceAddress(ie->ipv6Data()->getPreferredAddress());
     ih->setControlInfo(controlInfo); // make copy before setting param
     cGate *outgate = gate("toLowerLayer");
-//    LinkUnit *lu = getLinkUnit(ie->getMacAddress());
-//    EV << "MA: ======>>:" << " Pkt=" << ih->getByteLength() << " If=" << ie->getInterfaceId() << " SNIR=" << lu->snir << " DA=" << controlInfo->getDestAddr() << " MA=" << controlInfo->getSrcAddr() <<  endl;
+    LinkUnit *lu = getLinkUnit(ie->getMacAddress());
+    EV << "MA: ======>>:" << " Pkt=" << ih->getByteLength() << " If=" << ie->getInterfaceId() << " SNIR=" << lu->snir << " DA=" << controlInfo->getDestAddr() << " MA=" << controlInfo->getSrcAddr() <<  endl;
     send(ih, outgate);
 }
 
@@ -1110,7 +1295,7 @@ void MobileAgent::sendAllPacketsInQueue()
         PacketTimer *pkt = it.second;
 //        EV << "MA: iterating and schedulting through queue. Destined schedule time: " << pkt->nextScheduledTime << endl;
         pkt->nextScheduledTime = simTime();
-        if(pkt->packet->getKind() == MSG_TCP_RETRANSMIT || pkt->packet->getKind() == MSG_UDP_RETRANSMIT)
+        if(pkt->packet->getKind() == MSG_TCP_RETRANSMIT || pkt->packet->getKind() == MSG_UDP_RETRANSMIT || pkt->packet->getKind() == MSG_ICMP_RETRANSMIT)
             scheduleAt(pkt->nextScheduledTime, pkt->packet);
         else
             throw cRuntimeError("MA: message type is unknown. Set kind to tcp or upd.");

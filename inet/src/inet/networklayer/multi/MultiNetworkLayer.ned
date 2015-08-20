@@ -99,7 +99,6 @@ module MultiNetworkLayer like INetworkLayer
         output transportOut[] @labels(IPv4ControlInfo/up);
         input pingIn[] @labels(PingPayload/down);
         output pingOut[] @labels(PingPayload/up);
-
     submodules:
         ipv4: <"IPv4NetworkLayer"> like INetworkLayer if enableIPv4 {
             @display("p=100,300");

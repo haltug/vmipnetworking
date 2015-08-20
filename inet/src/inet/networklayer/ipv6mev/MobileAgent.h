@@ -21,6 +21,7 @@
 #include <vector>
 #include "inet/common/INETDefs.h"
 #include "inet/networklayer/contract/ipv6/IPv6Address.h"
+#include "inet/networklayer/icmpv6/ICMPv6Message_m.h"
 #include "inet/networklayer/ipv6mev/IdentificationHeader.h"
 #include "inet/networklayer/ipv6mev/AddressManagement.h"
 #include "inet/networklayer/common/InterfaceEntry.h"
@@ -104,6 +105,8 @@ class MobileAgent : public cListener, public Agent
     typedef std::map<PacketTimerKey, PacketTimer *> PacketQueue; // ProtocolType
     PacketQueue packetQueue;
 
+    typedef std::map<long, int> PingMap;
+    PingMap pingMap;
   public:
     //  AGENT MANAGEMENT
     void createSessionInit();
@@ -122,9 +125,12 @@ class MobileAgent : public cListener, public Agent
     void performSequenceUpdateResponse(IdentificationHeader *agentHeader, IPv6Address destAddr);
     void performIncomingUdpPacket(IdentificationHeader *agentHeader, IPv6ControlInfo *ipCtrlInfo);
     void performIncomingTcpPacket(IdentificationHeader *agentHeader, IPv6ControlInfo *ipCtrlInfo);
+    void processIncomingIcmpPacket(IdentificationHeader *agentHeader, IPv6ControlInfo *ipCtrlInfo);
+    void processIncomingIcmpPacket(ICMPv6Message *icmp, IPv6ControlInfo *ipCtrlInfo);
 //  PACKET PROCESSING OUTGOING MESSAGES
     void processOutgoingUdpPacket(cMessage *msg); // handles udp packet that is coming from upper layer
     void processOutgoingTcpPacket(cMessage *msg); // handles tcp packet that is coming from upper layer
+    void processOutgoingIcmpPacket(cMessage *msg); // handles ping packets from ping application
     void sendUpperLayerPacket(cPacket *packet, IPv6ControlInfo *controlInfo, IPv6Address agentAddr, short prot);
 
 //  INTERFACE LISTENER FUNCTIONS

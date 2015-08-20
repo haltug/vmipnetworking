@@ -24,7 +24,7 @@ simple MobileAgent
         @display("i=block/join");
         string interfaceTableModule;
         string controlAgentAddress = default("");  // server address (may be symbolic)
-        double startTime @unit(s) = default(5s);
+//        double startTime @unit(s) = default(5s);
         *.interfaceTableModule = default(absPath(interfaceTableModule));
 	gates:
 	    input fromLowerLayer;
@@ -33,4 +33,8 @@ simple MobileAgent
 	    output toTCP;
 	    input fromUDP;
 	    output toUDP;
+        input icmpIn; 
+        output icmpOut;
+        input icmpIpIn;
+        output icmpIpOut;
 }

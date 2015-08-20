@@ -549,28 +549,6 @@ void IPv6::localDeliver(IPv6Datagram *datagram)
         }
         EV_DETAIL << "This fragment completes the datagram.\n";
     }
-// ================== ID layer ===================
-// Forwards datagram to agent module for further processing. needs idHeader inclusion
-//    IPv6ExtensionHeader *eh = datagram->findExtensionHeaderByType(IP_PROT_IPv6EXT_ID);
-//    bool idExtenstionHeader = false;
-//    if(dynamic_cast<MobileAgentOptionHeader *>(eh))
-//        idExtenstionHeader = true;
-//    if(dynamic_cast<ControlAgentOptionHeader *>(eh))
-//        idExtenstionHeader = true;
-//    if(dynamic_cast<DataAgentOptionHeader *>(eh))
-//        idExtenstionHeader = true;
-//    if(idExtenstionHeader) {
-//        int protocol = datagram->getTransportProtocol();
-//        int gateindex = mapping.findOutputGateForProtocol(protocol); // the protocol has been registered during init of agent. see ipsocket register
-//        cGate *outGate = gate("transportOut", gateindex);
-//        if (outGate->isPathOK()) {
-//            eh = datagram->removeFirstExtensionHeader();
-//            datagram->setContextPointer(eh);
-//            send(datagram, outGate);
-//            return;
-//        }
-//    }
-// ===============================================
 #ifdef WITH_xMIPv6
     // #### 29.08.07 - CB
     // check for extension headers

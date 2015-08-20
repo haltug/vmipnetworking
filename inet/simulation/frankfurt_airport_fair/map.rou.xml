@@ -1,0 +1,37 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!-- generated on Mon Aug 17 16:59:39 2015 by SUMO duarouter Version 0.23.0
+<?xml version="1.0" encoding="UTF-8"?>
+
+<configuration xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://sumo.dlr.de/xsd/duarouterConfiguration.xsd">
+
+    <input>
+        <net-file value="2015-08-17-16-59.net.xml"/>
+        <trip-files value="trips.trips.xml"/>
+    </input>
+
+    <output>
+        <output-file value="2015-08-17-16-59.vehicles.rou.xml"/>
+    </output>
+
+    <processing>
+        <ignore-errors value="true"/>
+    </processing>
+
+    <time>
+        <begin value="0"/>
+        <end value="360.0"/>
+    </time>
+
+    <report>
+        <no-step-log value="true"/>
+    </report>
+
+</configuration>
+-->
+
+<routes xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:noNamespaceSchemaLocation="http://sumo.dlr.de/xsd/routes_file.xsd">
+   <vType id="vtype0" color="1,0,0"/>
+   <route id="route0" color="1,1,0" edges="37249220 37249220 248096124 24649135 24649133#0 34249957 34249956 194273820 66325468 4000567 322123622 322123619 3996929 194273806 35373078 35373079 4784724 324287019 3989557 23286373 321554750 4488594 38238211 234004943 38238212 133021919 4780569 133021918 133021921 4780573 234004945 234004944 234004942 234004946 4780557 133743721 8045601 137735978#0-AddedOffRampEdge 137735978#1 236522917#0 236522917#0-AddedOffRampEdge 84356150 339750220 194765145 4743895 152301494 152303548 152303549 45781803 152377567 152446429 49203928 4488570 4780826 132979549 23286356 23286447 3996919 23286645#0 324287020 52030522 324287016 52030521 324287017 52032058 49605468 49605468-AddedOffRampEdge 49605467 4000564 4000564-AddedOffRampEdge 49605470 49605473 49605471 4934299 194273823"/>
+   <flow id="flow0" type="vtype0" route="route0" begin="0" period="5" number="1"/>
+</routes>

@@ -131,6 +131,7 @@ void ICMPv6::processEchoRequest(ICMPv6EchoRequestMsg *request)
     IPv6ControlInfo *replyCtrl = new IPv6ControlInfo();
     replyCtrl->setProtocol(IP_PROT_IPv6_ICMP);
     replyCtrl->setDestAddr(ctrl->getSrcAddr());
+    EV << "Responsing ICMP Echo Request." << endl;
 
     if (ctrl->getDestAddr().isMulticast()    /*TODO check for anycast too*/) {
         IInterfaceTable *it = getModuleFromPar<IInterfaceTable>(par("interfaceTableModule"), this);
@@ -143,8 +144,8 @@ void ICMPv6::processEchoRequest(ICMPv6EchoRequestMsg *request)
     else
         replyCtrl->setSrcAddr(ctrl->getDestAddr());
 
+    EV << "Target=" << ctrl->getDestAddr()<< endl;
     reply->setControlInfo(replyCtrl);
-
     delete request;
     sendToIP(reply);
 }

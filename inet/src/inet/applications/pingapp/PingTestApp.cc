@@ -25,6 +25,7 @@
 #include "inet/networklayer/contract/INetworkProtocolControlInfo.h"
 #include "inet/networklayer/common/L3AddressResolver.h"
 #include "inet/applications/pingapp/PingPayload_m.h"
+#include "inet/networklayer/common/IPProtocolId_m.h"
 
 #ifdef WITH_IPv4
 #include "inet/networklayer/ipv4/IPv4InterfaceData.h"
@@ -219,7 +220,7 @@ void PingTestApp::sendToICMP(cMessage *msg, const L3Address& destAddr, const L3A
     controlInfo->setDestinationAddress(destAddr);
     controlInfo->setHopLimit(hopLimit);
     // TODO: remove
-    controlInfo->setTransportProtocol(1);    // IP_PROT_ICMP);
+    controlInfo->setTransportProtocol(IP_PROT_IPv6_ICMP);    // IP_PROT_ICMP);
     msg->setControlInfo(dynamic_cast<cObject *>(controlInfo));
     send(msg, "pingOut");
 }

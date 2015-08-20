@@ -25,12 +25,10 @@
 #include "inet/networklayer/ipv6mev/IdentificationHeader.h"
 #include "inet/networklayer/ipv6mev/AddressManagement.h"
 #include "inet/networklayer/common/InterfaceEntry.h"
+#include "inet/networklayer/icmpv6/ICMPv6Message_m.h"
 
 namespace inet {
 
-/**
- * TODO - Generated class
- */
 class DataAgent : public Agent
 {
     virtual ~DataAgent();
@@ -53,10 +51,12 @@ class DataAgent : public Agent
     void performSequenceUpdateResponse(IdentificationHeader *agentHeader, IPv6Address destAddr);
     void performSeqUpdate(IdentificationHeader *agentHeader);
     void processUdpFromAgent(IdentificationHeader *agentHeader, IPv6Address destAddr);
-    void processTcpFromAgent(IdentificationHeader *agentHeader, IPv6Address destAddr);
     void processUdpFromNode(cMessage *msg);
+    void processTcpFromAgent(IdentificationHeader *agentHeader, IPv6Address destAddr);
     void processTcpFromNode(cMessage *msg);
-
+    void processIcmpFromAgent(IdentificationHeader *agentHeader, IPv6Address destAddr);
+    void processIncomingIcmpPacket(ICMPv6Message *icmp, IPv6ControlInfo *controlInfo);
+    void processOutgoingIcmpPacket(cMessage *msg);
     // INTERFACE
     InterfaceEntry *getInterface(); //const ,
     void sendToLowerLayer(cMessage *msg, const IPv6Address& destAddr, simtime_t sendTime = 0); // resend after timer expired

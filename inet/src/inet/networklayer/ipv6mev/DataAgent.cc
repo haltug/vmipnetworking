@@ -51,11 +51,13 @@ void DataAgent::initialize(int stage)
     }
     if(stage == INITSTAGE_TRANSPORT_LAYER) {
         IPSocket ipSocket(gate("toLowerLayer")); // register own protocol
+        ipSocket.registerProtocol(IP_PROT_IPv6_ICMP);
         ipSocket.registerProtocol(IP_PROT_IPv6EXT_ID);
         IPSocket ipSocket2(gate("udpOut")); // TODO test if one can register from first socket
         ipSocket2.registerProtocol(IP_PROT_UDP);
         IPSocket ipSocket3(gate("tcpOut"));
         ipSocket3.registerProtocol(IP_PROT_TCP);
+//        IPSocket ipSocket4(gate("icmpOut"));
         sessionState = UNASSOCIATED;
     }
     if (stage == INITSTAGE_APPLICATION_LAYER) {
@@ -78,14 +80,23 @@ void DataAgent::handleMessage(cMessage *msg)
             IPv6ControlInfo *controlInfo = check_and_cast<IPv6ControlInfo *>(msg->removeControlInfo());
             processAgentMessage((IdentificationHeader *) msg, controlInfo);
         } else {
-//            ignore any other kind of message: ICMPv6DestUnreachableMsg
-//            throw cRuntimeError("A:handleMsg: Extension Hdr Type not known. What did you send?");
+            EV << "DA: Received fromLowerLayer unknown message type." << endl;
+            delete msg;
+        }
+    } else if(msg->arrivedOn("icmpIpIn")) {
+        if (dynamic_cast<ICMPv6Message *> (msg)) {
+            IPv6ControlInfo *controlInfo = check_and_cast<IPv6ControlInfo *>(msg->removeControlInfo());
+            processIncomingIcmpPacket((ICMPv6Message *)msg, controlInfo);
+        } else {
+            EV << "DA: Received icmpIpIn unknown message type." << endl;
             delete msg;
         }
     } else if(msg->arrivedOn("udpIn")) {
         processUdpFromNode(msg);
     } else if(msg->arrivedOn("tcpIn")) {
         processTcpFromNode(msg);
+    } else if(msg->arrivedOn("icmpIn")) {
+        processOutgoingIcmpPacket(msg);
     } else
         throw cRuntimeError("A:handleMsg: cMessage Type not known. What did you send?");
 }
@@ -212,6 +223,8 @@ void DataAgent::processAgentMessage(IdentificationHeader* agentHeader, IPv6Contr
             processUdpFromAgent(agentHeader, destAddr);
         else if(agentHeader->getNextHeader() == IP_PROT_TCP && agentHeader->getIsWithNodeAddr())
             processTcpFromAgent(agentHeader, destAddr);
+        else if(agentHeader->getNextHeader() == IP_PROT_IPv6_ICMP && agentHeader->getIsWithNodeAddr())
+            processIcmpFromAgent(agentHeader, destAddr);
         else
             throw cRuntimeError("DA: packet type from MA not known");
     } else
@@ -262,7 +275,7 @@ void DataAgent::performAgentUpdate(IdentificationHeader *agentHeader, IPv6Addres
         cancelAndDeleteExpiryTimer(caAddress, -1, TIMERKEY_SEQ_UPDATE_NOT, agentHeader->getId(), agentHeader->getIpSequenceNumber(), am.getAckNo(agentHeader->getId()));
         am.setAckNo(agentHeader->getId(),agentHeader->getIpSequenceNumber()); //
         createAgentUpdateResponse(caAddress, agentHeader->getId(),agentHeader->getIpSequenceNumber());
-        int s = agentHeader->getIpSequenceNumber();
+//        int s = agentHeader->getIpSequenceNumber();
 //        EV << "DA: Received from CA IP Table Update: Seq="<< s << endl;
     } else
         throw cRuntimeError("DA:procMA: Id is not inserted in map. Register id before seq update.");
@@ -411,6 +424,82 @@ void DataAgent::processTcpFromAgent(IdentificationHeader *agentHeader, IPv6Addre
         throw cRuntimeError("DA: Received tcp packet from MA but its id not in the list");
 }
 
+void DataAgent::processIcmpFromAgent(IdentificationHeader *agentHeader, IPv6Address destAddr)
+{ // all ICMP packets are forwarded.
+    if(std::find(mobileIdList.begin(), mobileIdList.end(), agentHeader->getId()) != mobileIdList.end()) {
+        IPv6Address nodeAddress = agentHeader->getIPaddresses(0);
+        cPacket *packet = agentHeader->decapsulate(); // decapsulate(remove) agent header
+        if (dynamic_cast<ICMPv6Message *>(packet) != nullptr) {
+            ICMPv6Message *icmp =  (ICMPv6Message *) packet;
+            FlowTuple tuple;
+            tuple.protocol = IP_PROT_IPv6_ICMP;
+            tuple.destPort = 0;
+            tuple.sourcePort = 0;
+            tuple.destAddress = nodeAddress;
+            tuple.interfaceId = nodeAddress.getInterfaceId();
+//            EV << "DA: Creating UDP FlowTuple ADDR:" << tuple.destAddress << " DP:" << tuple.destPort << " SP:"<< tuple.sourcePort << endl;
+            FlowUnit *funit = getFlowUnit(tuple);
+            if(funit->state == UNREGISTERED) {
+                EV << "DA: Init flow unit with first packet from: "<< destAddr.str() << endl;
+                funit->state = REGISTERED;
+                funit->isFlowActive = true;
+                funit->isAddressCached = false;
+                funit->id = agentHeader->getId();
+                funit->mobileAgent = destAddr;
+                funit->nodeAddress = nodeAddress;
+                // other fields are not initialized.
+            }
+            if (funit->state == REGISTERED) {
+//                EV << "DA: flow unit exists. Preparing transmission: "<< destAddr.str() << endl;
+                funit->mobileAgent = destAddr; // just update return address
+                InterfaceEntry *ie = getInterface();
+                IPv6ControlInfo *ipControlInfo = new IPv6ControlInfo();
+                ipControlInfo->setProtocol(IP_PROT_IPv6_ICMP);
+                ipControlInfo->setSrcAddr(ie->ipv6Data()->getPreferredAddress());
+                ipControlInfo->setDestAddr(funit->nodeAddress);
+                ipControlInfo->setInterfaceId(ie->getInterfaceId());
+                ipControlInfo->setHopLimit(255);
+                icmp->setControlInfo(ipControlInfo);
+                cGate *outgate = gate("toLowerLayer");
+                send(icmp, outgate);
+                EV << "DA: Forwarding icmp msg(MA) to CorresNode: Dest=" << ipControlInfo->getDestAddr() << " Src=" << ipControlInfo->getSrcAddr() << " If=" << ipControlInfo->getInterfaceId() << endl;
+            } else
+                throw cRuntimeError("DA:procMAmsg: icmp packet could not processed. FlowUnit unknown.");
+        } else {
+            throw cRuntimeError("DA: icmp function failed because received ICMPv6Message could not be cast.");
+        }
+    } else
+        throw cRuntimeError("DA: Received Ping packet from MA but its id not in the list");
+}
+
+void DataAgent::processIncomingIcmpPacket(ICMPv6Message *icmp, IPv6ControlInfo *controlInfo)
+{
+    EV << "DA: Received an ICMP packet" << endl;
+    FlowTuple tuple;
+    tuple.protocol = IP_PROT_IPv6_ICMP;
+    tuple.destPort = 0;
+    tuple.sourcePort = 0;
+    tuple.destAddress = controlInfo->getSourceAddress().toIPv6();
+    tuple.interfaceId = controlInfo->getSourceAddress().toIPv6().getInterfaceId();
+    FlowUnit *funit = getFlowUnit(tuple);
+    if (funit->state == REGISTERED && icmp->getType() == ICMPv6_ECHO_REPLY) {
+        EV << "DA: ICMP Type= ECHO Request. For Mobile Agent." << endl;
+        IdentificationHeader *ih = getAgentHeader(3, IP_PROT_IPv6_ICMP, am.getSeqNo(funit->id), 0, tuple.interfaceId);
+        ih->setIsIdInitialized(true);
+        ih->setIsIdAcked(true);
+        ih->setIsSeqValid(true);
+        ih->setIsWithReturnAddr(true);
+        ih->setIsReturnAddrCached(funit->isAddressCached);
+        ih->encapsulate(icmp);
+        sendToLowerLayer(ih,funit->mobileAgent);
+        EV << "DA: Forwarding imcp echo packet to: "<< funit->mobileAgent << " from node:"<< funit->nodeAddress <<" via Id2: " << funit->id  << endl;
+    } else {
+        EV << "DA: Forwarding message to ICMP module. Type=" << icmp->getType() << endl;
+        icmp->setControlInfo(controlInfo);
+        cGate *outgate = gate("icmpOut");
+        send(icmp, outgate);
+    }
+}
 
 void DataAgent::processUdpFromNode(cMessage *msg)
 {
@@ -486,6 +575,12 @@ void DataAgent::processTcpFromNode(cMessage *msg)
     } else
         throw cRuntimeError("DA:forward: could not cast to TCPPacket.");
     delete controlInfo;
+}
+
+void DataAgent::processOutgoingIcmpPacket(cMessage *msg)
+{
+    cGate *outgate = gate("icmpIpOut");
+    send(msg, outgate);
 }
 
 InterfaceEntry *DataAgent::getInterface() { // const IPv6Address &destAddr,

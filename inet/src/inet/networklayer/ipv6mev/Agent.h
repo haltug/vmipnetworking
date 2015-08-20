@@ -74,6 +74,7 @@ namespace inet {
 #define MSG_TCP_RETRANSMIT      115
 #define MSG_INTERFACE_DELAY     116
 #define MSG_UPDATE_ACK          117
+#define MSG_ICMP_RETRANSMIT     118
 
 //========== Retransmission time of messages ==========
 #define TIMEOUT_SESSION_INIT    0.5 // retransmission time of ca init in sec

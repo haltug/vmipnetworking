@@ -26,6 +26,7 @@
 #include "inet/common/lifecycle/NodeOperations.h"
 #include "inet/networklayer/contract/IL3AddressType.h"
 #include "inet/networklayer/contract/INetworkProtocolControlInfo.h"
+#include "inet/networklayer/common/IPProtocolId_m.h"
 
 namespace inet {
 
@@ -210,7 +211,7 @@ void PingApp::sendToICMP(PingPayload *msg, const L3Address& destAddr, const L3Ad
     controlInfo->setDestinationAddress(destAddr);
     controlInfo->setHopLimit(hopLimit);
     // TODO: remove
-    controlInfo->setTransportProtocol(1);    // IP_PROT_ICMP);
+    controlInfo->setTransportProtocol(IP_PROT_IPv6_ICMP);    // IP_PROT_ICMP);
     msg->setControlInfo(dynamic_cast<cObject *>(controlInfo));
     EV_INFO << "Sending ping request #" << msg->getSeqNo() << " to lower layer.\n";
     send(msg, "pingOut");

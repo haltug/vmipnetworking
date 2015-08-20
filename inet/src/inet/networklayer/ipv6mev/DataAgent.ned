@@ -32,4 +32,8 @@ simple DataAgent
 	    output udpOut;
         input tcpIn;
         output tcpOut;
+        input icmpIn; 
+        output icmpOut;
+        input icmpIpIn;
+        output icmpIpOut;
 }
