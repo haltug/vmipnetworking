@@ -98,9 +98,14 @@ module MobileAgent extends NodeBaseIdModification
                 @display("p=329,54,row,60");
         }
     connections allowunconnected:
-        idLayer.fromLowerLayer <-- networkLayer.transportOut++;
-        idLayer.toLowerLayer --> networkLayer.transportIn++;
-
+        idLayer.fromLowerLayer <-- networkLayer.transportOut++ if idLayer.isIdLayerEnabled;
+        idLayer.toLowerLayer --> networkLayer.transportIn++ if idLayer.isIdLayerEnabled;
+		
+		idLayer.tcpIpIn <-- networkLayer.transportOut++ if !idLayer.isIdLayerEnabled;
+		idLayer.tcpIpOut --> networkLayer.transportIn++ if !idLayer.isIdLayerEnabled;
+		idLayer.udpIpIn <-- networkLayer.transportOut++ if !idLayer.isIdLayerEnabled;
+		idLayer.udpIpOut --> networkLayer.transportIn++ if !idLayer.isIdLayerEnabled;
+		
         for i=0..numTcpApps-1 {
             tcpApp[i].tcpOut --> tcp.appIn++;
             tcpApp[i].tcpIn <-- tcp.appOut++;

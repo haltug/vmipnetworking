@@ -13,7 +13,7 @@
 // along with this program.  If not, see http://www.gnu.org/licenses/.
 // 
 
-package sumo2;
+package test_field_2;
 
 import inet.linklayer.ethernet.EtherHub;
 import inet.physicallayer.ieee80211.packetlevel.Ieee80211ScalarRadioMedium;

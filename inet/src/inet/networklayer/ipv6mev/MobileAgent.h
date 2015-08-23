@@ -34,6 +34,7 @@ namespace inet {
 class MobileAgent : public cListener, public Agent
 {
     virtual ~MobileAgent();
+    bool isIdLayerEnabled;
   protected:
     IInterfaceTable *ift = nullptr; // for recognizing changes etc
     cModule *interfaceNotifier = nullptr; // listens for changes in interfacetable

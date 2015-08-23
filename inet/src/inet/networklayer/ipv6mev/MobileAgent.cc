@@ -73,6 +73,7 @@ void MobileAgent::initialize(int stage)
     cSimpleModule::initialize(stage);
     if (stage == INITSTAGE_NETWORK_LAYER) {
         ift = getModuleFromPar<IInterfaceTable>(par("interfaceTableModule"), this);
+        isIdLayerEnabled = par("isIdLayerEnabled").boolValue();
         sessionState = UNASSOCIATED;
         seqnoState = UNASSOCIATED;
         srand(123); // TODO must be changed
@@ -80,14 +81,18 @@ void MobileAgent::initialize(int stage)
         am.initiateAddressMap(agentId, 22);
     }
     if(stage == INITSTAGE_TRANSPORT_LAYER) {
-        IPSocket ipSocket(gate("toLowerLayer")); // register own protocol
-        ipSocket.registerProtocol(IP_PROT_IPv6_ICMP);
-        ipSocket.registerProtocol(IP_PROT_IPv6EXT_ID);
-        interfaceNotifier = getContainingNode(this);
-        interfaceNotifier->subscribe(NF_INTERFACE_IPv6CONFIG_CHANGED,this);
-        interfaceNotifier->subscribe(NF_INTERFACE_STATE_CHANGED,this);
-        interfaceNotifier->subscribe(physicallayer::Radio::minSNIRSignal, this);
-        interfaceNotifier->subscribe(physicallayer::Radio::packetErrorRateSignal, this);
+        if(isIdLayerEnabled) {
+            IPSocket ipSocket(gate("toLowerLayer")); // register own protocol
+            ipSocket.registerProtocol(IP_PROT_IPv6_ICMP);
+            ipSocket.registerProtocol(IP_PROT_IPv6EXT_ID);
+            interfaceNotifier = getContainingNode(this);
+            interfaceNotifier->subscribe(NF_INTERFACE_IPv6CONFIG_CHANGED,this);
+            interfaceNotifier->subscribe(NF_INTERFACE_STATE_CHANGED,this);
+            interfaceNotifier->subscribe(physicallayer::Radio::minSNIRSignal, this);
+            interfaceNotifier->subscribe(physicallayer::Radio::packetErrorRateSignal, this);
+        } else {
+            EV << "MA: Id layer is disabled." << endl;
+        }
     }
     if (stage == INITSTAGE_APPLICATION_LAYER) {
 //        simtime_t startTime = par("startTime");
@@ -107,27 +112,21 @@ void MobileAgent::initialize(int stage)
 
 void MobileAgent::handleMessage(cMessage *msg)
 {
-    if(msg->isSelfMessage()) {
-//        EV << "Self message received: " << msg->getKind() << endl;
+    if(msg->isSelfMessage() && isIdLayerEnabled) {
         if(msg->getKind() == MSG_START_TIME) {
-//            EV << "Starter msg received" << endl;
             createSessionInit();
             delete msg;
         }
         else if(msg->getKind() == MSG_SESSION_INIT) {
-//            EV << "A: CA_init_msg received" << endl;
             sendSessionInit(msg);
         }
         else if(msg->getKind() == MSG_SEQNO_INIT) {
-//            EV << "A: CA_init_msg received" << endl;
             sendSequenceInit(msg);
         }
         else if(msg->getKind() == MSG_IF_DOWN) {
-//            EV << "MA: Interface down timer received" << endl;
             handleInterfaceDownMessage(msg);
         }
         else if(msg->getKind() == MSG_IF_UP) {
-//            EV << "MA: Interface up timer received" << endl;
             handleInterfaceUpMessage(msg);
         }
         else if(msg->getKind() == MSG_SEQ_UPDATE) { // from
@@ -165,14 +164,24 @@ void MobileAgent::handleMessage(cMessage *msg)
         }
     }
     else if(msg->arrivedOn("fromUDP")) {
-        processOutgoingUdpPacket(msg);
+        if(isIdLayerEnabled)
+            processOutgoingUdpPacket(msg);
+        else
+            send(msg, "udpIpOut");
     }
     else if(msg->arrivedOn("fromTCP")) {
-        processOutgoingTcpPacket(msg);
+        if(isIdLayerEnabled)
+            processOutgoingTcpPacket(msg);
+        else
+            send(msg, "tcpIpOut");
     }
     else if(msg->arrivedOn("icmpIn")) { // icmp messages from ICMP module
-        processOutgoingIcmpPacket(msg);
+        if(isIdLayerEnabled)
+            processOutgoingIcmpPacket(msg);
+        else
+            send(msg, "icmpIpOut");
     }
+
     else if(msg->arrivedOn("fromLowerLayer")) {
         if (dynamic_cast<IdentificationHeader *> (msg)) {
             IPv6ControlInfo *controlInfo = check_and_cast<IPv6ControlInfo *>(msg->removeControlInfo());
@@ -189,8 +198,20 @@ void MobileAgent::handleMessage(cMessage *msg)
             throw cRuntimeError("MA: IP module should only forward ICMP messages");
         }
     }
+    else if(msg->arrivedOn("udpIpIn")) { // icmp messages from ICMP module
+        if(!isIdLayerEnabled)
+            send(msg, "toUDP");
+    }
+    else if(msg->arrivedOn("tcpIpIn")) { // icmp messages from ICMP module
+        if(!isIdLayerEnabled)
+            send(msg, "toTCP");
+    }
     else
-        throw cRuntimeError("A:handleMsg: cMessage Type not known. What did you send?");
+        if(isIdLayerEnabled)
+            throw cRuntimeError("MA->handleMessage: cMessage Type not known. What did you send?");
+        else {
+            throw cRuntimeError("MA->handleMessage: received selfMessage while id layer is disabled.");
+        }
 }
 
 void MobileAgent::createSessionInit() {
@@ -596,7 +617,7 @@ void MobileAgent::processIncomingIcmpPacket(IdentificationHeader *agentHeader, I
 
 void MobileAgent::processIncomingIcmpPacket(ICMPv6Message *icmp, IPv6ControlInfo *controlInfo)
 {
-    EV << "MA: Received ICMP from any node except from data agent (no Id header)." << endl;
+//    EV << "MA: Received ICMP from any node except from data agent (no Id header)." << endl;
     icmp->setControlInfo(controlInfo);
     cGate *outgate = gate("icmpOut");
     send(icmp, outgate);

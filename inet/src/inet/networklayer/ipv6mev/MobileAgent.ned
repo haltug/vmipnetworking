@@ -22,19 +22,24 @@ simple MobileAgent
 {
     parameters:
         @display("i=block/join");
+        bool isIdLayerEnabled = default(true);
         string interfaceTableModule;
         string controlAgentAddress = default("");  // server address (may be symbolic)
 //        double startTime @unit(s) = default(5s);
         *.interfaceTableModule = default(absPath(interfaceTableModule));
 	gates:
-	    input fromLowerLayer;
-	    output toLowerLayer;
-	    input fromTCP;
+	    input fromLowerLayer @loose; // connection to network layer module
+	    output toLowerLayer @loose;
+	    input fromTCP; // connection to tcp module
 	    output toTCP;
-	    input fromUDP;
+	    input fromUDP; // connection to udp module
 	    output toUDP;
-        input icmpIn; 
+        input icmpIn; // connection to icmp module
         output icmpOut;
-        input icmpIpIn;
-        output icmpIpOut;
+        input icmpIpIn; // used for direct message exchange between icmp module and ipv6 module,
+        output icmpIpOut; // because ipv6 modules has defined gates for icmp messages
+        input tcpIpIn @loose; // used only for disabled id layer
+        output tcpIpOut @loose; // used only for disabled id layer
+        input udpIpIn @loose; // used only for disabled id layer
+        output udpIpOut @loose; // used only for disabled id layer
 }

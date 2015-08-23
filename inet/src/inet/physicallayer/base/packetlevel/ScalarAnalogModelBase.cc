@@ -28,8 +28,6 @@ namespace physicallayer {
 
 bool ScalarAnalogModelBase::areOverlappingBands(Hz carrierFrequency1, Hz bandwidth1, Hz carrierFrequency2, Hz bandwidth2) const
 {
-    EV << "==============================================================================================================================" << endl;
-    EV << "Overlapping bands: cf1=" << carrierFrequency1 << " bw1=" << bandwidth1 << " cf2=" << carrierFrequency2 << " bw2=" << bandwidth2 << endl;
     return carrierFrequency1 + bandwidth1 / 2 >= carrierFrequency2 - bandwidth2 / 2 &&
            carrierFrequency1 - bandwidth1 / 2 <= carrierFrequency2 + bandwidth2 / 2;
 }

@@ -29,7 +29,7 @@ channel ethernetline extends ned.DatarateChannel
 {
     parameters:
         delay = 0.1us;
-        datarate = 100Mbps;
+        datarate = 1000Mbps;
 }
 
 network frankfurt_urban
