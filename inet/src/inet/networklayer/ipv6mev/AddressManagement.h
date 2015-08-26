@@ -32,6 +32,7 @@ class AddressManagement
   public:
     AddressManagement();
     virtual ~AddressManagement();
+    friend std::ostream& operator<<(std::ostream& os, const AddressManagement& am);
     static const int SEQ_FIELD_SIZE = 256;
 
     // A list of IPv6 addresses stored as vector
@@ -41,9 +42,10 @@ class AddressManagement
     typedef std::map<uint,IPv6AddressList> SequenceTable;
     // A structure that represents the address map of a vehicle agent
     // with current sequence number, last acknowledgement, sequence table
+
     struct AddressMapEntry
     {
-        uint64 mobileID; // unnecessary
+        uint64 mobileID;
         uint currentSequenceNumber;
         uint lastAcknowledgement;
         uint activeLinks;
@@ -65,14 +67,14 @@ class AddressManagement
     typedef std::map<uint64,AddressMapEntry> AddressMap;
     // The address map variable
     AddressMap addressMap;
-//    friend std::ostream& operator<<(std::ostream& os, const AddressManagement& am);
-    const AddressMap getAddressMap() { return addressMap; }
 
-    uint initiateAddressMap(uint64 id, int seed); // for VA
+    const AddressMap getAddressMap() { return addressMap; }
+    uint initiateAddressMap(uint64 id, int seq); // for VA
     bool insertNewId(uint64 id, uint seqno, IPv6Address& addr); // for CA+DA
     void addIpToMap(uint64 id, IPv6Address& addr); // for adding of new ip by MA and CA. a new value increments the seqNo
     void removeIpFromMap(uint64 id, IPv6Address& addr); // for removing existing ip in last seq entry
     void insertSeqTableToMap(uint64 id, IPv6AddressList& addr, uint seq); // insert a complete seqTable to address map
+
 
     uint getSeqNo(const uint64 id) const; // returns the last sequence number
     uint getAckNo(uint64 id) const;     // returns the last ack number

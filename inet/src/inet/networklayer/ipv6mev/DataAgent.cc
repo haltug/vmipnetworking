@@ -34,6 +34,17 @@ namespace inet {
 
 Define_Module(DataAgent);
 
+simsignal_t DataAgent::numMobileAgents = registerSignal("numMobileAgents");
+simsignal_t DataAgent::numFlows = registerSignal("numFlows");
+simsignal_t DataAgent::incomingTrafficPktNode = registerSignal("incomingTrafficPktNode");
+simsignal_t DataAgent::outgoingTrafficPktNode = registerSignal("outgoingTrafficPktNode");
+simsignal_t DataAgent::incomingTrafficSizeNode = registerSignal("incomingTrafficSizeNode");
+simsignal_t DataAgent::outgoingTrafficSizeNode = registerSignal("outgoingTrafficSizeNode");
+simsignal_t DataAgent::incomingTrafficPktAgent = registerSignal("incomingTrafficPktAgent");
+simsignal_t DataAgent::outgoingTrafficPktAgent = registerSignal("outgoingTrafficPktAgent");
+simsignal_t DataAgent::incomingTrafficSizeAgent = registerSignal("incomingTrafficSizeAgent");
+simsignal_t DataAgent::outgoingTrafficSizeAgent = registerSignal("outgoingTrafficSizeAgent");
+
 DataAgent::~DataAgent() {
     auto it = expiredTimerList.begin();
     while(it != expiredTimerList.end()) {
@@ -48,6 +59,13 @@ void DataAgent::initialize(int stage)
     cSimpleModule::initialize(stage);
     if (stage == INITSTAGE_NETWORK_LAYER) {
         ift = getModuleFromPar<IInterfaceTable>(par("interfaceTableModule"), this);
+        WATCH(numMobileAgentStat);
+        WATCH(numFlowStat);
+        WATCH(incomingTrafficPktNodeStat);
+        WATCH(outgoingTrafficPktNodeStat);
+        WATCH(incomingTrafficPktAgentStat);
+        WATCH(outgoingTrafficPktAgentStat);
+        WATCH(am);
     }
     if(stage == INITSTAGE_TRANSPORT_LAYER) {
         IPSocket ipSocket(gate("toLowerLayer")); // register own protocol
@@ -80,7 +98,7 @@ void DataAgent::handleMessage(cMessage *msg)
             IPv6ControlInfo *controlInfo = check_and_cast<IPv6ControlInfo *>(msg->removeControlInfo());
             processAgentMessage((IdentificationHeader *) msg, controlInfo);
         } else {
-            EV << "DA: Received fromLowerLayer unknown message type." << endl;
+            EV << "DA: Received of gate: fromLowerLayer unknown message type." << endl;
             delete msg;
         }
     } else if(msg->arrivedOn("icmpIpIn")) {
@@ -88,7 +106,7 @@ void DataAgent::handleMessage(cMessage *msg)
             IPv6ControlInfo *controlInfo = check_and_cast<IPv6ControlInfo *>(msg->removeControlInfo());
             processIncomingIcmpPacket((ICMPv6Message *)msg, controlInfo);
         } else {
-            EV << "DA: Received icmpIpIn unknown message type." << endl;
+            EV << "DA: Received of gate: icmpIpIn unknown message type." << endl;
             delete msg;
         }
     } else if(msg->arrivedOn("udpIn")) {
@@ -103,14 +121,14 @@ void DataAgent::handleMessage(cMessage *msg)
 
 void DataAgent::createSequenceUpdateNotificaiton(uint64 mobileId, uint seq)
 {
-    if(!caAddress.isGlobal())
+    if(!ControlAgentAddress.isGlobal())
         throw cRuntimeError("DA:SeqUpdNotify: CA_Address is not set. Cannot send update message without address");
     EV << "DA: creating seq No update for CA with id = "<< mobileId << endl;
-    TimerKey key(caAddress,-1,TIMERKEY_SEQ_UPDATE_NOT, mobileId, am.getSeqNo(mobileId));
+    TimerKey key(ControlAgentAddress,-1,TIMERKEY_SEQ_UPDATE_NOT, mobileId, am.getSeqNo(mobileId));
     UpdateNotifierTimer *unt = (UpdateNotifierTimer *) getExpiryTimer(key,TIMERTYPE_SEQ_UPDATE_NOT); // this timer must explicitly deleted
     if(!unt->active) { // a timer has not been created earlier
         cMessage *msg = new cMessage("sendingCAseqUpd", MSG_SEQ_UPDATE_NOTIFY);
-        unt->dest = caAddress;
+        unt->dest = ControlAgentAddress;
         unt->timer = msg;
         unt->ackTimeout = TIMEOUT_SEQ_UPDATE;
         unt->nextScheduledTime = simTime();
@@ -155,6 +173,10 @@ void DataAgent::sendSequenceUpdateNotification(cMessage *msg)
     }
     ih->setIpRemovingField(0);
     ih->setByteLength(SIZE_AGENT_HEADER+(SIZE_ADDING_ADDR_TO_HDR*ac.addedAddresses));
+//    incomingTrafficPktStat++;
+//    emit(incomingTrafficPkt, incomingTrafficPktStat);
+//    incomingTrafficSizeStat = ih->getByteLength();
+//    emit(incomingTrafficSize, incomingTrafficSizeStat);
     sendToLowerLayer(ih, dest);
     scheduleAt(unt->nextScheduledTime, msg);
 }
@@ -169,10 +191,10 @@ void DataAgent::sendAgentInitResponse(IPv6Address destAddr, uint64 mobileId, uin
 
 void DataAgent::createAgentUpdateResponse(IPv6Address destAddr, uint64 mobileId, uint seq)
 {
-    TimerKey key(caAddress,-1,TIMERKEY_UPDATE_ACK, mobileId, seq);
+    TimerKey key(ControlAgentAddress,-1,TIMERKEY_UPDATE_ACK, mobileId, seq);
     UpdateAckTimer *uat = (UpdateAckTimer *) getExpiryTimer(key,TIMERTYPE_UPDATE_ACK); // this timer must explicitly deleted
     cMessage *msg = new cMessage("sendingCAseqUpdAck", MSG_UPDATE_ACK);
-    uat->dest = caAddress;
+    uat->dest = ControlAgentAddress;
     uat->timer = msg;
     uat->nextScheduledTime = simTime();
     uat->id = mobileId;
@@ -206,7 +228,7 @@ void DataAgent::processAgentMessage(IdentificationHeader* agentHeader, IPv6Contr
     if(agentHeader->getIsControlAgent() && (agentHeader->getNextHeader() == IP_PROT_NONE)) {
         if(sessionState == UNASSOCIATED) {
             sessionState = ASSOCIATED; // indicates if data agent is associated to a CA
-            if(caAddress.isUnspecified()) caAddress = destAddr;
+            if(ControlAgentAddress.isUnspecified()) ControlAgentAddress = destAddr;
         }
         if(agentHeader->getIsIdInitialized() && !agentHeader->getIsIdAcked() && agentHeader->getIsSeqValid() && !agentHeader->getIsAckValid()  && agentHeader->getIsIpModified())
             performAgentInit(agentHeader, destAddr);
@@ -256,12 +278,14 @@ void DataAgent::performAgentInit(IdentificationHeader *agentHeader, IPv6Address 
         am.setAckNo(agentHeader->getId(), agentHeader->getIpSequenceNumber());
         EV << "DA: IP Table: " << am.to_string() << endl;
     }
+    numMobileAgentStat++;
+    emit(numMobileAgents,numMobileAgentStat);
     sendAgentInitResponse(destAddr, agentHeader->getId(), am.getSeqNo(agentHeader->getId()));
 }
 
 void DataAgent::performAgentUpdate(IdentificationHeader *agentHeader, IPv6Address destAddr)
 {
-    if(caAddress.isUnspecified())
+    if(ControlAgentAddress.isUnspecified())
         throw cRuntimeError("DA:procMA: CA address must be known at this stage. Stage= seq update.");
     if(std::find(mobileIdList.begin(), mobileIdList.end(), agentHeader->getId()) != mobileIdList.end()) {
 //        EV << "DA: Received message from CA. Id exists. Updating seq map and sending response message." << endl;
@@ -272,9 +296,9 @@ void DataAgent::performAgentUpdate(IdentificationHeader *agentHeader, IPv6Addres
             }
         }
         am.insertSeqTableToMap(agentHeader->getId(), ipList, agentHeader->getIpSequenceNumber());
-        cancelAndDeleteExpiryTimer(caAddress, -1, TIMERKEY_SEQ_UPDATE_NOT, agentHeader->getId(), agentHeader->getIpSequenceNumber(), am.getAckNo(agentHeader->getId()));
+        cancelAndDeleteExpiryTimer(ControlAgentAddress, -1, TIMERKEY_SEQ_UPDATE_NOT, agentHeader->getId(), agentHeader->getIpSequenceNumber(), am.getAckNo(agentHeader->getId()));
         am.setAckNo(agentHeader->getId(),agentHeader->getIpSequenceNumber()); //
-        createAgentUpdateResponse(caAddress, agentHeader->getId(),agentHeader->getIpSequenceNumber());
+        createAgentUpdateResponse(ControlAgentAddress, agentHeader->getId(),agentHeader->getIpSequenceNumber());
 //        int s = agentHeader->getIpSequenceNumber();
 //        EV << "DA: Received from CA IP Table Update: Seq="<< s << endl;
     } else
@@ -284,7 +308,7 @@ void DataAgent::performAgentUpdate(IdentificationHeader *agentHeader, IPv6Addres
 void DataAgent::performSequenceUpdateResponse(IdentificationHeader *agentHeader, IPv6Address destAddr)
 { // just remove the timer for agentUpdateResponse.
     if(std::find(mobileIdList.begin(), mobileIdList.end(), agentHeader->getId()) != mobileIdList.end())
-       cancelAndDeleteExpiryTimer(caAddress, -1, TIMERKEY_UPDATE_ACK, agentHeader->getId(), agentHeader->getIpSequenceNumber(), am.getAckNo(agentHeader->getId()));
+       cancelAndDeleteExpiryTimer(ControlAgentAddress, -1, TIMERKEY_UPDATE_ACK, agentHeader->getId(), agentHeader->getIpSequenceNumber(), am.getAckNo(agentHeader->getId()));
     else
        throw cRuntimeError("DA:seqUpdResp: Id is not inserted in map. Register id before seq update.");
 }
@@ -332,6 +356,12 @@ void DataAgent::performSeqUpdate(IdentificationHeader *agentHeader)
 void DataAgent::processUdpFromAgent(IdentificationHeader *agentHeader, IPv6Address destAddr)
 {
     if(std::find(mobileIdList.begin(), mobileIdList.end(), agentHeader->getId()) != mobileIdList.end()) {
+        incomingTrafficPktAgentStat++;
+        emit(incomingTrafficPktAgent, incomingTrafficPktAgentStat);
+        incomingTrafficSizeAgentStat = agentHeader->getByteLength();
+        emit(incomingTrafficSizeAgent, incomingTrafficSizeAgentStat);
+        if(agentHeader->getIPaddressesArraySize() < 1)
+            throw cRuntimeError("DA: ArraySize = 0. Check message processing unit from MA. At least one IP address of target must be contained.");
         IPv6Address nodeAddress = agentHeader->getIPaddresses(0);
         cPacket *packet = agentHeader->decapsulate(); // decapsulate(remove) agent header
         if (dynamic_cast<UDPPacket *>(packet) != nullptr) {
@@ -352,6 +382,8 @@ void DataAgent::processUdpFromAgent(IdentificationHeader *agentHeader, IPv6Addre
                 funit->id = agentHeader->getId();
                 funit->mobileAgent = destAddr;
                 funit->nodeAddress = nodeAddress;
+                numFlowStat++;
+                emit(numFlows,numFlowStat);
                 // other fields are not initialized.
             }
             if (funit->state == REGISTERED) {
@@ -365,6 +397,10 @@ void DataAgent::processUdpFromAgent(IdentificationHeader *agentHeader, IPv6Addre
                 ipControlInfo->setInterfaceId(ie->getInterfaceId());
                 ipControlInfo->setHopLimit(255);
                 udpPacket->setControlInfo(ipControlInfo);
+                outgoingTrafficPktNodeStat++;
+                emit(outgoingTrafficPktNode, outgoingTrafficPktNodeStat);
+                outgoingTrafficSizeNodeStat = udpPacket->getByteLength();
+                emit(outgoingTrafficSizeNode, outgoingTrafficSizeNodeStat);
                 cGate *outgate = gate("toLowerLayer");
                 send(udpPacket, outgate);
 //                EV << "Forwarding pkt from MA to Node: Dest=" << ipControlInfo->getDestAddr() << " Src=" << ipControlInfo->getSrcAddr() << " If=" << ipControlInfo->getInterfaceId() << endl;
@@ -379,8 +415,12 @@ void DataAgent::processUdpFromAgent(IdentificationHeader *agentHeader, IPv6Addre
 void DataAgent::processTcpFromAgent(IdentificationHeader *agentHeader, IPv6Address destAddr)
 {
     if(std::find(mobileIdList.begin(), mobileIdList.end(), agentHeader->getId()) != mobileIdList.end()) {
+        incomingTrafficPktAgentStat++;
+        emit(incomingTrafficPktAgent, incomingTrafficPktAgentStat);
+        incomingTrafficSizeAgentStat = agentHeader->getByteLength();
+        emit(incomingTrafficSizeAgent, incomingTrafficSizeAgentStat);
         if(agentHeader->getIPaddressesArraySize() < 1)
-            throw cRuntimeError("DA: ArraySize = 0. Check process unti from MA.");
+            throw cRuntimeError("DA: ArraySize = 0. Check message processing unit from MA. At least one IP address of target must be contained.");
         IPv6Address nodeAddress = agentHeader->getIPaddresses(0);
         cPacket *packet = agentHeader->decapsulate(); // decapsulate(remove) agent header
         if (dynamic_cast<tcp::TCPSegment *>(packet) != nullptr) {
@@ -413,6 +453,10 @@ void DataAgent::processTcpFromAgent(IdentificationHeader *agentHeader, IPv6Addre
                 ipControlInfo->setInterfaceId(ie->getInterfaceId());
                 ipControlInfo->setHopLimit(255);
                 tcpseg->setControlInfo(ipControlInfo);
+                outgoingTrafficPktNodeStat++;
+                emit(outgoingTrafficPktNode, outgoingTrafficPktNodeStat);
+                outgoingTrafficSizeNodeStat = tcpseg->getByteLength();
+                emit(outgoingTrafficSizeNode, outgoingTrafficSizeNodeStat);
                 cGate *outgate = gate("toLowerLayer");
                 send(tcpseg, outgate);
 //                EV << "Forwarding pkt from MA to Node: Dest=" << ipControlInfo->getDestAddr() << " Src=" << ipControlInfo->getSrcAddr() << " If=" << ipControlInfo->getInterfaceId() << endl;
@@ -427,6 +471,12 @@ void DataAgent::processTcpFromAgent(IdentificationHeader *agentHeader, IPv6Addre
 void DataAgent::processIcmpFromAgent(IdentificationHeader *agentHeader, IPv6Address destAddr)
 { // all ICMP packets are forwarded.
     if(std::find(mobileIdList.begin(), mobileIdList.end(), agentHeader->getId()) != mobileIdList.end()) {
+        incomingTrafficPktAgentStat++;
+        emit(incomingTrafficPktAgent, incomingTrafficPktAgentStat);
+        incomingTrafficSizeAgentStat = agentHeader->getByteLength();
+        emit(incomingTrafficSizeAgent, incomingTrafficSizeAgentStat);
+        if(agentHeader->getIPaddressesArraySize() < 1)
+            throw cRuntimeError("DA: ArraySize = 0. Check message processing unit from MA. At least one IP address of target must be contained.");
         IPv6Address nodeAddress = agentHeader->getIPaddresses(0);
         cPacket *packet = agentHeader->decapsulate(); // decapsulate(remove) agent header
         if (dynamic_cast<ICMPv6Message *>(packet) != nullptr) {
@@ -460,6 +510,10 @@ void DataAgent::processIcmpFromAgent(IdentificationHeader *agentHeader, IPv6Addr
                 ipControlInfo->setInterfaceId(ie->getInterfaceId());
                 ipControlInfo->setHopLimit(255);
                 icmp->setControlInfo(ipControlInfo);
+                outgoingTrafficPktNodeStat++;
+                emit(outgoingTrafficPktNode, outgoingTrafficPktNodeStat);
+                outgoingTrafficSizeNodeStat = icmp->getByteLength();
+                emit(outgoingTrafficSizeNode, outgoingTrafficSizeNodeStat);
                 cGate *outgate = gate("toLowerLayer");
                 send(icmp, outgate);
                 EV << "DA: Forwarding icmp msg(MA) to CorresNode: Dest=" << ipControlInfo->getDestAddr() << " Src=" << ipControlInfo->getSrcAddr() << " If=" << ipControlInfo->getInterfaceId() << endl;
@@ -475,6 +529,7 @@ void DataAgent::processIcmpFromAgent(IdentificationHeader *agentHeader, IPv6Addr
 void DataAgent::processIncomingIcmpPacket(ICMPv6Message *icmp, IPv6ControlInfo *controlInfo)
 {
     EV << "DA: Received an ICMP packet" << endl;
+
     FlowTuple tuple;
     tuple.protocol = IP_PROT_IPv6_ICMP;
     tuple.destPort = 0;
@@ -483,6 +538,10 @@ void DataAgent::processIncomingIcmpPacket(ICMPv6Message *icmp, IPv6ControlInfo *
     tuple.interfaceId = controlInfo->getSourceAddress().toIPv6().getInterfaceId();
     FlowUnit *funit = getFlowUnit(tuple);
     if (funit->state == REGISTERED && icmp->getType() == ICMPv6_ECHO_REPLY) {
+        incomingTrafficPktNodeStat++;
+        emit(incomingTrafficPktNode, incomingTrafficPktNodeStat);
+        incomingTrafficSizeNodeStat = icmp->getByteLength();
+        emit(incomingTrafficSizeNode, incomingTrafficSizeNodeStat);
         EV << "DA: ICMP Type= ECHO Request. For Mobile Agent." << endl;
         IdentificationHeader *ih = getAgentHeader(3, IP_PROT_IPv6_ICMP, am.getSeqNo(funit->id), 0, tuple.interfaceId);
         ih->setIsIdInitialized(true);
@@ -491,6 +550,10 @@ void DataAgent::processIncomingIcmpPacket(ICMPv6Message *icmp, IPv6ControlInfo *
         ih->setIsWithReturnAddr(true);
         ih->setIsReturnAddrCached(funit->isAddressCached);
         ih->encapsulate(icmp);
+        outgoingTrafficPktAgentStat++;
+        emit(outgoingTrafficPktAgent, outgoingTrafficPktAgentStat);
+        outgoingTrafficSizeAgentStat = ih->getByteLength();
+        emit(outgoingTrafficSizeAgent, outgoingTrafficSizeAgentStat);
         sendToLowerLayer(ih,funit->mobileAgent);
         EV << "DA: Forwarding imcp echo packet to: "<< funit->mobileAgent << " from node:"<< funit->nodeAddress <<" via Id2: " << funit->id  << endl;
     } else {
@@ -507,6 +570,10 @@ void DataAgent::processUdpFromNode(cMessage *msg)
     FlowTuple tuple;
     if(dynamic_cast<UDPPacket *>(msg) != nullptr) {
         UDPPacket *udpPacket =  (UDPPacket *) msg;
+        incomingTrafficPktNodeStat++;
+        emit(incomingTrafficPktNode, incomingTrafficPktNodeStat);
+        incomingTrafficSizeNodeStat = udpPacket->getByteLength();
+        emit(incomingTrafficSizeNode, incomingTrafficSizeNodeStat);
         tuple.protocol = IP_PROT_UDP;
         tuple.destPort = udpPacket->getSourcePort();
         tuple.sourcePort = udpPacket->getDestinationPort();
@@ -536,8 +603,12 @@ void DataAgent::processUdpFromNode(cMessage *msg)
 //                        }
 //                    }
 //                }
-            ih->encapsulate(udpPacket);
 //            EV << "DA: Forwarding regular UDP packet: "<< funit->mobileAgent << " agent: "<< funit->dataAgent << " node:"<< funit->nodeAddress <<" Id2: " << funit->id  <<endl;
+            ih->encapsulate(udpPacket);
+            outgoingTrafficPktAgentStat++;
+            emit(outgoingTrafficPktAgent, outgoingTrafficPktAgentStat);
+            outgoingTrafficSizeAgentStat = ih->getByteLength();
+            emit(outgoingTrafficSizeAgent, outgoingTrafficSizeAgentStat);
             sendToLowerLayer(ih,funit->mobileAgent);
         } else
             throw cRuntimeError("DA:forward: could not find tuple of incoming udp packet.");
@@ -553,6 +624,10 @@ void DataAgent::processTcpFromNode(cMessage *msg)
     FlowTuple tuple;
     if (dynamic_cast<tcp::TCPSegment *>(msg) != nullptr) {
         tcp::TCPSegment *tcpseg =  (tcp::TCPSegment *) msg;
+        incomingTrafficPktNodeStat++;
+        emit(incomingTrafficPktNode, incomingTrafficPktNodeStat);
+        incomingTrafficSizeNodeStat = tcpseg->getByteLength();
+        emit(incomingTrafficSizeNode, incomingTrafficSizeNodeStat);
         tuple.protocol = IP_PROT_TCP;
         tuple.destPort = tcpseg->getSourcePort();
         tuple.sourcePort = tcpseg->getDestinationPort();
@@ -568,6 +643,10 @@ void DataAgent::processTcpFromNode(cMessage *msg)
             ih->setIsWithReturnAddr(true);
             ih->setIsReturnAddrCached(funit->isAddressCached);
             ih->encapsulate(tcpseg);
+            outgoingTrafficPktAgentStat++;
+            emit(outgoingTrafficPktAgent, outgoingTrafficPktAgentStat);
+            outgoingTrafficSizeAgentStat = ih->getByteLength();
+            emit(outgoingTrafficSizeAgent, outgoingTrafficSizeAgentStat);
 //            EV << "DA: Forwarding regular TCP packet to: "<< funit->mobileAgent << " from node:"<< funit->nodeAddress <<" via Id2: " << funit->id  << " Size" << tcpseg->getByteLength() << endl;
             sendToLowerLayer(ih,funit->mobileAgent);
         } else

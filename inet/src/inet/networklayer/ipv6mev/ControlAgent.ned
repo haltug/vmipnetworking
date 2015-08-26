@@ -22,9 +22,16 @@ simple ControlAgent
 {
     parameters:
         @display("i=block/join");
+        string dataAgentAddress = default("");
         string interfaceTableModule;
         *.interfaceTableModule = default(absPath(interfaceTableModule));
-        string dataAgentAddress = default("");
+		@statistic[numDataAgents](title="numDataAgents"; record=last,vector; interpolationmode=none);
+        @statistic[numMobileAgents](title="numMobileAgents"; record=last,vector; interpolationmode=none);		
+        @statistic[numFlowRequests](title="numFlowRequests"; record=last,vector; interpolationmode=none);
+        @statistic[numSequenceUpdate](title="numSequenceUpdate"; record=last,vector; interpolationmode=none);
+        @statistic[numSequenceResponse](title="numSequenceResponse"; record=last,vector; interpolationmode=none);
+        @statistic[txTraffic](title="txTraffic"; record=count,vector; interpolationmode=none);
+        @statistic[rxTraffic](title="rxTraffic"; record=count,vector; interpolationmode=none);
 	gates:
 	    input fromLowerLayer;
 	    output toLowerLayer;

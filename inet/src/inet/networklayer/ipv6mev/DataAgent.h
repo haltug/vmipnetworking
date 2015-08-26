@@ -32,6 +32,28 @@ namespace inet {
 class DataAgent : public Agent
 {
     virtual ~DataAgent();
+    // statistics
+    static simsignal_t numMobileAgents;
+    static simsignal_t numFlows;
+    static simsignal_t incomingTrafficPktNode;
+    static simsignal_t outgoingTrafficPktNode;
+    static simsignal_t incomingTrafficSizeNode;
+    static simsignal_t outgoingTrafficSizeNode;
+    static simsignal_t incomingTrafficPktAgent;
+    static simsignal_t outgoingTrafficPktAgent;
+    static simsignal_t incomingTrafficSizeAgent;
+    static simsignal_t outgoingTrafficSizeAgent;
+    long numMobileAgentStat = 0;
+    long numFlowStat = 0;
+    long incomingTrafficPktNodeStat = 0;
+    long outgoingTrafficPktNodeStat = 0;
+    long incomingTrafficSizeNodeStat = 0;
+    long outgoingTrafficSizeNodeStat = 0;
+    long incomingTrafficPktAgentStat = 0;
+    long outgoingTrafficPktAgentStat = 0;
+    long incomingTrafficSizeAgentStat = 0;
+    long outgoingTrafficSizeAgentStat = 0;
+
   protected:
     IInterfaceTable *ift = nullptr; // for recognizing changes etc
     virtual int numInitStages() const override { return NUM_INIT_STAGES; }

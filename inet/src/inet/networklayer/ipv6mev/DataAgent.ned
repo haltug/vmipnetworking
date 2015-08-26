@@ -23,8 +23,17 @@ simple DataAgent
     parameters:
         @display("i=block/join");
         string interfaceTableModule;
-        string controlAgentAddress = default("");  // server address (may be symbolic)
         *.interfaceTableModule = default(absPath(interfaceTableModule));
+        @statistic[numMobileAgents](title="numMobileAgents"; record=last,vector; interpolationmode=none);
+        @statistic[numFlows](title="numFlows"; record=last,vector; interpolationmode=none);
+        @statistic[incomingTrafficPktNode](title="incomingTrafficPktNode"; record=last,vector,histogram; interpolationmode=none);
+        @statistic[outgoingTrafficPktNode](title="outgoingTrafficPktNode"; record=last,vector,histogram; interpolationmode=none);
+		@statistic[incomingTrafficPktAgent](title="incomingTrafficPktAgent"; record=last,vector,histogram; interpolationmode=none);
+        @statistic[outgoingTrafficPktAgent](title="outgoingTrafficPktAgent"; record=last,vector,histogram; interpolationmode=none);
+        @statistic[incomingTrafficSizeNode](title="incomingTrafficSizeNode"; record=count,vector,histogram; interpolationmode=none);
+        @statistic[outgoingTrafficSizeNode](title="outgoingTrafficSizeNode"; record=count,vector,histogram; interpolationmode=none);
+        @statistic[incomingTrafficSizeAgent](title="incomingTrafficSizeAgent"; record=count,vector,histogram; interpolationmode=none);
+        @statistic[outgoingTrafficSizeAgent](title="outgoingTrafficSizeAgent"; record=count,vector,histogram; interpolationmode=none);
 	gates:
 	    input fromLowerLayer;
 	    output toLowerLayer;

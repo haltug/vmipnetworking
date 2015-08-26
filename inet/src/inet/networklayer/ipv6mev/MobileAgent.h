@@ -108,6 +108,20 @@ class MobileAgent : public cListener, public Agent
 
     typedef std::map<long, int> PingMap;
     PingMap pingMap;
+
+    // statistics
+    static simsignal_t controlSignalLoad;
+    static simsignal_t dataSignalLoad;
+    static simsignal_t interfaceSnir;
+    static simsignal_t sequenceUpdateCa;
+    static simsignal_t sequenceUpdateDa;
+    static simsignal_t flowRequest;
+    static simsignal_t flowRequestDelay;
+    simtime_t flowRequestSignal;
+    long sequenceUpdateCaStat = 0;
+    long sequenceUpdateDaStat = 0;
+    long flowRequestStat = 0;
+
   public:
     //  AGENT MANAGEMENT
     void createSessionInit();

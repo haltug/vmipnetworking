@@ -33,6 +33,14 @@ namespace inet {
 
 Define_Module(ControlAgent);
 
+simsignal_t ControlAgent::numDataAgents = registerSignal("numDataAgents");
+simsignal_t ControlAgent::numMobileAgents = registerSignal("numMobileAgents");
+simsignal_t ControlAgent::numFlowRequests = registerSignal("numFlowRequests");
+simsignal_t ControlAgent::numSequenceUpdate = registerSignal("numSequenceUpdate");
+simsignal_t ControlAgent::numSequenceResponse = registerSignal("numSequenceResponse");
+simsignal_t ControlAgent::txTraffic = registerSignal("txTraffic");
+simsignal_t ControlAgent::rxTraffic = registerSignal("rxTraffic");
+
 ControlAgent::~ControlAgent() {
     auto it = expiredTimerList.begin();
     while(it != expiredTimerList.end()) {
@@ -47,11 +55,19 @@ void ControlAgent::initialize(int stage)
     cSimpleModule::initialize(stage);
     if (stage == INITSTAGE_NETWORK_LAYER) {
         ift = getModuleFromPar<IInterfaceTable>(par("interfaceTableModule"), this);
+        WATCH(numDataAgentsStat);
+        WATCH(numMobileAgentsStat);
+        WATCH(numFlowRequestsStat);
+        WATCH(numSequenceUpdateStat);
+        WATCH(numSequenceResponseStat);
+        WATCH(txTrafficStat);
+        WATCH(rxTrafficStat);
+        WATCH(am);
     }
     if(stage == INITSTAGE_TRANSPORT_LAYER) {
             IPSocket ipSocket(gate("toLowerLayer")); // register own protocol
             ipSocket.registerProtocol(IP_PROT_IPv6EXT_ID);
-            srand(321); // TODO must be changed
+            srand(time(0));
             agentId = (uint64) 0xCA;
             agentId = agentId << 48;
             agentId = agentId | (0xFFFFFFFFFFFF & rand());
@@ -144,6 +160,10 @@ void ControlAgent::sendAgentInit(cMessage *msg)
         }
         ih->setIpRemovingField(0);
         ih->setByteLength(SIZE_AGENT_HEADER+(SIZE_ADDING_ADDR_TO_HDR*ac.addedAddresses));
+        txTrafficStat = ih->getByteLength();
+        emit(txTraffic, txTrafficStat);
+        numDataAgentsStat++;
+        emit(numDataAgents,numDataAgentsStat);
         sendToLowerLayer(ih, dest);
     }
     scheduleAt(mit->nextScheduledTime, msg);
@@ -190,6 +210,10 @@ void ControlAgent::sendAgentUpdate(cMessage *msg)
     }
     ih->setIpRemovingField(0);
     ih->setByteLength(SIZE_AGENT_HEADER+(SIZE_ADDING_ADDR_TO_HDR*ac.addedAddresses));
+    txTrafficStat = ih->getByteLength();
+    emit(txTraffic, txTrafficStat);
+    numSequenceUpdateStat++;
+    emit(numSequenceUpdate,numSequenceUpdateStat);
     sendToLowerLayer(ih, dest); // TODO select interface
     scheduleAt(sut->nextScheduledTime, msg);
 }
@@ -199,6 +223,10 @@ void ControlAgent::sendSessionInitResponse(IPv6Address destAddr)
     IdentificationHeader *ih = getAgentHeader(2, IP_PROT_NONE, 0, 0, agentId);
     ih->setIsIdInitialized(true);
     ih->setIsIdAcked(true);
+    txTrafficStat = ih->getByteLength();
+    emit(txTraffic, txTrafficStat);
+    numMobileAgentsStat++;
+    emit(numMobileAgents,numMobileAgentsStat);
     sendToLowerLayer(ih,destAddr);
 }
 
@@ -208,6 +236,8 @@ void ControlAgent::sendSequenceInitResponse(IPv6Address destAddr, uint64 mobileI
     ih->setIsIdInitialized(true);
     ih->setIsIdAcked(true);
     ih->setIsSeqValid(true);
+    txTrafficStat = ih->getByteLength();
+    emit(txTraffic, txTrafficStat);
     sendToLowerLayer(ih,destAddr);
 }
 
@@ -221,6 +251,10 @@ void ControlAgent::sendSequenceUpdateAck(uint64 mobileId)
         ih->setIsIdInitialized(true);
         ih->setIsIdAcked(true);
         ih->setIsSeqValid(true);
+        txTrafficStat = ih->getByteLength();
+        emit(txTraffic, txTrafficStat);
+        numSequenceResponseStat++;
+        emit(numSequenceResponse,numSequenceResponseStat);
         sendToLowerLayer(ih,destAddr);
     }
 }
@@ -232,6 +266,10 @@ void ControlAgent::sendSequenceUpdateResponse(IPv6Address destAddr, uint64 mobil
     ih->setIsIdInitialized(true);
     ih->setIsIdAcked(true);
     ih->setIsSeqValid(true);
+    txTrafficStat = ih->getByteLength();
+    emit(txTraffic, txTrafficStat);
+    numSequenceUpdateStat++;
+    emit(numSequenceUpdate,numSequenceUpdateStat);
     sendToLowerLayer(ih,destAddr);
 }
 
@@ -248,6 +286,10 @@ void ControlAgent::sendFlowRequestResponse(IPv6Address destAddr, uint64 mobileId
     ih->setIPaddresses(1,agentAddr);
     ih->setByteLength(SIZE_AGENT_HEADER+SIZE_ADDING_ADDR_TO_HDR*2);
     createAgentInit(mobileId);
+    txTrafficStat = ih->getByteLength();
+    emit(txTraffic, txTrafficStat);
+    numFlowRequestsStat++;
+    emit(numFlowRequests,numFlowRequestsStat);
     sendToLowerLayer(ih,destAddr,0.1); // TODO remove delay
 }
 
@@ -256,6 +298,8 @@ void ControlAgent::sendFlowRequestResponse(IPv6Address destAddr, uint64 mobileId
     // ================================================================================
 void ControlAgent::processAgentMessage(IdentificationHeader* agentHeader, IPv6ControlInfo* controlInfo)
 {
+    rxTrafficStat = agentHeader->getByteLength();
+    emit(rxTraffic, rxTrafficStat);
     IPv6Address destAddr = controlInfo->getSourceAddress().toIPv6(); // address to be responsed
 //    IPv6Address sourceAddr = controlInfo->getDestinationAddress().toIPv6();
     if(agentHeader->getIsDataAgent() && agentHeader->getNextHeader() == IP_PROT_NONE) {
@@ -308,13 +352,13 @@ void ControlAgent::initializeSequence(IdentificationHeader *agentHeader, IPv6Add
     if(std::find(mobileIdList.begin(), mobileIdList.end(), agentHeader->getId()) != mobileIdList.end()) {
         bool addrMgmtEntry = am.insertNewId(agentHeader->getId(), agentHeader->getIpSequenceNumber(), agentHeader->getIPaddresses(0));//first number
         if(addrMgmtEntry) { // check if seq and id is inserted
-            int s = agentHeader->getIpSequenceNumber();
+//            int s = agentHeader->getIpSequenceNumber();
 //            EV << "CA: Received sequence initialize message. Initialized seq: " << s << " with ip: " << agentHeader->getIPaddresses(0) << endl;
             sendSequenceInitResponse(destAddr, agentHeader->getId(), am.getSeqNo(agentHeader->getId()));
         }
         else
             if(am.isIdInitialized(agentHeader->getId()))
-                EV << "CA: ERROR: Id has been initialized before. Why do you send me again an seq init message?" << endl;
+                EV << "CA: ERROR: Id has been initialized before. Why do you send me again a seq init message?" << endl;
             else
                 throw cRuntimeError("CA: Initialization of sequence number failed, CA could not insert id in AddrMgmt-Unit.");
     }

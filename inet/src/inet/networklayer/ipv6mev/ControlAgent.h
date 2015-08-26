@@ -43,6 +43,23 @@ public:
     virtual int numInitStages() const override { return NUM_INIT_STAGES; }
     virtual void initialize(int stage) override;
     virtual void handleMessage(cMessage *msg) override;
+
+    // statistics
+    static simsignal_t numDataAgents;
+    static simsignal_t numMobileAgents;
+    static simsignal_t numFlowRequests;
+    static simsignal_t numSequenceUpdate;
+    static simsignal_t numSequenceResponse;
+    static simsignal_t  txTraffic;
+    static simsignal_t  rxTraffic;
+    long numDataAgentsStat = 0;
+    long numMobileAgentsStat = 0;
+    long numFlowRequestsStat = 0;
+    long numSequenceUpdateStat = 0;
+    long numSequenceResponseStat = 0;
+    long txTrafficStat = 0;
+    long rxTrafficStat = 0;
+
   public:
     // CA FUNCTION
     void createAgentInit(uint64 mobileId); // used by CA

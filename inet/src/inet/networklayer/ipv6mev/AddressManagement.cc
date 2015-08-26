@@ -25,6 +25,11 @@
 
 namespace inet {
 
+std::ostream& operator<<(std::ostream& os, const AddressManagement::AddressManagement& am)
+{
+    os << am.to_string();
+    return os;
+};
 
 AddressManagement::AddressManagement()
 {
@@ -34,13 +39,13 @@ AddressManagement::~AddressManagement()
 {
 }
 
-// initialzation for VA
+// initialzation
 uint AddressManagement::initiateAddressMap(uint64 id, int seq)
 {
 // TODO check if map exists and is filled. if so delete all entries.
     AddressMapEntry addressEntry;
     addressEntry.mobileID = id; // setting mobile id
-    uint seqno = (uint) (seq  % (SEQ_FIELD_SIZE - 1)) + 1; // this line should be deleted and the above commented code reimplemented
+    uint seqno = (uint) (seq  % (SEQ_FIELD_SIZE - 1)) + 1;
     addressEntry.currentSequenceNumber = seqno; // initialize random seq number
     addressEntry.lastAcknowledgement = 0; // not acknowledged
     IPv6AddressList ipv6addressList; // create empty list

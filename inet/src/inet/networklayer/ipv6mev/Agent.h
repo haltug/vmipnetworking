@@ -18,6 +18,7 @@
 
 #include <map>
 #include <vector>
+#include <omnetpp.h>
 
 #include "inet/common/INETDefs.h"
 #include "inet/networklayer/contract/ipv6/IPv6Address.h"
@@ -97,6 +98,7 @@ namespace inet {
 #define SIZE_REDIRECT_ADDR_RESP  32
 #define SIZE_LOCATION_UPDATE     32
 #define USER_ID_SIZE             16 // Mobile ID length in char, not used
+#define SEQ_FIELD_LENGTH         256
 
 class IInterfaceTable;
 class IPv6ControlInfo;
@@ -118,7 +120,7 @@ class INET_API Agent : public cSimpleModule
     AgentState sessionState; // state of MA at beginning
     AgentState seqnoState; // state of MA for seq init
 
-    IPv6Address caAddress; // ip address of ca
+    IPv6Address ControlAgentAddress; // ip address of ca
     AddressManagement am;
 
     std::vector<uint64>  mobileIdList; // lists all id of mobile nodes
@@ -310,8 +312,63 @@ class INET_API Agent : public cSimpleModule
     bool cancelAndDeleteExpiryTimer(const IPv6Address& dest, int interfaceId, int timerType, uint64 id = 0, uint seq = 0, uint ack = 0);
 //============================================= Timer configuration ===========================
 
+//=============================================  Address Control System ===========================
+    struct AddressTuple {
+        int interface;
+        IPv6Address address;
+        AddressTuple() {};
+        AddressTuple(const int i, const IPv6Address ip) {interface = i, address = ip; };
+        bool operator<(const AddressTuple& b) const {
+            if(address == b.address)
+                return interface < b.interface;
+            else
+                return address < b.address;
+        }
+        bool operator==(const AddressTuple& b) const {
+            return address == b.address && interface == b.interface;
+        }
+//        AddressTuple& operator=(const AddressTuple& b) {
+//            interface = b.interface;
+//            address = b.address;
+//            return *this;
+//        }
+    };
+    typedef std::vector<AddressTuple> AddressList;
+    typedef std::map<uint,AddressList> AddressTable;
+    struct AddressDiff {
+        AddressList insertedList;
+        AddressList deletedList;
+    };
+    void initAddressMap(uint64 id, uint seq); // used by mobile agent
+    bool initAddressMap(uint64 id, uint seq, IPv6Address addr); // used by control/data agent
+    void insertAddress(uint64 id, int iface, IPv6Address addr); // for adding of new ip by MA and CA. a new value increments the seqNo
+    void deleteAddress(uint64 id, int iface, IPv6Address addr); // for removing existing ip in last seq entry
+    void insertTable(uint64 id, uint seq, AddressList addr); // insert a complete seqTable to address map
+    AddressDiff getAddressList(uint64 id, uint seq, uint ack);
+    AddressDiff getAddressList(uint64 id, uint seq);
+    AddressDiff getAddressList(uint64 id); //AddressList getAddressList(uint64 id);
+    AddressTuple getAddressTuple(uint64 id, uint seq, IPv6Address addr);
+    AddressTuple getAddressTuple(uint64 id, uint seq, int iface);
+    bool isAddressInserted(uint64 id, uint seq, IPv6Address dest);
+    bool isInterfaceInserted(uint64 id, uint seq, int iface);
+    bool isSeqNoAcknowledged(uint64 id);
+    bool isIdInitialized(uint64 id);
+    uint getSeqNo(uint64 id); // returns the last sequence number
+    void setSeqNo(uint64 id, uint seqno);
+    uint getAckNo(uint64 id);     // returns the last ack number
+    void setAckNo(uint64 id, uint ackno);
+    struct AddressMapEntry {
+        uint64 id;
+        uint seqNo;
+        uint ackNo;
+        AddressTable addressTable;
+        AddressMapEntry() {};
+        AddressMapEntry(uint64 i, uint s, uint a, AddressTable t) { id = i, seqNo = s, ackNo = a, addressTable = t; };
+    };
+    typedef std::map<uint64,AddressMapEntry> AddressMap;
+    AddressMap addressMap;
+//=============================================  Address Control System ===========================
 };
-
 } //namespace
 
 #endif

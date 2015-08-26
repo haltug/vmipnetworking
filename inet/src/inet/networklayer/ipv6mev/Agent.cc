@@ -12,8 +12,8 @@
 // You should have received a copy of the GNU Lesser General Public License
 // along with this program.  If not, see http://www.gnu.org/licenses/.
 // 
-#include "inet/networklayer/ipv6mev/Agent.h"
 
+#include "inet/networklayer/ipv6mev/Agent.h"
 #include <algorithm>
 #include <stdlib.h>
 #include "inet/common/ModuleAccess.h"
@@ -275,6 +275,234 @@ bool Agent::pendingExpiryTimer(const IPv6Address& dest, int interfaceId, int tim
     TimerKey key(dest,interfaceId, timerType, id, seq);
     auto pos = expiredTimerList.find(key);
     return pos != expiredTimerList.end();
+}
+
+//=========================================================================================================
+//=========================================================================================================
+//============================ Address Control System ==========================
+
+void Agent::initAddressMap(uint64 id, uint seq)
+{
+    uint seqno = (uint) (seq  % (SEQ_FIELD_LENGTH - 1)) + 1;
+    AddressList list;
+    AddressTable table;
+    table[seqno] = list;
+    AddressMapEntry entry (id, seqno, 1, table);
+    addressMap[id] = entry;
+}
+
+bool Agent::initAddressMap(uint64 id, uint seq, IPv6Address addr)
+{
+    if(addressMap.count(id)) { // check if id exists in map
+        return false; // return false if id has been inserted previously
+    } else {
+        AddressTuple tuple(0, addr);
+        AddressList list; // creating new list
+        list.push_back(tuple); // adding address into list
+        AddressTable table;
+        table[seq] = list;
+        AddressMapEntry entry(id, seq, seq, table);
+        addressMap[id] = entry; // adding into map
+        return true;
+    }
+}
+
+void Agent::insertAddress(uint64 id, int iface, IPv6Address addr)
+{
+    if(addressMap.count(id)) { // check if id exists in map
+        if(!addressMap[id].addressTable.count(addressMap[id].seqNo)) // check if seq table with given seq number exists
+            throw cRuntimeError("AM_insertAddress:Sequence Table with seqNo does not exist.");
+        AddressTuple tuple(iface, addr);
+        std::vector<AddressTuple>::iterator it = std::find(addressMap[id].addressTable[addressMap[id].seqNo].begin(), addressMap[id].addressTable[addressMap[id].seqNo].end(), tuple);
+        if(it != addressMap[id].addressTable[addressMap[id].seqNo].end()) {
+            EV << "AM_insertAddress: Inserting IP address=" << it->address << " with if=" << it->interface << " again. This should not happen." << endl;
+            return;
+        } else { // interface is not assigned with an ip address
+            AddressList list(addressMap[id].addressTable[addressMap[id].seqNo]); // copying old list
+            list.push_back(tuple); // inserting new addr with interface id
+            addressMap[id].seqNo = (addressMap[id].seqNo + 1) % SEQ_FIELD_LENGTH; // incrementing seqno
+            addressMap[id].addressTable[addressMap[id].seqNo] = list; // appending list to table
+        }
+    } else {
+        throw cRuntimeError("AM_insertAddress: ID is not found in AddressMap. Create entry for ID.");
+    }
+}
+
+void Agent::deleteAddress(uint64 id, int iface, IPv6Address addr) {
+    if(addressMap.count(id)) { // check if id exists in map
+        if(!addressMap[id].addressTable.count(addressMap[id].seqNo)) // check if seq table with given seq number exists
+            throw cRuntimeError("AM_deleteAddress: AddressTable with seqNo does not exist.");
+        AddressTuple tuple(iface, addr);
+        std::vector<AddressTuple>::iterator it = std::find(addressMap[id].addressTable[addressMap[id].seqNo].begin(), addressMap[id].addressTable[addressMap[id].seqNo].end(), tuple);
+        if(it != addressMap[id].addressTable[addressMap[id].seqNo].end()) {
+            AddressList list(addressMap[id].addressTable[addressMap[id].seqNo]); // copying old list
+            list.erase(it); // deleting addr with interface at position it
+            addressMap[id].seqNo = (addressMap[id].seqNo + 1) % SEQ_FIELD_LENGTH; // incrementing seqno
+            addressMap[id].addressTable[addressMap[id].seqNo] = list;
+        } else { // interface is not assigned with an ip address
+            throw cRuntimeError("AM_deleteAddress: Interface/Address has not been assigned. So nothing to remove.");
+        }
+    } else {
+        throw cRuntimeError("AM_deleteAddress: is not found in AddressMap. Create entry for ID.");
+    }
+}
+
+void Agent::insertTable(uint64 id, uint seq, AddressList addr)
+{
+    if(addressMap.count(id)) { // check if id exists in map
+        addressMap[id].seqNo = seq;
+        addressMap[id].ackNo = seq;
+        addressMap[id].addressTable[addressMap[id].seqNo] = addr; // replacing/inserting new addr
+    } else {
+        throw cRuntimeError("AM_insertTable: ID is not found in AddressMap. Create entry for ID.");
+    }
+}
+
+Agent::AddressDiff Agent::getAddressList(uint64 id, uint seq, uint ack)
+{
+    if(addressMap.count(id)) { // check if id exists in map
+       AddressDiff diff;
+       if(ack > seq) { // Modulo operation if seq and ack exceeds max SEQ_FIELD_SIZE = 64 ; 61 > 1
+           seq += (uint) SEQ_FIELD_LENGTH;
+       }
+       for(uint idx=ack; idx<seq; idx++) {
+           if(!addressMap[id].addressTable.count(idx % (uint) SEQ_FIELD_LENGTH)) // check if seq table with given seq number exists
+               throw cRuntimeError("AM_getAddressList: Table with seqNo= %d does not exist.", idx % (uint) SEQ_FIELD_LENGTH);
+           if(!addressMap[id].addressTable.count((idx+1) % (uint) SEQ_FIELD_LENGTH)) // check if seq table with given seq number exists
+               throw cRuntimeError("AM_getAddressList: Table with seqNo= %d does not exist.",(idx+1) % (uint) SEQ_FIELD_LENGTH);
+           AddressList currList (addressMap[id].addressTable[idx % (uint) SEQ_FIELD_LENGTH]);
+           AddressList nextList (addressMap[id].addressTable[(idx+1) % (uint) SEQ_FIELD_LENGTH]);
+           if(currList.size() < nextList.size()) { // added case
+               AddressList difference(1);
+               std::set_difference(nextList.begin(), nextList.end(), currList.begin(), currList.end(), difference.begin()); // get difference of both vectors
+               if(difference.size() != 1) { // check how many differences are discovered
+                   throw cRuntimeError("AM_getAddressList: inserted address; Size of address list difference should be one.");
+               } else {
+                   diff.insertedList.push_back(difference.front()); // put the difference address in local variable
+               }
+           } else if(currList.size() > nextList.size()) { // deleted case
+               AddressList difference(1);
+               std::set_difference(currList.begin(), currList.end(), nextList.begin(), nextList.end(),difference.begin());
+               if(difference.size() != 1) {
+                  throw cRuntimeError("AM_getAddressList: deleted address; Size of address list difference should be one.");
+               } else {
+                  diff.deletedList.push_back(difference.front()); // put the difference address in local variable
+               }
+           } else {
+               throw cRuntimeError("AM_getAddressList: Size of current and next IPv6 address list is same. Should be at least a difference.");
+           }
+       }
+       return diff;
+    } else {
+        throw cRuntimeError("AM_getAddressList: ID is not found in AddressMap. Create entry for ID.");
+    }
+}
+
+Agent::AddressDiff Agent::getAddressList(uint64 id, uint seq) {
+    if(addressMap.count(id)) { // check if id exists in map
+        if(!addressMap[id].addressTable.count(seq)) // check if seq table with given seq number exists
+            throw cRuntimeError("AM_getAddressList2: AddressTable with seqNo= %d does not exist.", seq);
+        AddressDiff diff;
+        diff.insertedList = addressMap[id].addressTable[seq];
+        return diff;
+    } else {
+        throw cRuntimeError("AM_getAddressList2: ID is not found in AddressMap. Create entry for ID.");
+    }
+}
+
+Agent::AddressDiff Agent::getAddressList(uint64 id) {
+    return getAddressList(id, addressMap[id].seqNo);
+}
+
+bool Agent::isAddressInserted(uint64 id, uint seq, IPv6Address dest) {
+    if(addressMap.count(id)) { // check if id exists in map
+        if(!addressMap[id].addressTable.count(seq)) // check if seq table with given seq number exists
+            throw cRuntimeError("AM_isAddressInserted: AddressTable with seqNo= %d does not exist.", seq);
+        for (auto &it : addressMap[id].addressTable[seq]) {
+            if(it.address == dest)
+                return true;
+        }
+        return false;
+    } else {
+        throw cRuntimeError("AM_isAddressInserted: ID is not found in AddressMap. Create entry for ID.");
+    }
+}
+
+Agent::AddressTuple Agent::getAddressTuple(uint64 id, uint seq, IPv6Address addr) {
+    if(addressMap.count(id)) { // check if id exists in map
+        if(!addressMap[id].addressTable.count(seq)) // check if seq table with given seq number exists
+            throw cRuntimeError("AM_isAddressInserted: AddressTable with seqNo= %d does not exist.", seq);
+        for (auto &it : addressMap[id].addressTable[seq]) {
+            if(it.address == addr)
+                return it;
+        }
+    } else {
+        throw cRuntimeError("AM_getAddressTuple: ID is not found in AddressMap. Create entry for ID.");
+    }
+    throw cRuntimeError("AM_getAddressTuple: No addressTuple for address could be found.");
+}
+
+Agent::AddressTuple Agent::getAddressTuple(uint64 id, uint seq, int iface) {
+    if(addressMap.count(id)) { // check if id exists in map
+        if(!addressMap[id].addressTable.count(seq)) // check if seq table with given seq number exists
+            throw cRuntimeError("AM_isAddressInserted: AddressTable with seqNo= %d does not exist.", seq);
+        for (auto &it : addressMap[id].addressTable[seq]) {
+            if(it.interface == iface)
+                return it;
+        }
+    } else {
+        throw cRuntimeError("AM_isAddressInserted: ID is not found in AddressMap. Create entry for ID.");
+    }
+    throw cRuntimeError("AM_getAddressTuple: No addressTuple for interface could be found.");
+}
+
+bool Agent::isInterfaceInserted(uint64 id, uint seq, int iface) {
+    if(addressMap.count(id)) { // check if id exists in map
+        if(!addressMap[id].addressTable.count(seq)) // check if seq table with given seq number exists
+            throw cRuntimeError("AM_isAddressInserted: AddressTable with seqNo= %d does not exist.", seq);
+        for (auto &it : addressMap[id].addressTable[seq]) {
+            if(it.interface == iface)
+                return true;
+        }
+        return false;
+    } else {
+        throw cRuntimeError("AM_isAddressInserted: ID is not found in AddressMap. Create entry for ID.");
+    }
+}
+
+bool Agent::isSeqNoAcknowledged(uint64 id) {
+    if(addressMap.count(id)) // check if id exists in map
+        return (addressMap.find(id)->second.ackNo==addressMap.find(id)->second.seqNo);
+    else
+        throw cRuntimeError("AM_getSeqNo: ID is not found in AddressMap. Create entry for ID.");
+}
+
+bool Agent::isIdInitialized(uint64 id) {
+    return addressMap.count(id);
+}
+uint Agent::getSeqNo(uint64 id) {
+    if(addressMap.count(id)) // check if id exists in map
+        return addressMap[id].seqNo;
+    else
+        throw cRuntimeError("AM_getSeqNo: ID is not found in AddressMap. Create entry for ID.");
+}
+void Agent::setSeqNo(uint64 id, uint seqno) {
+    if(addressMap.count(id)) // check if id exists in map
+        addressMap[id].seqNo = seqno;
+    else
+        throw cRuntimeError("AM_setSeqNo: ID is not found in AddressMap. Create entry for ID.");
+}
+uint Agent::getAckNo(uint64 id) {
+    if(addressMap.count(id)) // check if id exists in map
+        return addressMap[id].ackNo;
+    else
+        throw cRuntimeError("AM_getAckNo: ID is not found in AddressMap. Create entry for ID.");
+}
+void Agent::setAckNo(uint64 id, uint ackno) {
+    if(addressMap.count(id)) // check if id exists in map
+        addressMap[id].ackNo = ackno;
+    else
+        throw cRuntimeError("AM_getSeqNo: ID is not found in AddressMap. Create entry for ID.");
 }
 
 } //namespace

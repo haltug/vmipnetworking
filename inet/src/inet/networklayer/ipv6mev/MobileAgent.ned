@@ -23,11 +23,20 @@ simple MobileAgent
     parameters:
         @display("i=block/join");
         bool isIdLayerEnabled = default(true);
-        string interfaceTableModule;
-        string controlAgentAddress = default("");  // server address (may be symbolic)
 //        double startTime @unit(s) = default(5s);
+        string controlAgent = default("");  // server address (may be symbolic)
+        string interfaceTableModule;
         *.interfaceTableModule = default(absPath(interfaceTableModule));
-	gates:
+        @statistic[controlSignalLoad](title="controlSignalLoad"; unit=B; record=count,vector,histogram; interpolationmode=none);
+		@statistic[dataSignalLoad](title="dataSignalLoad"; unit=B; record=count,vector,histogram; interpolationmode=none);
+        @statistic[interfaceSnir](title="interfaceSnir"; record=count,vector,histogram; interpolationmode=none);
+        @statistic[interfaceUsed](title="interfaceUsed"; record=count,vector; interpolationmode=none);
+		@statistic[sequenceUpdateCa](title="sequenceUpdateCa"; record=last,vector; interpolationmode=none);
+		@statistic[sequenceUpdateDa](title="sequenceUpdateDa"; record=last,vector; interpolationmode=none);
+		@statistic[flowRequest](title="flowRequest"; record=last,vector; interpolationmode=none);
+		@statistic[flowRequestDelay](title="flowRequestDelay"; record=count,vector; interpolationmode=none);
+        
+ 	gates:
 	    input fromLowerLayer @loose; // connection to network layer module
 	    output toLowerLayer @loose;
 	    input fromTCP; // connection to tcp module
