@@ -62,7 +62,8 @@ void ControlAgent::initialize(int stage)
         WATCH(numSequenceResponseStat);
         WATCH(txTrafficStat);
         WATCH(rxTrafficStat);
-        WATCH(am);
+//        WATCH(am);
+        WATCH(*this);
     }
     if(stage == INITSTAGE_TRANSPORT_LAYER) {
             IPSocket ipSocket(gate("toLowerLayer")); // register own protocol
@@ -144,22 +145,31 @@ void ControlAgent::sendAgentInit(cMessage *msg)
     const IPv6Address &dest = mit->dest;
     mit->nextScheduledTime = simTime() + mit->ackTimeout;
     mit->ackTimeout = (mit->ackTimeout)*2;
-    for(auto &item : am.getAddressMap()) {
-        EV << "CA: Send initialization message to any DataAgent." << endl;
-        IdentificationHeader *ih = getAgentHeader(2, IP_PROT_NONE, am.getSeqNo(item.first), 0, item.first);
+//    for(auto &item : am.getAddressMap()) {
+    for(auto &item : getAddressMap()) {
+        EV_DEBUG << "CA: Send initialization message to any DataAgent." << endl;
+//        IdentificationHeader *ih = getAgentHeader(2, IP_PROT_NONE, am.getSeqNo(item.first), 0, item.first);
+        IdentificationHeader *ih = getAgentHeader(2, IP_PROT_NONE, getSeqNo(item.first), 0, item.first);
         ih->setIsIdInitialized(true);
         ih->setIsSeqValid(true);
         ih->setIsIpModified(true);
-        AddressManagement::AddressChange ac = am.getAddressEntriesOfSeqNo(mit->id,am.getSeqNo(mit->id));
-        ih->setIpAddingField(ac.addedAddresses);
-        ih->setIPaddressesArraySize(ac.addedAddresses);
-        if(ac.addedAddresses > 0) {
-            for(int i=0; i<ac.addedAddresses; i++) {
-                ih->setIPaddresses(i,ac.getAddedIPv6AddressList.at(i));
-            }
+//        AddressManagement::AddressChange ac = am.getAddressEntriesOfSeqNo(mit->id,am.getSeqNo(mit->id));
+//        ih->setIpAddingField(ac.addedAddresses);
+//        ih->setIPaddressesArraySize(ac.addedAddresses);
+//        if(ac.addedAddresses > 0) {
+//            for(int i=0; i<ac.addedAddresses; i++) {
+//                ih->setIPaddresses(i,ac.getAddedIPv6AddressList.at(i));
+//            }
+//        }
+        AddressDiff ad = getAddressList(mit->id,getSeqNo(mit->id));
+        ih->setIPaddressesArraySize(ad.insertedList.size());
+        ih->setIpAddingField(ad.insertedList.size());
+        if(ad.insertedList.size() > 0) {
+            for(int i=0; i < ad.insertedList.size(); i++)
+                ih->setIPaddresses(i,ad.insertedList.at(i).address);
         }
         ih->setIpRemovingField(0);
-        ih->setByteLength(SIZE_AGENT_HEADER+(SIZE_ADDING_ADDR_TO_HDR*ac.addedAddresses));
+        ih->setByteLength(SIZE_AGENT_HEADER+(SIZE_ADDING_ADDR_TO_HDR*ad.insertedList.size()));
         txTrafficStat = ih->getByteLength();
         emit(txTraffic, txTrafficStat);
         numDataAgentsStat++;
@@ -194,22 +204,29 @@ void ControlAgent::sendAgentUpdate(cMessage *msg)
     const IPv6Address &dest =  sut->dest;
     sut->nextScheduledTime = simTime() + sut->ackTimeout;
     sut->ackTimeout = (sut->ackTimeout)*1.5;
-    IdentificationHeader *ih = getAgentHeader(2, IP_PROT_NONE, am.getSeqNo(sut->id), am.getSeqNo(sut->id), sut->id);
+//    IdentificationHeader *ih = getAgentHeader(2, IP_PROT_NONE, am.getSeqNo(sut->id), am.getSeqNo(sut->id), sut->id);
+    IdentificationHeader *ih = getAgentHeader(2, IP_PROT_NONE, getSeqNo(sut->id), getSeqNo(sut->id), sut->id);
     ih->setIsIdInitialized(true);
     ih->setIsIdAcked(true);
     ih->setIsSeqValid(true);
     ih->setIsIpModified(true);
-    AddressManagement::AddressChange ac = am.getAddressEntriesOfSeqNo(sut->id,sut->seq);
-    ih->setIpAddingField(ac.addedAddresses);
-    ih->setIPaddressesArraySize(ac.addedAddresses);
-    if(ac.addedAddresses > 0) {
-//        if(ac.addedAddresses != ac.getAddedIPv6AddressList.size()) throw cRuntimeError("MA:sendSeqUpd: value of Add list must have size of integer.");
-        for(int i=0; i<ac.addedAddresses; i++) {
-            ih->setIPaddresses(i,ac.getAddedIPv6AddressList.at(i));
-        }
+//    AddressManagement::AddressChange ac = am.getAddressEntriesOfSeqNo(sut->id,sut->seq);
+//    ih->setIpAddingField(ac.addedAddresses);
+//    ih->setIPaddressesArraySize(ac.addedAddresses);
+//    if(ac.addedAddresses > 0) {
+//        for(int i=0; i<ac.addedAddresses; i++) {
+//            ih->setIPaddresses(i,ac.getAddedIPv6AddressList.at(i));
+//        }
+//    }
+    AddressDiff ad = getAddressList(sut->id,sut->seq);
+    ih->setIPaddressesArraySize(ad.insertedList.size());
+    ih->setIpAddingField(ad.insertedList.size());
+    if(ad.insertedList.size() > 0) {
+        for(int i=0; i < ad.insertedList.size(); i++)
+            ih->setIPaddresses(i,ad.insertedList.at(i).address);
     }
     ih->setIpRemovingField(0);
-    ih->setByteLength(SIZE_AGENT_HEADER+(SIZE_ADDING_ADDR_TO_HDR*ac.addedAddresses));
+    ih->setByteLength(SIZE_AGENT_HEADER+(SIZE_ADDING_ADDR_TO_HDR*ad.insertedList.size()));
     txTrafficStat = ih->getByteLength();
     emit(txTraffic, txTrafficStat);
     numSequenceUpdateStat++;
@@ -243,11 +260,14 @@ void ControlAgent::sendSequenceInitResponse(IPv6Address destAddr, uint64 mobileI
 
 void ControlAgent::sendSequenceUpdateAck(uint64 mobileId)
 { // sending over all registered links update messages to MA
-    AddressManagement::IPv6AddressList addressList = am.getAddressList(mobileId);
-    for (IPv6Address ip : addressList ) {
-        EV << "CA: sending seqUdateAck to MA for acknowledging seqNo." << endl;
-        IPv6Address destAddr = ip; // address to be responsed
-        IdentificationHeader *ih = getAgentHeader(2, IP_PROT_NONE,am.getSeqNo(mobileId), 0, agentId);
+//    AddressManagement::IPv6AddressList addressList = am.getAddressList(mobileId);
+    AddressDiff ad = getAddressList(mobileId);
+    AddressList list = ad.insertedList;
+    for (AddressTuple tuple : list ) {
+        EV_DEBUG << "CA: sending seqUdateAck to MA for acknowledging seqNo." << endl;
+        IPv6Address destAddr = tuple.address; // address to be responsed
+//        IdentificationHeader *ih = getAgentHeader(2, IP_PROT_NONE,am.getSeqNo(mobileId), 0, agentId);
+        IdentificationHeader *ih = getAgentHeader(2, IP_PROT_NONE, getSeqNo(mobileId), 0, agentId);
         ih->setIsIdInitialized(true);
         ih->setIsIdAcked(true);
         ih->setIsSeqValid(true);
@@ -350,14 +370,17 @@ void ControlAgent::initializeSession(IdentificationHeader *agentHeader, IPv6Addr
 void ControlAgent::initializeSequence(IdentificationHeader *agentHeader, IPv6Address destAddr)
 {
     if(std::find(mobileIdList.begin(), mobileIdList.end(), agentHeader->getId()) != mobileIdList.end()) {
-        bool addrMgmtEntry = am.insertNewId(agentHeader->getId(), agentHeader->getIpSequenceNumber(), agentHeader->getIPaddresses(0));//first number
+//        bool addrMgmtEntry = am.insertNewId(agentHeader->getId(), agentHeader->getIpSequenceNumber(), agentHeader->getIPaddresses(0));//first number
+        bool addrMgmtEntry = initAddressMap(agentHeader->getId(), agentHeader->getIpSequenceNumber(), agentHeader->getIPaddresses(0));//first number
         if(addrMgmtEntry) { // check if seq and id is inserted
 //            int s = agentHeader->getIpSequenceNumber();
 //            EV << "CA: Received sequence initialize message. Initialized seq: " << s << " with ip: " << agentHeader->getIPaddresses(0) << endl;
-            sendSequenceInitResponse(destAddr, agentHeader->getId(), am.getSeqNo(agentHeader->getId()));
+//            sendSequenceInitResponse(destAddr, agentHeader->getId(), am.getSeqNo(agentHeader->getId()));
+            sendSequenceInitResponse(destAddr, agentHeader->getId(), getSeqNo(agentHeader->getId()));
         }
         else
-            if(am.isIdInitialized(agentHeader->getId()))
+//            if(am.isIdInitialized(agentHeader->getId()))
+            if(isIdInitialized(agentHeader->getId()))
                 EV << "CA: ERROR: Id has been initialized before. Why do you send me again a seq init message?" << endl;
             else
                 throw cRuntimeError("CA: Initialization of sequence number failed, CA could not insert id in AddrMgmt-Unit.");
@@ -370,46 +393,58 @@ void ControlAgent::performSeqUpdate(IdentificationHeader *agentHeader, IPv6Addre
 { // this method can be optimized
     if(std::find(mobileIdList.begin(), mobileIdList.end(), agentHeader->getId()) != mobileIdList.end()) {
         if(agentHeader->getIsMobileAgent()) {
-            if(agentHeader->getIpSequenceNumber() > am.getAckNo(agentHeader->getId())) {
-                if(agentHeader->getIpSequenceNumber() > am.getSeqNo(agentHeader->getId())) {
+//            if(agentHeader->getIpSequenceNumber() > am.getAckNo(agentHeader->getId())) {
+//                if(agentHeader->getIpSequenceNumber() > am.getSeqNo(agentHeader->getId())) {
+            if(agentHeader->getIpSequenceNumber() > getAckNo(agentHeader->getId())) {
+                if(agentHeader->getIpSequenceNumber() > getSeqNo(agentHeader->getId())) {
                     if(agentHeader->getIsIpModified()) { // indicate a sequence update
                         // when ackNo of update message is behind current ackNo, sequence number is decremented for starting the update process at ackNo.
                         // Otherwise update process starts at seqNo, but header only declares difference from ackNo to seqNo ( and not from current seqNo
-                        if(agentHeader->getIpAcknowledgementNumber() < am.getAckNo(agentHeader->getId()))
-                            am.setSeqNo(agentHeader->getId(),agentHeader->getIpAcknowledgementNumber());
+//                        if(agentHeader->getIpAcknowledgementNumber() < am.getAckNo(agentHeader->getId()))
+//                            am.setSeqNo(agentHeader->getId(),agentHeader->getIpAcknowledgementNumber());
 //                        EV << "CA:ma IP Table before: " << am.to_string() << endl;
+                        if(agentHeader->getIpAcknowledgementNumber() < getAckNo(agentHeader->getId()))
+                            setSeqNo(agentHeader->getId(),agentHeader->getIpAcknowledgementNumber());
                         if(agentHeader->getIpAddingField() > 0) { // check size of field
                             for(int i=0; i<agentHeader->getIpAddingField(); i++){
 //                                EV << "CA: Adding IP to Table: " << agentHeader->getIPaddresses(i) << endl;
-                                am.addIpToMap(agentHeader->getId(), agentHeader->getIPaddresses(i));
+//                                am.addIpToMap(agentHeader->getId(), agentHeader->getIPaddresses(i));
+                                insertAddress(agentHeader->getId(), 0, agentHeader->getIPaddresses(i));
                             }
                         }
                         if(agentHeader->getIpRemovingField() > 0) {
                             for(int i=agentHeader->getIpAddingField(); i<(agentHeader->getIpRemovingField()+agentHeader->getIpAddingField()); i++) {
 //                                EV << "CA: Removing IP from Table: " << agentHeader->getIPaddresses(i) << endl;
-                                am.removeIpFromMap(agentHeader->getId(), agentHeader->getIPaddresses(i));
+//                                am.removeIpFromMap(agentHeader->getId(), agentHeader->getIPaddresses(i));
+                                deleteAddress(agentHeader->getId(), 0, agentHeader->getIPaddresses(i));
                             }
                         }
                         int s = agentHeader->getIpSequenceNumber();
-                        int a = am.getAckNo(agentHeader->getId());
+//                        int a = am.getAckNo(agentHeader->getId());
+                        int a = getAckNo(agentHeader->getId());
                         EV << "CA:ma Updating table to SEQ: " << s << " ACK: " << a << " ADD: " << agentHeader->getIpAddingField() << " REM: " << agentHeader->getIpRemovingField() << endl;
-                        EV << "CA:ma IP Table after: " << am.to_string() << endl;
+//                        EV << "CA:ma IP Table after: " << am.to_string() << endl;
                         // first all DA's are updated. after update confirmation, CA's ack is incremented and subsequently MA is confirmed.
                         if(agentAddressList.size() > 0)
-                            createAgentUpdate(agentHeader->getId(), am.getSeqNo(agentHeader->getId()));
+                            createAgentUpdate(agentHeader->getId(), getSeqNo(agentHeader->getId()));
+//                            createAgentUpdate(agentHeader->getId(), am.getSeqNo(agentHeader->getId()));
                         else {
-                            am.setAckNo(agentHeader->getId(),am.getSeqNo(agentHeader->getId()));
+//                            am.setAckNo(agentHeader->getId(),am.getSeqNo(agentHeader->getId()));
+                            setAckNo(agentHeader->getId(), getSeqNo(agentHeader->getId()));
                             sendSequenceUpdateAck(agentHeader->getId());
                         }
                     }
-                } else if (agentHeader->getIpSequenceNumber() < am.getSeqNo(agentHeader->getId())) { // get retransmission from MA
+//                } else if (agentHeader->getIpSequenceNumber() < am.getSeqNo(agentHeader->getId())) { // get retransmission from MA
+                } else if (agentHeader->getIpSequenceNumber() < getSeqNo(agentHeader->getId())) { // get retransmission from MA
 //                    EV << "CA: Received seq no of seq update is lower than the current seq no of CA. This should not occur. Check that." << endl;
                 } else { // following code is executed if DA's hasnt acked but CA has updated its seq no. Just resend update message to DA, so that MA can be confirmed.
 //                    EV << "CA: Resend update message to DA because MA retransmitted seq update. update to seq: " << agentHeader->getIpSequenceNumber() << " from ack: " << am.getAckNo(agentHeader->getId()) << endl;
                     if(agentAddressList.size() > 0)
-                        createAgentUpdate(agentHeader->getId(), am.getSeqNo(agentHeader->getId()));
+                        createAgentUpdate(agentHeader->getId(), getSeqNo(agentHeader->getId()));
+//                    createAgentUpdate(agentHeader->getId(), am.getSeqNo(agentHeader->getId()));
                     else {
-                        am.setAckNo(agentHeader->getId(),am.getSeqNo(agentHeader->getId()));
+//                        am.setAckNo(agentHeader->getId(),am.getSeqNo(agentHeader->getId()));
+                        setAckNo(agentHeader->getId(), getSeqNo(agentHeader->getId()));
                         sendSequenceUpdateAck(agentHeader->getId());
                     }
                 }
@@ -418,22 +453,34 @@ void ControlAgent::performSeqUpdate(IdentificationHeader *agentHeader, IPv6Addre
             }
         } else if (agentHeader->getIsDataAgent())
         { // updating seq no update by DA
-            if(agentHeader->getIpSequenceNumber() > am.getAckNo(agentHeader->getId())) { // check if CA's ack is older than the received seq. if seq is not greater , CA updated all agents databas with new value but this message is an older one.
-                if(agentHeader->getIpSequenceNumber() > am.getSeqNo(agentHeader->getId())) { //
+//                    if(agentHeader->getIpSequenceNumber() > am.getAckNo(agentHeader->getId())) { // check if CA's ack is older than the received seq. if seq is not greater , CA updated all agents databas with new value but this message is an older one.
+//                        if(agentHeader->getIpSequenceNumber() > am.getSeqNo(agentHeader->getId())) { //
+            if(agentHeader->getIpSequenceNumber() > getAckNo(agentHeader->getId())) { // check if CA's ack is older than the received seq. if seq is not greater , CA updated all agents databas with new value but this message is an older one.
+                if(agentHeader->getIpSequenceNumber() > getSeqNo(agentHeader->getId())) { //
                     if(agentHeader->getIsIpModified()) {  // indicate a sequence update: Attention: remValid is false
-                        AddressManagement::IPv6AddressList ipList;
+//                        AddressManagement::IPv6AddressList ipList;
+//                        if(agentHeader->getIpAddingField() > 0) { // check size of field
+//                            if(agentHeader->getIpAddingField() != agentHeader->getIPaddressesArraySize()) throw cRuntimeError("CA:Hdr: field of array and field not same. Check header.");
+//                            for(int i=0; i<agentHeader->getIpAddingField(); i++){ // copy array in vector list
+//                                ipList.push_back(agentHeader->getIPaddresses(i)); // inserting elements of array into vector list due to function
+//                            }
+//                        }
+//                        am.insertSeqTableToMap(agentHeader->getId(), ipList, agentHeader->getIpSequenceNumber());
+                        AddressList list;
                         if(agentHeader->getIpAddingField() > 0) { // check size of field
                             if(agentHeader->getIpAddingField() != agentHeader->getIPaddressesArraySize()) throw cRuntimeError("CA:Hdr: field of array and field not same. Check header.");
                             for(int i=0; i<agentHeader->getIpAddingField(); i++){ // copy array in vector list
-                                ipList.push_back(agentHeader->getIPaddresses(i)); // inserting elements of array into vector list due to function
+                                AddressTuple tuple(0, agentHeader->getIPaddresses(i));
+                                list.push_back(tuple); // inserting elements of array into vector list due to function
                             }
                         }
-                        am.insertSeqTableToMap(agentHeader->getId(), ipList, agentHeader->getIpSequenceNumber());
+                        insertTable(agentHeader->getId(), agentHeader->getIpSequenceNumber(), list);
                         int s = agentHeader->getIpSequenceNumber();
-                        int a = am.getAckNo(agentHeader->getId());
+//                        int a = am.getAckNo(agentHeader->getId());
+                        int a = getAckNo(agentHeader->getId());
                         EV << "CA:da Updating table to SEQ: " << s << " ACK: " << a << endl;
-                        EV << "CA:da IP Table: " << am.to_string() << endl;
                         EV << "CA: Received seqNo update from DataAgent. Updating other DataAgent's before sending acknowledgment to MA." << endl;
+//                        EV << "CA:da IP Table: " << am.to_string() << endl;
                         createAgentUpdate(agentHeader->getId(), agentHeader->getIpSequenceNumber());
                     } else { EV << "CA ERROR Received seq update message from DA but AddValid is false. (RemValid!=false)" << endl; }
                 } else {
@@ -457,7 +504,8 @@ void ControlAgent::performFlowRequest(IdentificationHeader *agentHeader, IPv6Add
     dataAgentAddr = par("dataAgentAddress");
     L3AddressResolver().tryResolve(dataAgentAddr, daAddr); // TODO make it flexible
     EV << "CA: Received flow request. Node addr: " << nodeAddress << "; MATCHING agent addr: " << daAddr.toIPv6() << endl;
-    sendFlowRequestResponse(destAddr, agentHeader->getId(), am.getSeqNo(agentHeader->getId()), daAddr.toIPv6(), nodeAddress);
+//    sendFlowRequestResponse(destAddr, agentHeader->getId(), am.getSeqNo(agentHeader->getId()), daAddr.toIPv6(), nodeAddress);
+    sendFlowRequestResponse(destAddr, agentHeader->getId(), getSeqNo(agentHeader->getId()), daAddr.toIPv6(), nodeAddress);
 }
 
 void ControlAgent::performAgentInitResponse(IdentificationHeader *agentHeader, IPv6Address sourceAddr)
@@ -474,7 +522,8 @@ void ControlAgent::performAgentUpdateResponse(IdentificationHeader *agentHeader,
 {
     // if this is true, then a timer key existed. so a timer can only exist when the data agent were not initialized.
     // if false, then data agents has been initialized. only a timer for update can exists.
-    cancelAndDeleteExpiryTimer(sourceAddr,-1,TIMERKEY_SEQ_UPDATE, agentHeader->getId(), agentHeader->getIpSequenceNumber(), am.getAckNo(agentHeader->getId()));
+//    cancelAndDeleteExpiryTimer(sourceAddr,-1,TIMERKEY_SEQ_UPDATE, agentHeader->getId(), agentHeader->getIpSequenceNumber(), am.getAckNo(agentHeader->getId()));
+    cancelAndDeleteExpiryTimer(sourceAddr,-1,TIMERKEY_SEQ_UPDATE, agentHeader->getId(), agentHeader->getIpSequenceNumber(), getAckNo(agentHeader->getId()));
     sendSequenceUpdateResponse(sourceAddr, agentHeader->getId(), agentHeader->getIpSequenceNumber());
     bool allDataAgentsUpdated = true;
     for(IPv6Address ip : agentAddressList) {
@@ -482,8 +531,11 @@ void ControlAgent::performAgentUpdateResponse(IdentificationHeader *agentHeader,
             allDataAgentsUpdated = false;
     }
     if(allDataAgentsUpdated) {
-        if(agentHeader->getIpSequenceNumber() > am.getAckNo(agentHeader->getId())) {
-            am.setAckNo(agentHeader->getId(), agentHeader->getIpSequenceNumber()); // we set here ack no of CA when all DA's has been updated.
+//        if(agentHeader->getIpSequenceNumber() > am.getAckNo(agentHeader->getId())) {
+//            am.setAckNo(agentHeader->getId(), agentHeader->getIpSequenceNumber()); // we set here ack no of CA when all DA's has been updated.
+//        }
+        if(agentHeader->getIpSequenceNumber() > getAckNo(agentHeader->getId())) {
+            setAckNo(agentHeader->getId(), agentHeader->getIpSequenceNumber()); // we set here ack no of CA when all DA's has been updated.
         }
         sendSequenceUpdateAck(agentHeader->getId());
         EV << "CA: Update message from all DA's received." << endl;

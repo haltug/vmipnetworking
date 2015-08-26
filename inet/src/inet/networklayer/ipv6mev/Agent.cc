@@ -26,6 +26,13 @@
 
 namespace inet {
 
+std::ostream& operator<<(std::ostream& os, const Agent& a)
+{
+    os << a.str(a.addressMap);
+    return os;
+};
+
+// TODO implement destructor
 //Agent::~Agent() {
 //    auto it = expiredTimerList.begin();
 //    while(it != expiredTimerList.end()) {
@@ -503,6 +510,67 @@ void Agent::setAckNo(uint64 id, uint ackno) {
         addressMap[id].ackNo = ackno;
     else
         throw cRuntimeError("AM_getSeqNo: ID is not found in AddressMap. Create entry for ID.");
+}
+
+// Prints a given addressMap
+std::string Agent::str(AddressMap addrMap) const
+{
+    std::string str="";
+    for( auto& item : addrMap )
+    {
+        str.append("ID=");
+        char buf[16+1]; // length in char
+        sprintf(buf, "%016llX", item.first);
+        std::string str2 = std::string(buf);
+        str2.insert(16/2, ":");
+        str.append(str2); // uint number to string
+        str.append(Agent::str(item.second));
+    }
+    return str;
+}
+// Prints elements of AddressMapEntry: current seqNo, last ack, entire seqTable
+std::string Agent::str(AddressMapEntry entry) const
+{
+    std::string str="";
+    str.append("; SEQ=");
+    str.append(std::to_string(entry.seqNo));
+    str.append("; ACK=");
+    str.append(std::to_string(entry.ackNo));
+    str.append(";\n");
+    str.append(Agent::str(entry.addressTable));
+    return str;
+}
+
+// Prints sequence table: seqNo + associated IPv6AddressList
+std::string Agent::str(AddressTable table) const
+{
+    std::string str="";
+    for( auto& item : table )
+    {
+        str.append(std::to_string(item.first)); // uint number to string
+        str.append(":");
+        str.append(Agent::str(item.second));
+        str.append("\n");
+    }
+    return str;
+}
+
+// Prints all IPv6 Addresses in IPv6AddressList
+std::string Agent::str(AddressList addrList) const
+{
+    std::string str="";
+    bool first = true;
+    for (AddressTuple tuple : addrList )
+    {
+        if(!first)
+            str.append("->");
+        str.append("[");
+        str.append(std::to_string(tuple.interface));
+        str.append("]:");
+        str.append(tuple.address.str());
+        first = false;
+    }
+    return str;
 }
 
 } //namespace

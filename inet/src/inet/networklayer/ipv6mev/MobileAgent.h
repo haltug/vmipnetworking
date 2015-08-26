@@ -23,14 +23,10 @@
 #include "inet/networklayer/contract/ipv6/IPv6Address.h"
 #include "inet/networklayer/icmpv6/ICMPv6Message_m.h"
 #include "inet/networklayer/ipv6mev/IdentificationHeader.h"
-#include "inet/networklayer/ipv6mev/AddressManagement.h"
 #include "inet/networklayer/common/InterfaceEntry.h"
 
 namespace inet {
 
-/**
- * TODO - Generated class
- */
 class MobileAgent : public cListener, public Agent
 {
     virtual ~MobileAgent();
@@ -49,8 +45,8 @@ class MobileAgent : public cListener, public Agent
         int priority;
         IPv6Address careOfAddress;
     };
-    typedef std::map<int, InterfaceUnit *> AddressTable; // represents the address table
-    AddressTable addressTable;
+    typedef std::map<int, InterfaceUnit *> AddressUnit; // represents the address table
+    AddressUnit addressUnit;
 
     struct InterfaceInit {
         int id;
@@ -154,6 +150,7 @@ class MobileAgent : public cListener, public Agent
     void handleInterfaceDownMessage(cMessage *msg); // is called when interface gets disconnected. Changes are stored in interface map.
     void createInterfaceUpMessage(int id);
     void handleInterfaceUpMessage(cMessage *msg); // is called when interface gets connected. Changes are stored in interface map.
+    void performInterfaceChanged(int id);
     void updateAddressTable(int id, InterfaceUnit *iu); // changing address map when node gets out of reachability. Is called by handleInterfaceUpMsg...
 //  LISTENER FUNCTIONS: handling interface up/down
     virtual void receiveSignal(cComponent *source, simsignal_t signalID, cObject *obj) override;

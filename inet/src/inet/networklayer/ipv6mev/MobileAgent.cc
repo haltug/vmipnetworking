@@ -56,8 +56,8 @@ MobileAgent::~MobileAgent() {
         it++;
         cancelAndDeleteExpiryTimer(key.dest,key.interfaceID,key.type);
     }
-    auto it2 = addressTable.begin();
-    while(it2 != addressTable.end()) {
+    auto it2 = addressUnit.begin();
+    while(it2 != addressUnit.end()) {
         InterfaceUnit *iu = it2->second;
         it2++;
         delete iu;
@@ -86,7 +86,8 @@ void MobileAgent::initialize(int stage)
         seqnoState = UNASSOCIATED;
         srand(time(0));
         agentId = (uint64) rand();
-        am.initiateAddressMap(agentId, (rand() % 128) + 1);
+//        am.initiateAddressMap(agentId, (rand() % 128) + 1);
+        initAddressMap(agentId, (rand() % 128) + 1);
 
         // statistics
         flowRequestSignal = -1;
@@ -95,7 +96,8 @@ void MobileAgent::initialize(int stage)
         WATCH(sequenceUpdateCaStat);
         WATCH(sequenceUpdateDaStat);
         WATCH(flowRequestStat);
-        WATCH(am);
+//        WATCH(am);
+        WATCH(*this);
 
     }
     if(stage == INITSTAGE_TRANSPORT_LAYER) {
@@ -297,7 +299,28 @@ void MobileAgent::sendSequenceInit(cMessage *msg) {
         throw cRuntimeError("MA: no interface provided in sendSeqInit.");
     sit->nextScheduledTime = simTime() + sit->ackTimeout;
     sit->ackTimeout = (sit->ackTimeout)*2;
-    IdentificationHeader *ih = getAgentHeader(1, IP_PROT_NONE, am.getSeqNo(agentId), 0, agentId);
+//    IdentificationHeader *ih = getAgentHeader(1, IP_PROT_NONE, am.getSeqNo(agentId), 0, agentId);
+//    ih->setIsIdInitialized(true);
+//    ih->setIsIdAcked(true);
+//    ih->setIsSeqValid(true);
+//    ih->setIsIpModified(true);
+//    ih->setIpAddingField(1);
+//    ih->setIpRemovingField(0);
+//    ih->setIpAcknowledgementNumber(0);
+//    AddressManagement::AddressChange ac = am.getAddressEntriesOfSeqNo(agentId,am.getSeqNo(agentId));
+//    ih->setIPaddressesArraySize(ac.addedAddresses);
+//    ih->setIpAddingField(ac.addedAddresses);
+//    if(ac.addedAddresses > 0) {
+//        if(ac.addedAddresses != ac.getAddedIPv6AddressList.size()) throw cRuntimeError("MA:sendSeqInit: value of Add list must have size of integer.");
+//        for(int i=0; i<ac.addedAddresses; i++) {
+//            ih->setIPaddresses(i,ac.getAddedIPv6AddressList.at(i));
+//        }
+//    }
+////    ih->setIPaddressesArraySize(1);
+////    ih->setIPaddresses(0,ie->ipv6Data()->getPreferredAddress());
+//    ih->setByteLength(SIZE_AGENT_HEADER+SIZE_ADDING_ADDR_TO_HDR);
+        // ADS
+    IdentificationHeader *ih = getAgentHeader(1, IP_PROT_NONE, getSeqNo(agentId), 0, agentId);
     ih->setIsIdInitialized(true);
     ih->setIsIdAcked(true);
     ih->setIsSeqValid(true);
@@ -305,17 +328,13 @@ void MobileAgent::sendSequenceInit(cMessage *msg) {
     ih->setIpAddingField(1);
     ih->setIpRemovingField(0);
     ih->setIpAcknowledgementNumber(0);
-    AddressManagement::AddressChange ac = am.getAddressEntriesOfSeqNo(agentId,am.getSeqNo(agentId));
-    ih->setIPaddressesArraySize(ac.addedAddresses);
-    ih->setIpAddingField(ac.addedAddresses);
-    if(ac.addedAddresses > 0) {
-        if(ac.addedAddresses != ac.getAddedIPv6AddressList.size()) throw cRuntimeError("MA:sendSeqInit: value of Add list must have size of integer.");
-        for(int i=0; i<ac.addedAddresses; i++) {
-            ih->setIPaddresses(i,ac.getAddedIPv6AddressList.at(i));
-        }
+    AddressDiff ad = getAddressList(agentId, getSeqNo(agentId));
+    ih->setIPaddressesArraySize(ad.insertedList.size());
+    ih->setIpAddingField(ad.insertedList.size());
+    if(ad.insertedList.size() > 0) {
+        for(int idx=0; idx < ad.insertedList.size(); idx++)
+            ih->setIPaddresses(idx, ad.insertedList.at(idx).address);
     }
-//    ih->setIPaddressesArraySize(1);
-//    ih->setIPaddresses(0,ie->ipv6Data()->getPreferredAddress());
     ih->setByteLength(SIZE_AGENT_HEADER+SIZE_ADDING_ADDR_TO_HDR);
     long size = ih->getByteLength();
     emit(controlSignalLoad, size);
@@ -357,32 +376,55 @@ void MobileAgent::sendSequenceUpdate(cMessage* msg) {
     const IPv6Address &dest =  sut->dest;
     sut->nextScheduledTime = simTime() + sut->ackTimeout;
     sut->ackTimeout = (sut->ackTimeout)*1.5;
-    IdentificationHeader *ih = getAgentHeader(1, IP_PROT_NONE, am.getSeqNo(agentId), am.getAckNo(agentId), agentId);
+//    IdentificationHeader *ih = getAgentHeader(1, IP_PROT_NONE, am.getSeqNo(agentId), am.getAckNo(agentId), agentId);
+//    ih->setIsIdInitialized(true);
+//    ih->setIsIdAcked(true);
+//    ih->setIsSeqValid(true);
+//    ih->setIsAckValid(true);
+//    ih->setIsIpModified(true);
+//    int seq = am.getSeqNo(agentId);
+//    int ack = am.getAckNo(agentId);
+//    EV << "MA: Send SeqUpdate for" << " s:" << seq << " a:" << ack << endl;
+//    AddressManagement::AddressChange ac = am.getAddressChange(agentId,sut->ack,sut->seq);
+//    ih->setIPaddressesArraySize(ac.addedAddresses+ac.removedAddresses);
+//    ih->setIpAddingField(ac.addedAddresses);
+//    if(ac.addedAddresses > 0) {
+//        if(ac.addedAddresses != ac.getAddedIPv6AddressList.size()) throw cRuntimeError("MA:sendSeqTcp: value of Add list must have size of integer.");
+//        for(int i=0; i<ac.addedAddresses; i++) {
+//            ih->setIPaddresses(i,ac.getAddedIPv6AddressList.at(i));
+//        }
+//    }
+//    ih->setIpRemovingField(ac.removedAddresses);
+//    if(ac.removedAddresses > 0) {
+//        if(ac.removedAddresses != ac.getRemovedIPv6AddressList.size()) throw cRuntimeError("MA:sendSeqTcp: value of Rem list must have size of integer.");
+//        for(int i=0; i<ac.removedAddresses; i++) {
+//            ih->setIPaddresses(i+ac.addedAddresses,ac.getRemovedIPv6AddressList.at(i));
+//        }
+//    }
+//    ih->setByteLength(SIZE_AGENT_HEADER+(SIZE_ADDING_ADDR_TO_HDR*(ac.addedAddresses+ac.removedAddresses)));
+        // ADS
+    IdentificationHeader *ih = getAgentHeader(1, IP_PROT_NONE, getSeqNo(agentId), getAckNo(agentId), agentId);
     ih->setIsIdInitialized(true);
     ih->setIsIdAcked(true);
     ih->setIsSeqValid(true);
     ih->setIsAckValid(true);
     ih->setIsIpModified(true);
-    int seq = am.getSeqNo(agentId);
-    int ack = am.getAckNo(agentId);
-    EV << "MA: Send SeqUpdate for" << " s:" << seq << " a:" << ack << endl;
-    AddressManagement::AddressChange ac = am.getAddressChange(agentId,sut->ack,sut->seq);
-    ih->setIPaddressesArraySize(ac.addedAddresses+ac.removedAddresses);
-    ih->setIpAddingField(ac.addedAddresses);
-    if(ac.addedAddresses > 0) {
-        if(ac.addedAddresses != ac.getAddedIPv6AddressList.size()) throw cRuntimeError("MA:sendSeqTcp: value of Add list must have size of integer.");
-        for(int i=0; i<ac.addedAddresses; i++) {
-            ih->setIPaddresses(i,ac.getAddedIPv6AddressList.at(i));
-        }
+        int s = getSeqNo(agentId);
+        int a = getAckNo(agentId);
+        EV_DEBUG << "MA: Send SeqUpdate for" << " s:" << s << " a:" << a << endl;
+    AddressDiff ad = getAddressList(agentId,sut->seq,sut->ack);
+    ih->setIPaddressesArraySize(ad.insertedList.size()+ad.deletedList.size());
+    ih->setIpAddingField(ad.insertedList.size());
+    if(ad.insertedList.size() > 0) {
+        for(int idx=0; idx < ad.insertedList.size(); idx++)
+            ih->setIPaddresses(idx, ad.insertedList.at(idx).address);
     }
-    ih->setIpRemovingField(ac.removedAddresses);
-    if(ac.removedAddresses > 0) {
-        if(ac.removedAddresses != ac.getRemovedIPv6AddressList.size()) throw cRuntimeError("MA:sendSeqTcp: value of Rem list must have size of integer.");
-        for(int i=0; i<ac.removedAddresses; i++) {
-            ih->setIPaddresses(i+ac.addedAddresses,ac.getRemovedIPv6AddressList.at(i));
-        }
+    ih->setIpRemovingField(ad.deletedList.size());
+    if(ad.deletedList.size() > 0) {
+        for(int idx=0; idx < ad.deletedList.size(); idx++)
+            ih->setIPaddresses(idx+ad.insertedList.size(), ad.deletedList.at(idx).address);
     }
-    ih->setByteLength(SIZE_AGENT_HEADER+(SIZE_ADDING_ADDR_TO_HDR*(ac.addedAddresses+ac.removedAddresses)));
+    ih->setByteLength(SIZE_AGENT_HEADER+SIZE_ADDING_ADDR_TO_HDR*(ad.insertedList.size()+ad.deletedList.size()));
     sequenceUpdateCaStat++;
     emit(sequenceUpdateCa, sequenceUpdateCaStat);
     long size = ih->getByteLength();
@@ -435,7 +477,17 @@ void MobileAgent::sendFlowRequest(cMessage *msg) {
     EV << "MA: Sending flow request." << endl;
     const IPv6Address nodeAddress = frt->nodeAddress;
     const IPv6Address &dest =  frt->dest;
-    IdentificationHeader *ih = getAgentHeader(1, IP_PROT_NONE, am.getSeqNo(agentId), am.getAckNo(agentId), agentId);
+//    IdentificationHeader *ih = getAgentHeader(1, IP_PROT_NONE, am.getSeqNo(agentId), am.getAckNo(agentId), agentId);
+//    ih->setIsIdInitialized(true);
+//    ih->setIsIdAcked(true);
+//    ih->setIsSeqValid(true);
+//    ih->setIsAckValid(true);
+//    ih->setIsWithNodeAddr(true);
+//    ih->setIPaddressesArraySize(1);
+//    ih->setIPaddresses(0,nodeAddress);
+//    ih->setByteLength(SIZE_AGENT_HEADER+SIZE_ADDING_ADDR_TO_HDR);
+        // ADS
+    IdentificationHeader *ih = getAgentHeader(1, IP_PROT_NONE, getSeqNo(agentId), getAckNo(agentId), agentId);
     ih->setIsIdInitialized(true);
     ih->setIsIdAcked(true);
     ih->setIsSeqValid(true);
@@ -444,6 +496,7 @@ void MobileAgent::sendFlowRequest(cMessage *msg) {
     ih->setIPaddressesArraySize(1);
     ih->setIPaddresses(0,nodeAddress);
     ih->setByteLength(SIZE_AGENT_HEADER+SIZE_ADDING_ADDR_TO_HDR);
+
     long size = ih->getByteLength();
     emit(controlSignalLoad, size);
     sendToLowerLayer(ih, dest);
@@ -495,11 +548,16 @@ void MobileAgent::performSequenceInitResponse(IdentificationHeader *agentHeader,
 {
     if(agentHeader->getByteLength() == SIZE_AGENT_HEADER) {
         seqnoState = ASSOCIATED;
-        am.setAckNo(agentId, agentHeader->getIpSequenceNumber()); // ack is set the first time
-        int seq = am.getSeqNo(agentId);
-        int ack = am.getAckNo(agentId);
-        cancelAndDeleteExpiryTimer(ControlAgentAddress,-1, TIMERKEY_SEQNO_INIT);
-        EV << "MA: Received SeqNo Ack. Removed timer. SeqNo initialized." << " s:" << seq << " a:" << ack << endl;
+        setAckNo(agentId, agentHeader->getIpSequenceNumber());
+        int s = getSeqNo(agentId);
+        int a = getAckNo(agentId);
+        bool t = cancelAndDeleteExpiryTimer(ControlAgentAddress,-1, TIMERKEY_SEQNO_INIT);
+        EV_DEBUG << "MA: Received AckNo. Timer existed? => " << t << ". SeqNo initialized." << " s:" << s << " a:" << a << endl;
+        // ADS
+//        am.setAckNo(agentId, agentHeader->getIpSequenceNumber()); // ack is set the first time
+//        int seq = am.getSeqNo(agentId);
+//        int ack = am.getAckNo(agentId);
+//        EV_DEBUG << "MA: Received AckNo. Timer existed? => " << t << ". SeqNo initialized." << " s:" << seq << " a:" << ack << endl;
     } else {
         throw cRuntimeError("MA: Byte length does not match the expected size.SequenceInitResponse");
     }
@@ -519,7 +577,7 @@ void MobileAgent::performFlowRequestResponse(IdentificationHeader *agentHeader, 
         addressAssociation.insert(std::make_pair(node,agent));
         cancelAndDeleteExpiryTimer(ControlAgentAddress,-1, TIMERKEY_FLOW_REQ);
         sendAllPacketsInQueue();
-        EV << "MA: Flow request responsed by CA. Request process finished." << endl;
+        EV_DEBUG << "MA: Flow request responsed by CA. Request process finished." << endl;
     } else {
         throw cRuntimeError("MA: Byte length does not match the expected size.FlowRequest");
     }
@@ -528,12 +586,18 @@ void MobileAgent::performFlowRequestResponse(IdentificationHeader *agentHeader, 
 void MobileAgent::performSequenceUpdateResponse(IdentificationHeader *agentHeader, IPv6Address destAddr)
 {
     if(agentHeader->getByteLength() == SIZE_AGENT_HEADER) {
-        if(agentHeader->getIpSequenceNumber() > am.getAckNo(agentId)) {
-            cancelAndDeleteExpiryTimer(ControlAgentAddress,-1, TIMERKEY_SEQ_UPDATE, agentId, agentHeader->getIpSequenceNumber(), am.getAckNo(agentId));
-            am.setAckNo(agentId, agentHeader->getIpSequenceNumber());
-            EV << "MA: Received update acknowledgment from CA. Removed timer. SeqNo=" << am.getSeqNo(agentId) << endl;
+//        if(agentHeader->getIpSequenceNumber() > am.getAckNo(agentId)) {
+//            cancelAndDeleteExpiryTimer(ControlAgentAddress,-1, TIMERKEY_SEQ_UPDATE, agentId, agentHeader->getIpSequenceNumber(), am.getAckNo(agentId));
+//            am.setAckNo(agentId, agentHeader->getIpSequenceNumber());
+//            EV_DEBUG << "MA: Received update acknowledgment from CA. Removed timer. SeqNo=" << am.getSeqNo(agentId) << endl;
+        if(agentHeader->getIpSequenceNumber() > getAckNo(agentId)) {
+            cancelAndDeleteExpiryTimer(ControlAgentAddress,-1, TIMERKEY_SEQ_UPDATE, agentId, agentHeader->getIpSequenceNumber(), getAckNo(agentId));
+            setAckNo(agentId, agentHeader->getIpSequenceNumber());
+            int s = getSeqNo(agentId);
+            EV_DEBUG << "MA: Received update acknowledgment from CA. Removed timer. SeqNo=" << s << endl;
         } else {
-            EV << "MA: Received update acknowledgment from CA contains older sequence value. Dropping message. SeqNo="<< am.getSeqNo(agentId) << endl;
+            EV_DEBUG << "MA: Received update acknowledgment from CA contains older sequence value. Dropping message. SeqNo="<< getSeqNo(agentId) << endl;
+//            EV_DEBUG << "MA: Received update acknowledgment from CA contains older sequence value. Dropping message. SeqNo="<< am.getSeqNo(agentId) << endl;
         }
     } else {
         throw cRuntimeError("MA: Byte length does not match the expected size.");
@@ -1026,35 +1090,61 @@ void MobileAgent::processOutgoingIcmpPacket(cMessage *msg)
 void MobileAgent::sendUpperLayerPacket(cPacket *packet, IPv6ControlInfo *controlInfo, IPv6Address agentAddr, short prot)
 {
 //        EV << "MA:In: Flow is registered. starting sending process." << endl;
-    IdentificationHeader *ih = getAgentHeader(1, prot, am.getSeqNo(agentId), am.getAckNo(agentId), agentId);
+//    IdentificationHeader *ih = getAgentHeader(1, prot, am.getSeqNo(agentId), am.getAckNo(agentId), agentId);
+//    ih->setIsIdInitialized(true);
+//    ih->setIsIdAcked(true);
+//    ih->setIsSeqValid(true);
+//    ih->setIsAckValid(true);
+//    ih->setIsWithNodeAddr(true);
+//    if(am.getSeqNo(agentId) != am.getAckNo(agentId)) {
+//        ih->setIsIpModified(true);
+//        sequenceUpdateDaStat++;
+//        emit(sequenceUpdateDa, sequenceUpdateDaStat);
+//    }
+//    AddressManagement::AddressChange ac = am.getAddressChange(agentId,am.getAckNo(agentId),am.getSeqNo(agentId));
+//    ih->setIPaddressesArraySize(1+ac.addedAddresses+ac.removedAddresses);
+//    ih->setIpAddingField(ac.addedAddresses);
+//    ih->setIPaddresses(0,controlInfo->getDestinationAddress().toIPv6());
+//    if(ac.addedAddresses > 0) {
+//        if(ac.addedAddresses != ac.getAddedIPv6AddressList.size()) throw cRuntimeError("MA:sendSeqTcp: value of Add list must have size of integer.");
+//        for(int i=0; i<ac.addedAddresses; i++) {
+//            ih->setIPaddresses(i+1,ac.getAddedIPv6AddressList.at(i));
+//        }
+//    }
+//    ih->setIpRemovingField(ac.removedAddresses);
+//    if(ac.removedAddresses > 0) {
+//        if(ac.removedAddresses != ac.getRemovedIPv6AddressList.size()) throw cRuntimeError("MA:sendSeqTcp: value of Rem list must have size of integer.");
+//        for(int i=0; i<ac.removedAddresses; i++) {
+//            ih->setIPaddresses(i+1+ac.addedAddresses,ac.getRemovedIPv6AddressList.at(i));
+//        }
+//    }
+//    ih->setByteLength(SIZE_AGENT_HEADER+(SIZE_ADDING_ADDR_TO_HDR*(ac.addedAddresses+ac.removedAddresses+1)));
+        // ADS
+    IdentificationHeader *ih = getAgentHeader(1, prot, getSeqNo(agentId), getAckNo(agentId), agentId);
     ih->setIsIdInitialized(true);
     ih->setIsIdAcked(true);
     ih->setIsSeqValid(true);
     ih->setIsAckValid(true);
     ih->setIsWithNodeAddr(true);
-    if(am.getSeqNo(agentId) != am.getAckNo(agentId)) {
+    if(getSeqNo(agentId) != getAckNo(agentId)) {
         ih->setIsIpModified(true);
         sequenceUpdateDaStat++;
         emit(sequenceUpdateDa, sequenceUpdateDaStat);
     }
-    AddressManagement::AddressChange ac = am.getAddressChange(agentId,am.getAckNo(agentId),am.getSeqNo(agentId));
-    ih->setIpAddingField(ac.addedAddresses);
-    ih->setIPaddressesArraySize(1+ac.addedAddresses+ac.removedAddresses);
+    AddressDiff ad = getAddressList(agentId,getSeqNo(agentId),getAckNo(agentId));
+    ih->setIPaddressesArraySize(ad.insertedList.size()+ad.deletedList.size()+1); // +1 because we send node address
+    ih->setIpAddingField(ad.insertedList.size());
     ih->setIPaddresses(0,controlInfo->getDestinationAddress().toIPv6());
-    if(ac.addedAddresses > 0) {
-        if(ac.addedAddresses != ac.getAddedIPv6AddressList.size()) throw cRuntimeError("MA:sendSeqTcp: value of Add list must have size of integer.");
-        for(int i=0; i<ac.addedAddresses; i++) {
-            ih->setIPaddresses(i+1,ac.getAddedIPv6AddressList.at(i));
-        }
+    if(ad.insertedList.size() > 0) {
+        for(int idx=0; idx < ad.insertedList.size(); idx++)
+            ih->setIPaddresses(idx+1, ad.insertedList.at(idx).address);
     }
-    ih->setIpRemovingField(ac.removedAddresses);
-    if(ac.removedAddresses > 0) {
-        if(ac.removedAddresses != ac.getRemovedIPv6AddressList.size()) throw cRuntimeError("MA:sendSeqTcp: value of Rem list must have size of integer.");
-        for(int i=0; i<ac.removedAddresses; i++) {
-            ih->setIPaddresses(i+1+ac.addedAddresses,ac.getRemovedIPv6AddressList.at(i));
-        }
+    ih->setIpRemovingField(ad.deletedList.size());
+    if(ad.deletedList.size() > 0) {
+        for(int idx=0; idx < ad.deletedList.size(); idx++)
+            ih->setIPaddresses(idx+1+ad.insertedList.size(), ad.deletedList.at(idx).address);
     }
-    ih->setByteLength(SIZE_AGENT_HEADER+(SIZE_ADDING_ADDR_TO_HDR*(ac.addedAddresses+ac.removedAddresses+1)));
+    ih->setByteLength(SIZE_AGENT_HEADER+SIZE_ADDING_ADDR_TO_HDR*(ad.insertedList.size()+ad.deletedList.size()+1));
     ih->encapsulate(packet);
     controlInfo->setProtocol(IP_PROT_IPv6EXT_ID);
     controlInfo->setDestinationAddress(agentAddr);
@@ -1071,11 +1161,35 @@ void MobileAgent::sendUpperLayerPacket(cPacket *packet, IPv6ControlInfo *control
     send(ih, outgate);
 }
 
+void MobileAgent::receiveSignal(cComponent *source, simsignal_t signalID, cObject *obj)
+{
+    Enter_Method_Silent();
+    if(signalID == NF_INTERFACE_IPv6CONFIG_CHANGED) { // is triggered when address is modified
+        EV << "-------- RECEIVED CONFIG SIGNAL ---------" << endl;
+        if(dynamic_cast<InterfaceEntryChangeDetails *>(obj)) {
+            InterfaceEntry *ie = check_and_cast<const InterfaceEntryChangeDetails *>(obj)->getInterfaceEntry();
+            EV_DEBUG << "CONFIG_SIGNAL: " << ie->ipv6Data()->getPreferredAddress() << " " << obj->info() << endl;
+            if(ie->isUp())
+                createInterfaceUpMessage(ie->getInterfaceId());
+            else
+                createInterfaceDownMessage(ie->getInterfaceId());
+        }
+    }
+    if(signalID == NF_INTERFACE_STATE_CHANGED) { // is triggered when carrier setting is changed
+        EV << "-------- RECEIVED STATE SIGNAL ---------" << endl;
+        if(dynamic_cast<InterfaceEntryChangeDetails *>(obj)) {
+            InterfaceEntry *ie = check_and_cast<const InterfaceEntryChangeDetails *>(obj)->getInterfaceEntry();
+            EV_DEBUG << "STATE_SIGNAL: " << ie->ipv6Data()->getPreferredAddress() << " " << obj->info() << endl;
+            performInterfaceChanged(ie->getInterfaceId());
+        }
+    }
+}
+
 MobileAgent::InterfaceUnit *MobileAgent::getInterfaceUnit(int id)
 {
     InterfaceUnit *iu;
-    auto it = addressTable.find(id);
-    if(it != addressTable.end()) { // addressTable contains an instance of interfaceUnit
+    auto it = addressUnit.find(id);
+    if(it != addressUnit.end()) { // addressTable contains an instance of interfaceUnit
         iu = it->second;
         return iu;
     } else {
@@ -1159,33 +1273,9 @@ void MobileAgent::handleInterfaceUpMessage(cMessage *msg)
     delete msg;
 }
 
-void MobileAgent::receiveSignal(cComponent *source, simsignal_t signalID, cObject *obj)
+void MobileAgent::performInterfaceChanged(int id)
 {
-    Enter_Method_Silent();
-    if(signalID == NF_INTERFACE_IPv6CONFIG_CHANGED) { // is triggered when address is modified
-        EV << "-------- RECEIVED CONFIG SIGNAL ---------" << endl;
-        if(dynamic_cast<InterfaceEntryChangeDetails *>(obj)) {
-            InterfaceEntry *ie = check_and_cast<const InterfaceEntryChangeDetails *>(obj)->getInterfaceEntry();
-            EV << "SIGNAL: " << ie->ipv6Data()->getPreferredAddress() << " " << obj->info() << endl;
-            if(ie->isUp())
-                createInterfaceUpMessage(ie->getInterfaceId());
-            else
-                createInterfaceDownMessage(ie->getInterfaceId());
-        }
-    }
-    if(signalID == NF_INTERFACE_STATE_CHANGED) { // is triggered when carrier setting is changed
-        EV << "-------- RECEIVED STATE SIGNAL ---------" << endl;
-        if(dynamic_cast<InterfaceEntryChangeDetails *>(obj)) {
-            InterfaceEntry *ie = check_and_cast<const InterfaceEntryChangeDetails *>(obj)->getInterfaceEntry();
-            EV << "SIGNAL: " << ie->ipv6Data()->getPreferredAddress() << " " << obj->info() << endl;
-//            if(ie->ipv6Data()->getPreferredAddress().isGlobal()) {
-//                if(ie->isUp())
-//                    createInterfaceUpMessage(ie->getInterfaceId());
-//                else
-//                    createInterfaceDownMessage(ie->getInterfaceId());
-//            }
-        }
-    }
+    //check if interface was configured
 }
 
 void MobileAgent::receiveSignal(cComponent *source, simsignal_t signalID, double d)
@@ -1224,39 +1314,51 @@ void MobileAgent::receiveSignal(cComponent *source, simsignal_t signalID, double
 void MobileAgent::updateAddressTable(int id, InterfaceUnit *iu)
 {
     if(seqnoState == ASSOCIATED) {
-        auto it = addressTable.find(id);
-        if(it != addressTable.end()) { // updating interface
+        auto it = addressUnit.find(id);
+        if(it != addressUnit.end()) { // updating interface
             if(it->first != id) throw cRuntimeError("ERROR in updateAddressTable: provided id should be same with entry");
             (it->second)->active = iu->active;
             (it->second)->priority = iu->priority;
             (it->second)->careOfAddress = iu->careOfAddress;
             if(iu->active) {    // presents an interface that has been associated
-                am.addIpToMap(agentId, iu->careOfAddress);
+//                am.addIpToMap(agentId, iu->careOfAddress);
+                insertAddress(agentId, id, iu->careOfAddress);
                 sendAllPacketsInQueue();
             } else { // presents an interface has been disassociated
-                am.removeIpFromMap(agentId, iu->careOfAddress);
+//                am.removeIpFromMap(agentId, iu->careOfAddress);
+                deleteAddress(agentId,id,iu->careOfAddress);
             }
             // *** for output
-            int seq = am.getSeqNo(agentId);
-            int ack = am.getAckNo(agentId);
+//            int seq = am.getSeqNo(agentId);
+//            int ack = am.getAckNo(agentId);
+            int s = getSeqNo(agentId);
+            int a = getAckNo(agentId);
             if(iu->active) {    // presents an interface that has been associated
-                EV << "MA: Adding CoA-IP: " << iu->careOfAddress << " s:" << seq << " a:" << ack << endl;
+//                EV_DEBUG << "MA: Adding CoA-IP: " << iu->careOfAddress << " s:" << seq << " a:" << ack << endl;
+                EV_DEBUG << "MA: Adding CoA-IP: " << iu->careOfAddress << " s:" << s << " a:" << a << endl;
             } else { // presents an interface has been disassociated
-                EV << "MA: Removing CoA-IP: " << iu->careOfAddress << " s:" << seq << " a:" << ack << endl;
+//                EV_DEBUG << "MA: Removing CoA-IP: " << iu->careOfAddress << " s:" << seq << " a:" << ack << endl;
+                EV_DEBUG << "MA: Removing CoA-IP: " << iu->careOfAddress << " s:" << s << " a:" << a << endl;
             }
             // ***
         } else { // adding interface in list if not known
-            addressTable.insert(std::make_pair(id,iu)); // if not, include this new
-            am.addIpToMap(agentId, iu->careOfAddress);
+            addressUnit.insert(std::make_pair(id,iu)); // if not, include this new
+//            am.addIpToMap(agentId, iu->careOfAddress);
+            insertAddress(agentId, id, iu->careOfAddress);
         }
-        createSequenceUpdate(agentId, am.getSeqNo(agentId), am.getAckNo(agentId)); // next address must be updated by seq update
+//        createSequenceUpdate(agentId, am.getSeqNo(agentId), am.getAckNo(agentId)); // next address must be updated by seq update
+        createSequenceUpdate(agentId, getSeqNo(agentId), getAckNo(agentId)); // next address must be updated by seq update
     } else
         if(sessionState == UNASSOCIATED) {
-            addressTable.insert(std::make_pair(id,iu)); // if not, include this new
-            am.addIpToMap(agentId, iu->careOfAddress);
-            int seq = am.getSeqNo(agentId);
-            int ack = am.getAckNo(agentId);
-            EV << "MA: Interface-IP: " << iu->careOfAddress << " s:" << seq << " a:" << ack << endl;
+            addressUnit.insert(std::make_pair(id,iu)); // if not, include this new
+//            am.addIpToMap(agentId, iu->careOfAddress);
+            insertAddress(agentId, id, iu->careOfAddress);
+//            int seq = am.getSeqNo(agentId);
+//            int ack = am.getAckNo(agentId);
+//            EV_DEBUG << "MA: Interface-IP: " << iu->careOfAddress << " s:" << seq << " a:" << ack << endl;
+            int s = getSeqNo(agentId);
+            int a = getAckNo(agentId);
+            EV_DEBUG << "MA: Interface-IP: " << iu->careOfAddress << " s:" << s << " a:" << a << endl;
             createSessionInit(); // first address is initialzed with session init
         } else { // delayin process if one were started
             cMessage *msg = new cMessage("interfaceDelay", MSG_INTERFACE_DELAY);

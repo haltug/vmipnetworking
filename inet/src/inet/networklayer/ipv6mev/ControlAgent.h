@@ -22,7 +22,6 @@
 #include "inet/common/INETDefs.h"
 #include "inet/networklayer/contract/ipv6/IPv6Address.h"
 #include "inet/networklayer/ipv6mev/IdentificationHeader.h"
-#include "inet/networklayer/ipv6mev/AddressManagement.h"
 #include "inet/networklayer/common/InterfaceEntry.h"
 
 

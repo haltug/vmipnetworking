@@ -23,7 +23,6 @@
 #include "inet/common/INETDefs.h"
 #include "inet/networklayer/contract/ipv6/IPv6Address.h"
 #include "inet/networklayer/ipv6mev/IdentificationHeader.h"
-#include "inet/networklayer/ipv6mev/AddressManagement.h"
 #include "inet/networklayer/common/InterfaceEntry.h"
 
 namespace inet {
@@ -121,7 +120,7 @@ class INET_API Agent : public cSimpleModule
     AgentState seqnoState; // state of MA for seq init
 
     IPv6Address ControlAgentAddress; // ip address of ca
-    AddressManagement am;
+//    AddressManagement am;
 
     std::vector<uint64>  mobileIdList; // lists all id of mobile nodes
     std::vector<IPv6Address> nodeAddressList; // lists all data agents
@@ -367,6 +366,13 @@ class INET_API Agent : public cSimpleModule
     };
     typedef std::map<uint64,AddressMapEntry> AddressMap;
     AddressMap addressMap;
+    AddressMap getAddressMap() { return addressMap; }
+    std::string str(AddressDiff diff) const;
+    std::string str(AddressTable seqTable) const;
+    std::string str(AddressMapEntry addrMapEntry) const;
+    std::string str(AddressList addrList) const;
+    std::string str(AddressMap addrMap) const;
+    friend std::ostream& operator<<(std::ostream& os, const Agent& a);
 //=============================================  Address Control System ===========================
 };
 } //namespace
