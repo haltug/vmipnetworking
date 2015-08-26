@@ -146,11 +146,12 @@ class MobileAgent : public cListener, public Agent
 
 //  INTERFACE LISTENER FUNCTIONS
     InterfaceUnit* getInterfaceUnit(int id); // returns the instance of the interfaceId for setting interface configuration
-    void createInterfaceDownMessage(int id);
-    void handleInterfaceDownMessage(cMessage *msg); // is called when interface gets disconnected. Changes are stored in interface map.
-    void createInterfaceUpMessage(int id);
-    void handleInterfaceUpMessage(cMessage *msg); // is called when interface gets connected. Changes are stored in interface map.
-    void performInterfaceChanged(int id);
+    void processInterfaceDown(int id);
+    void handleInterfaceDown(cMessage *msg); // is called when interface gets disconnected. Changes are stored in interface map.
+    void processInterfaceUp(int id);
+    void handleInterfaceUp(cMessage *msg); // is called when interface gets connected. Changes are stored in interface map.
+    void processInterfaceChange(int id);
+    void handleInterfaceChange(cMessage *msg);
     void updateAddressTable(int id, InterfaceUnit *iu); // changing address map when node gets out of reachability. Is called by handleInterfaceUpMsg...
 //  LISTENER FUNCTIONS: handling interface up/down
     virtual void receiveSignal(cComponent *source, simsignal_t signalID, cObject *obj) override;

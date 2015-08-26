@@ -173,6 +173,8 @@ Agent::ExpiryTimer *Agent::getExpiryTimer(TimerKey& key, int timerType) {
             throw cRuntimeError("ERROR Invoked InterfaceDownTimer timer creation although one in map exists. There shouldn't be an entry in the list");
         } else if(dynamic_cast<InterfaceUpTimer *>(pos->second)) {
             throw cRuntimeError("ERROR Invoked InterfaceUpTimer timer creation although one in map exists. There shouldn't be an entry in the list");
+        } else if(dynamic_cast<InterfaceChangeTimer *>(pos->second)) {
+            throw cRuntimeError("ERROR Invoked InterfaceChangeTimer timer creation although one in map exists. There shouldn't be an entry in the list");
         } else { throw cRuntimeError("ERROR Received timer not known. It's not a subclass of ExpiryTimer. Therefore getExpir... throwed this exception."); }
         timer->timer = nullptr;
     }
@@ -195,6 +197,9 @@ Agent::ExpiryTimer *Agent::getExpiryTimer(TimerKey& key, int timerType) {
                 break;
             case TIMERTYPE_IF_UP:
                 timer = new InterfaceUpTimer();
+                break;
+            case TIMERTYPE_IF_CHANGE:
+                timer = new InterfaceChangeTimer();
                 break;
             case TIMERTYPE_FLOW_REQ:
                 timer = new FlowRequestTimer();
@@ -340,9 +345,9 @@ void Agent::deleteAddress(uint64 id, int iface, IPv6Address addr) {
         if(!addressMap[id].addressTable.count(addressMap[id].seqNo)) // check if seq table with given seq number exists
             throw cRuntimeError("AM_deleteAddress: AddressTable with seqNo does not exist.");
         AddressTuple tuple(iface, addr);
-        std::vector<AddressTuple>::iterator it = std::find(addressMap[id].addressTable[addressMap[id].seqNo].begin(), addressMap[id].addressTable[addressMap[id].seqNo].end(), tuple);
-        if(it != addressMap[id].addressTable[addressMap[id].seqNo].end()) {
-            AddressList list(addressMap[id].addressTable[addressMap[id].seqNo]); // copying old list
+        AddressList list(addressMap[id].addressTable[addressMap[id].seqNo]); // copying old list
+        std::vector<AddressTuple>::iterator it = std::find(list.begin(), list.end(), tuple);
+        if(it != list.end()) {
             list.erase(it); // deleting addr with interface at position it
             addressMap[id].seqNo = (addressMap[id].seqNo + 1) % SEQ_FIELD_LENGTH; // incrementing seqno
             addressMap[id].addressTable[addressMap[id].seqNo] = list;
@@ -438,7 +443,7 @@ bool Agent::isAddressInserted(uint64 id, uint seq, IPv6Address dest) {
 Agent::AddressTuple Agent::getAddressTuple(uint64 id, uint seq, IPv6Address addr) {
     if(addressMap.count(id)) { // check if id exists in map
         if(!addressMap[id].addressTable.count(seq)) // check if seq table with given seq number exists
-            throw cRuntimeError("AM_isAddressInserted: AddressTable with seqNo= %d does not exist.", seq);
+            throw cRuntimeError("AM_getAddressTuple: AddressTable with seqNo= %d does not exist.", seq);
         for (auto &it : addressMap[id].addressTable[seq]) {
             if(it.address == addr)
                 return it;
@@ -452,15 +457,15 @@ Agent::AddressTuple Agent::getAddressTuple(uint64 id, uint seq, IPv6Address addr
 Agent::AddressTuple Agent::getAddressTuple(uint64 id, uint seq, int iface) {
     if(addressMap.count(id)) { // check if id exists in map
         if(!addressMap[id].addressTable.count(seq)) // check if seq table with given seq number exists
-            throw cRuntimeError("AM_isAddressInserted: AddressTable with seqNo= %d does not exist.", seq);
+            throw cRuntimeError("AM_getAddressTuple2: AddressTable with seqNo= %d does not exist.", seq);
         for (auto &it : addressMap[id].addressTable[seq]) {
             if(it.interface == iface)
                 return it;
         }
     } else {
-        throw cRuntimeError("AM_isAddressInserted: ID is not found in AddressMap. Create entry for ID.");
+        throw cRuntimeError("AM_getAddressTuple2: ID is not found in AddressMap. Create entry for ID.");
     }
-    throw cRuntimeError("AM_getAddressTuple: No addressTuple for interface could be found.");
+    throw cRuntimeError("AM_getAddressTuple2: No addressTuple for interface could be found.");
 }
 
 bool Agent::isInterfaceInserted(uint64 id, uint seq, int iface) {
@@ -558,7 +563,7 @@ std::string Agent::str(AddressTable table) const
 // Prints all IPv6 Addresses in IPv6AddressList
 std::string Agent::str(AddressList addrList) const
 {
-    std::string str="";
+    std::string str="$";
     bool first = true;
     for (AddressTuple tuple : addrList )
     {

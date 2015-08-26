@@ -138,10 +138,13 @@ void MobileAgent::handleMessage(cMessage *msg)
             sendSequenceInit(msg);
         }
         else if(msg->getKind() == MSG_IF_DOWN) {
-            handleInterfaceDownMessage(msg);
+            handleInterfaceDown(msg);
         }
         else if(msg->getKind() == MSG_IF_UP) {
-            handleInterfaceUpMessage(msg);
+            handleInterfaceUp(msg);
+        }
+        else if(msg->getKind() == MSG_IF_CHANGE) {
+            handleInterfaceChange(msg);
         }
         else if(msg->getKind() == MSG_SEQ_UPDATE) { // from
             sendSequenceUpdate(msg);
@@ -346,6 +349,8 @@ void MobileAgent::createSequenceUpdate(uint64 mobileId, uint seq, uint ack) {
 //    EV << "MA: Create sequence update to CA" << endl;
     if(sessionState != ASSOCIATED &&  seqnoState != ASSOCIATED)
         throw cRuntimeError("MA: Not registered at CA. Cannot run seq init.");
+    if(seq == ack) // nothing to update
+        return;
     InterfaceEntry *ie = getInterface(ControlAgentAddress);
     TimerKey key(ControlAgentAddress, -1, TIMERKEY_SEQ_UPDATE, mobileId, seq);
     SequenceUpdateTimer *sut = (SequenceUpdateTimer *) getExpiryTimer(key, TIMERTYPE_SEQ_UPDATE);
@@ -376,33 +381,6 @@ void MobileAgent::sendSequenceUpdate(cMessage* msg) {
     const IPv6Address &dest =  sut->dest;
     sut->nextScheduledTime = simTime() + sut->ackTimeout;
     sut->ackTimeout = (sut->ackTimeout)*1.5;
-//    IdentificationHeader *ih = getAgentHeader(1, IP_PROT_NONE, am.getSeqNo(agentId), am.getAckNo(agentId), agentId);
-//    ih->setIsIdInitialized(true);
-//    ih->setIsIdAcked(true);
-//    ih->setIsSeqValid(true);
-//    ih->setIsAckValid(true);
-//    ih->setIsIpModified(true);
-//    int seq = am.getSeqNo(agentId);
-//    int ack = am.getAckNo(agentId);
-//    EV << "MA: Send SeqUpdate for" << " s:" << seq << " a:" << ack << endl;
-//    AddressManagement::AddressChange ac = am.getAddressChange(agentId,sut->ack,sut->seq);
-//    ih->setIPaddressesArraySize(ac.addedAddresses+ac.removedAddresses);
-//    ih->setIpAddingField(ac.addedAddresses);
-//    if(ac.addedAddresses > 0) {
-//        if(ac.addedAddresses != ac.getAddedIPv6AddressList.size()) throw cRuntimeError("MA:sendSeqTcp: value of Add list must have size of integer.");
-//        for(int i=0; i<ac.addedAddresses; i++) {
-//            ih->setIPaddresses(i,ac.getAddedIPv6AddressList.at(i));
-//        }
-//    }
-//    ih->setIpRemovingField(ac.removedAddresses);
-//    if(ac.removedAddresses > 0) {
-//        if(ac.removedAddresses != ac.getRemovedIPv6AddressList.size()) throw cRuntimeError("MA:sendSeqTcp: value of Rem list must have size of integer.");
-//        for(int i=0; i<ac.removedAddresses; i++) {
-//            ih->setIPaddresses(i+ac.addedAddresses,ac.getRemovedIPv6AddressList.at(i));
-//        }
-//    }
-//    ih->setByteLength(SIZE_AGENT_HEADER+(SIZE_ADDING_ADDR_TO_HDR*(ac.addedAddresses+ac.removedAddresses)));
-        // ADS
     IdentificationHeader *ih = getAgentHeader(1, IP_PROT_NONE, getSeqNo(agentId), getAckNo(agentId), agentId);
     ih->setIsIdInitialized(true);
     ih->setIsIdAcked(true);
@@ -1089,37 +1067,6 @@ void MobileAgent::processOutgoingIcmpPacket(cMessage *msg)
 
 void MobileAgent::sendUpperLayerPacket(cPacket *packet, IPv6ControlInfo *controlInfo, IPv6Address agentAddr, short prot)
 {
-//        EV << "MA:In: Flow is registered. starting sending process." << endl;
-//    IdentificationHeader *ih = getAgentHeader(1, prot, am.getSeqNo(agentId), am.getAckNo(agentId), agentId);
-//    ih->setIsIdInitialized(true);
-//    ih->setIsIdAcked(true);
-//    ih->setIsSeqValid(true);
-//    ih->setIsAckValid(true);
-//    ih->setIsWithNodeAddr(true);
-//    if(am.getSeqNo(agentId) != am.getAckNo(agentId)) {
-//        ih->setIsIpModified(true);
-//        sequenceUpdateDaStat++;
-//        emit(sequenceUpdateDa, sequenceUpdateDaStat);
-//    }
-//    AddressManagement::AddressChange ac = am.getAddressChange(agentId,am.getAckNo(agentId),am.getSeqNo(agentId));
-//    ih->setIPaddressesArraySize(1+ac.addedAddresses+ac.removedAddresses);
-//    ih->setIpAddingField(ac.addedAddresses);
-//    ih->setIPaddresses(0,controlInfo->getDestinationAddress().toIPv6());
-//    if(ac.addedAddresses > 0) {
-//        if(ac.addedAddresses != ac.getAddedIPv6AddressList.size()) throw cRuntimeError("MA:sendSeqTcp: value of Add list must have size of integer.");
-//        for(int i=0; i<ac.addedAddresses; i++) {
-//            ih->setIPaddresses(i+1,ac.getAddedIPv6AddressList.at(i));
-//        }
-//    }
-//    ih->setIpRemovingField(ac.removedAddresses);
-//    if(ac.removedAddresses > 0) {
-//        if(ac.removedAddresses != ac.getRemovedIPv6AddressList.size()) throw cRuntimeError("MA:sendSeqTcp: value of Rem list must have size of integer.");
-//        for(int i=0; i<ac.removedAddresses; i++) {
-//            ih->setIPaddresses(i+1+ac.addedAddresses,ac.getRemovedIPv6AddressList.at(i));
-//        }
-//    }
-//    ih->setByteLength(SIZE_AGENT_HEADER+(SIZE_ADDING_ADDR_TO_HDR*(ac.addedAddresses+ac.removedAddresses+1)));
-        // ADS
     IdentificationHeader *ih = getAgentHeader(1, prot, getSeqNo(agentId), getAckNo(agentId), agentId);
     ih->setIsIdInitialized(true);
     ih->setIsIdAcked(true);
@@ -1165,22 +1112,21 @@ void MobileAgent::receiveSignal(cComponent *source, simsignal_t signalID, cObjec
 {
     Enter_Method_Silent();
     if(signalID == NF_INTERFACE_IPv6CONFIG_CHANGED) { // is triggered when address is modified
-        EV << "-------- RECEIVED CONFIG SIGNAL ---------" << endl;
         if(dynamic_cast<InterfaceEntryChangeDetails *>(obj)) {
             InterfaceEntry *ie = check_and_cast<const InterfaceEntryChangeDetails *>(obj)->getInterfaceEntry();
-            EV_DEBUG << "CONFIG_SIGNAL: " << ie->ipv6Data()->getPreferredAddress() << " " << obj->info() << endl;
-            if(ie->isUp())
-                createInterfaceUpMessage(ie->getInterfaceId());
-            else
-                createInterfaceDownMessage(ie->getInterfaceId());
+            EV_DEBUG << "------- CONFIG_SIGNAL ------- :\nAddress:" << ie->ipv6Data()->getPreferredAddress() << " \nInfo:" << obj->info() << endl;
+            processInterfaceChange(ie->getInterfaceId()); // dadTimeout event
         }
     }
     if(signalID == NF_INTERFACE_STATE_CHANGED) { // is triggered when carrier setting is changed
-        EV << "-------- RECEIVED STATE SIGNAL ---------" << endl;
         if(dynamic_cast<InterfaceEntryChangeDetails *>(obj)) {
             InterfaceEntry *ie = check_and_cast<const InterfaceEntryChangeDetails *>(obj)->getInterfaceEntry();
-            EV_DEBUG << "STATE_SIGNAL: " << ie->ipv6Data()->getPreferredAddress() << " " << obj->info() << endl;
-            performInterfaceChanged(ie->getInterfaceId());
+            EV_DEBUG << "------- STATE_SIGNAL ------- :\nAddress:" << ie->ipv6Data()->getPreferredAddress() << " \nInfo:" << obj->info() << endl;
+
+            if(ie->isUp())
+                processInterfaceUp(ie->getInterfaceId()); // assocResp-OK event
+            else
+                processInterfaceDown(ie->getInterfaceId()); // beaconTimeout event
         }
     }
 }
@@ -1200,82 +1146,214 @@ MobileAgent::InterfaceUnit *MobileAgent::getInterfaceUnit(int id)
     }
 }
 
-void MobileAgent::createInterfaceDownMessage(int id)
+void MobileAgent::processInterfaceUp(int id)
 {
-    IPv6Address ip;
-    if(!cancelAndDeleteExpiryTimer(ip.UNSPECIFIED_ADDRESS, id,TIMERKEY_IF_DOWN)) // no l2 disassociation timer exists
-    {
-        TimerKey key(ip.UNSPECIFIED_ADDRESS,id,TIMERKEY_IF_DOWN);
-        InterfaceDownTimer *l2dt = (InterfaceDownTimer*) getExpiryTimer(key, TIMERTYPE_IF_DOWN);
-        int i;
-        for (i=0; i<ift->getNumInterfaces(); i++) {
-            if(ift->getInterface(i)->getInterfaceId() == id) break;
-        }
-        cMessage *msg = new cMessage("InterfaceDownTimer", MSG_IF_DOWN);
-        l2dt->ie = ift->getInterface(i);
-        l2dt->timer = msg;
-        l2dt->nextScheduledTime = simTime()+TIMEDELAY_IF_DOWN;
-        msg->setContextPointer(l2dt);
-        scheduleAt(l2dt->nextScheduledTime, msg);
-    }
-    EV << "MA: Create Interface DOWN Timer message for Id=" << id << endl;
-}
-
-void MobileAgent::handleInterfaceDownMessage(cMessage *msg)
-{
-    IPv6Address ip;
-    InterfaceDownTimer *l2dt = (InterfaceDownTimer *) msg->getContextPointer();
-    InterfaceEntry *ie = l2dt->ie;
-    InterfaceUnit *iu = getInterfaceUnit(ie->getInterfaceId());
-    iu->active = false;
-    iu->priority = -1;
-    EV << "MA: handle interface down message. Addr: " << iu->careOfAddress.str() << endl;
-    updateAddressTable(ie->getInterfaceId(), iu);
-    cancelExpiryTimer(ip.UNSPECIFIED_ADDRESS,ie->getInterfaceId(),TIMERKEY_IF_DOWN);
-    delete msg;
-}
-
-void MobileAgent::createInterfaceUpMessage(int id)
-{
-    IPv6Address ip;
-    if(!cancelAndDeleteExpiryTimer(ip.UNSPECIFIED_ADDRESS, id,TIMERKEY_IF_DOWN)) // no l2 disassociation timer exists
-    {
-        TimerKey key(ip.UNSPECIFIED_ADDRESS, id, TIMERKEY_IF_UP);
-        InterfaceUpTimer *l2at = new InterfaceUpTimer();
-        int i;
-        for (i=0; i<ift->getNumInterfaces(); i++) {
-            if(ift->getInterface(i)->getInterfaceId() == id) break;
-        }
-        cMessage *msg = new cMessage("L2AssociaitonTimer", MSG_IF_UP);
-        l2at->ie = ift->getInterface(i);
-        l2at->timer = msg;
-        l2at->nextScheduledTime = simTime()+TIMEDELAY_IF_UP;
-        msg->setContextPointer(l2at);
-        scheduleAt(l2at->nextScheduledTime, msg);
-    } else {
-        EV << "Timer was configured. Is deleted." << endl;
-    }
     EV << "MA: Create Interface UP Timer message for Id=" << id << endl;
+    if(!cancelAndDeleteExpiryTimer(IPv6Address::UNSPECIFIED_ADDRESS, id,TIMERKEY_IF_DOWN)) // no l2 disassociation timer exists
+    {
+        int i;
+        for (i=0; i<ift->getNumInterfaces(); i++) {
+            if(ift->getInterface(i)->getInterfaceId() == id) break;
+        }
+        TimerKey key(IPv6Address::UNSPECIFIED_ADDRESS, id, TIMERKEY_IF_UP);
+        InterfaceUpTimer *iut = new InterfaceUpTimer();
+        cMessage *msg = new cMessage("InterfaceUpTimer", MSG_IF_UP);
+        iut->ie = ift->getInterface(i);
+        iut->timer = msg;
+        iut->nextScheduledTime = simTime()+TIMEDELAY_IF_UP; // TIMEDELAY_IF_UP = 0
+        msg->setContextPointer(iut);
+        scheduleAt(iut->nextScheduledTime, msg);
+    } else {
+        EV << "InterfaceUpTimer was configured. Now deleted." << endl;
+    }
 }
 
-void MobileAgent::handleInterfaceUpMessage(cMessage *msg)
+void MobileAgent::handleInterfaceUp(cMessage *msg)
 {
-    IPv6Address ip;
     InterfaceUpTimer *l2at = (InterfaceUpTimer *) msg->getContextPointer();
     InterfaceEntry *ie = l2at->ie;
-    InterfaceUnit *iu = getInterfaceUnit(ie->getInterfaceId());
-    iu->active = true;
-    iu->priority = 0;
-    iu->careOfAddress = ie->ipv6Data()->getPreferredAddress();
-    EV << "MA: Handle interface up message. Addr: " << iu->careOfAddress.str() << endl;
-    updateAddressTable(ie->getInterfaceId(), iu);
-    cancelExpiryTimer(ip.UNSPECIFIED_ADDRESS,ie->getInterfaceId(),TIMERKEY_IF_UP);
+    if(ie->ipv6Data()->getPreferredAddress().isGlobal()) {
+        // check if ip address has changed after interface has been attached to an AP.
+        // if so, update sequence. otherwise rollback sequence update because it is not needed to update. + delete update seq.
+        if(isInterfaceInserted(agentId, getSeqNo(agentId) - 1, ie->getInterfaceId())) {
+            AddressTuple tuple = getAddressTuple(agentId, getSeqNo(agentId) - 1, ie->getInterfaceId());
+            if(tuple.address == ie->ipv6Data()->getPreferredAddress()) {
+                bool timer = cancelAndDeleteExpiryTimer(ControlAgentAddress, -1,TIMERKEY_SEQ_UPDATE, agentId, getSeqNo(agentId), getAckNo(agentId));
+                if(timer) {
+                    EV_DEBUG << "MA: Rolling back to previous sequence number." << endl;
+                    setSeqNo(agentId, getSeqNo(agentId) - 1);
+                } else {
+                    throw cRuntimeError("MA: A SequenceUpdateTimer must exist.");
+                }
+            } else {
+                EV << "MA: address of interface changed. skipping function and waiting for config signal." << endl;
+            }
+        } else {
+            EV << "MA: address of interface does not exist in step before." << endl;
+            insertAddress(agentId, ie->getInterfaceId(), ie->ipv6Data()->getPreferredAddress());
+            createSequenceUpdate(agentId, getSeqNo(agentId), getAckNo(agentId)); // next address must be updated by seq update
+            sendAllPacketsInQueue();
+        }
+    } else {
+        EV_DEBUG << "MA: Deleted Interface UP Timer, Interface has not acquired a global address. Address=" << ie->ipv6Data()->getPreferredAddress()  << endl;
+    }
+    cancelExpiryTimer(IPv6Address::UNSPECIFIED_ADDRESS,ie->getInterfaceId(),TIMERKEY_IF_UP);
     delete msg;
 }
 
-void MobileAgent::performInterfaceChanged(int id)
+void MobileAgent::processInterfaceDown(int id)
 {
-    //check if interface was configured
+    EV << "MA: Create Interface DOWN Timer message for Id=" << id << endl;
+    if(!cancelAndDeleteExpiryTimer(IPv6Address::UNSPECIFIED_ADDRESS, id,TIMERKEY_IF_DOWN)) // no l2 disassociation timer exists
+    {
+        int i;
+        for (i=0; i<ift->getNumInterfaces(); i++) {
+            if(ift->getInterface(i)->getInterfaceId() == id) break;
+        }
+        TimerKey key(IPv6Address::UNSPECIFIED_ADDRESS,id,TIMERKEY_IF_DOWN);
+        InterfaceDownTimer *idt = (InterfaceDownTimer*) getExpiryTimer(key, TIMERTYPE_IF_DOWN);
+        cMessage *msg = new cMessage("InterfaceDownTimer", MSG_IF_DOWN);
+        idt->ie = ift->getInterface(i);
+        idt->timer = msg;
+        idt->nextScheduledTime = simTime()+TIMEDELAY_IF_DOWN;
+        msg->setContextPointer(idt);
+        scheduleAt(idt->nextScheduledTime, msg);
+    } else {
+        EV << "InterfaceDownTimer was configured. Now deleted." << endl;
+    }
+}
+
+void MobileAgent::handleInterfaceDown(cMessage *msg)
+{
+    InterfaceDownTimer *idt = (InterfaceDownTimer *) msg->getContextPointer();
+    InterfaceEntry *ie = idt->ie;
+    if(ie->ipv6Data()->getPreferredAddress().isGlobal()) {
+        EV_DEBUG << "MA: Received deleteRequest for interface " << ie->getInterfaceId() << endl;
+        deleteAddress(agentId, ie->getInterfaceId(), ie->ipv6Data()->getPreferredAddress());
+        createSequenceUpdate(agentId, getSeqNo(agentId), getAckNo(agentId)); // next address must be updated by seq update
+    } else {
+        EV << "MA: Interface down signal received but IP address is not global. Address=" << ie->ipv6Data()->getPreferredAddress()  << endl;
+    }
+    cancelExpiryTimer(IPv6Address::UNSPECIFIED_ADDRESS,ie->getInterfaceId(),TIMERKEY_IF_DOWN);
+    delete msg;
+}
+
+void MobileAgent::processInterfaceChange(int id)
+{
+    EV << "MA: Create Interface CHANGE Timer message for Id=" << id << endl;
+    if(!cancelAndDeleteExpiryTimer(IPv6Address::UNSPECIFIED_ADDRESS, id,TIMERKEY_IF_CHANGE)) {// no l2 disassociation timer exists
+    // no timer exists
+        EV << "MA: interface change timer does not exist." << endl;
+    } else {
+        EV << "MA: interface change timer canceled." << endl;
+    }
+    int i;
+    for (i=0; i<ift->getNumInterfaces(); i++) {
+        if(ift->getInterface(i)->getInterfaceId() == id) break;
+    }
+    TimerKey key(IPv6Address::UNSPECIFIED_ADDRESS, id, TIMERKEY_IF_CHANGE);
+    InterfaceChangeTimer *ict = (InterfaceChangeTimer*) getExpiryTimer(key, TIMERTYPE_IF_CHANGE);
+    cMessage *msg = new cMessage("InterfaceChangeTimer", MSG_IF_CHANGE);
+    ict->ie = ift->getInterface(i);
+    ict->timer = msg;
+    ict->nextScheduledTime = simTime()+TIMEDELAY_IF_CHANGE;
+    msg->setContextPointer(ict);
+    scheduleAt(ict->nextScheduledTime, msg);
+}
+
+void MobileAgent::handleInterfaceChange(cMessage *msg)
+{
+    EV << "MA: Handling Interface change signal."<< endl;
+    InterfaceChangeTimer *ict = (InterfaceChangeTimer *) msg->getContextPointer();
+    InterfaceEntry *ie = ict->ie;
+    if(ie->ipv6Data()->getPreferredAddress().isGlobal()) {
+        if(seqnoState == ASSOCIATED) {
+            if(isInterfaceInserted(agentId, getSeqNo(agentId), ie->getInterfaceId())) {
+                // interface is already inserted => check if address is same.
+                if(isAddressInserted(agentId, getSeqNo(agentId), ie->ipv6Data()->getPreferredAddress())) {
+                    // address is already in ADS => do nothing (nothing changed)
+                    EV << "MA: Interface change signal received but nothing to update." << endl;
+                } else {
+                    // ip change
+                    AddressTuple oldAddress = getAddressTuple(agentId, getSeqNo(agentId), ie->getInterfaceId());
+                    deleteAddress(agentId, ie->getInterfaceId(), oldAddress.address);
+                    insertAddress(agentId, ie->getInterfaceId(), ie->ipv6Data()->getPreferredAddress());
+//                    sendAllPacketsInQueue(); // should be empty at this stage
+                    // debug
+                    int s = getSeqNo(agentId);
+                    int a = getAckNo(agentId);
+                    EV_DEBUG << "MA_IfChange: S=" << s << " A=" << a << " Del=" << oldAddress.address.str() << " Add=" << ie->ipv6Data()->getPreferredAddress() << " If=" << ie->getInterfaceId() << endl;
+                }
+            } else {
+                // interface is not inserted
+                insertAddress(agentId, ie->getInterfaceId(), ie->ipv6Data()->getPreferredAddress());
+                // debug
+                int s = getSeqNo(agentId);
+                int a = getAckNo(agentId);
+                EV_DEBUG << "MA_IfChange: S=" << s << " A=" << a << " Add=" << ie->ipv6Data()->getPreferredAddress() << " If=" << ie->getInterfaceId() << endl;
+            }
+            sendAllPacketsInQueue();
+            createSequenceUpdate(agentId, getSeqNo(agentId), getAckNo(agentId)); // next address must be updated by seq update
+        } else if(sessionState == UNASSOCIATED) {
+            EV_DEBUG << "MA: creating session init for first associated interface." << endl;
+            insertAddress(agentId, ie->getInterfaceId(), ie->ipv6Data()->getPreferredAddress());
+            createSessionInit(); // first address is initialzed with session init
+        } else { // delaying process if one were started
+            EV_DEBUG << "MA: delaying interface init." << endl;
+            scheduleAt(simTime()+TIMEDELAY_IFACE_INIT, msg);
+            return;
+        }
+    } else {
+        EV << "MA: Interface change signal received but IP address is not global. Address=" << ie->ipv6Data()->getPreferredAddress() << endl;
+    }
+    cancelExpiryTimer(IPv6Address::UNSPECIFIED_ADDRESS,ie->getInterfaceId(),TIMERKEY_IF_CHANGE);
+    delete msg;
+}
+
+void MobileAgent::updateAddressTable(int id, InterfaceUnit *iu)
+{
+    if(seqnoState == ASSOCIATED) {
+        auto it = addressUnit.find(id);
+        if(it != addressUnit.end()) { // updating interface
+            if(it->first != id) throw cRuntimeError("ERROR in updateAddressTable: provided id should be same with entry");
+            (it->second)->active = iu->active;
+            (it->second)->priority = iu->priority;
+            (it->second)->careOfAddress = iu->careOfAddress;
+            if(iu->active) {    // presents an interface that has been associated
+                insertAddress(agentId, id, iu->careOfAddress);
+                sendAllPacketsInQueue();
+            } else { // presents an interface has been disassociated
+                deleteAddress(agentId,id,iu->careOfAddress);
+            }
+            // *** for output
+            int s = getSeqNo(agentId);
+            int a = getAckNo(agentId);
+            if(iu->active) {    // presents an interface that has been associated
+                EV_DEBUG << "MA: Adding CoA-IP: " << iu->careOfAddress << " s:" << s << " a:" << a << endl;
+            } else { // presents an interface has been disassociated
+                EV_DEBUG << "MA: Removing CoA-IP: " << iu->careOfAddress << " s:" << s << " a:" << a << endl;
+            }
+        } else { // adding interface in list if not known
+            addressUnit.insert(std::make_pair(id,iu)); // if not, include this new
+            insertAddress(agentId, id, iu->careOfAddress);
+        }
+        createSequenceUpdate(agentId, getSeqNo(agentId), getAckNo(agentId)); // next address must be updated by seq update
+    } else
+        if(sessionState == UNASSOCIATED) {
+            addressUnit.insert(std::make_pair(id,iu)); // if not, include this new
+            insertAddress(agentId, id, iu->careOfAddress);
+            int s = getSeqNo(agentId);
+            int a = getAckNo(agentId);
+            EV_DEBUG << "MA: Interface-IP: " << iu->careOfAddress << " s:" << s << " a:" << a << endl;
+            createSessionInit(); // first address is initialzed with session init
+        } else { // delayin process if one were started
+            cMessage *msg = new cMessage("interfaceDelay", MSG_INTERFACE_DELAY);
+            InterfaceInit *ii = new InterfaceInit();
+            ii->id = id;
+            ii->iu = iu;
+            msg->setContextPointer(ii);
+            scheduleAt(simTime()+TIMEDELAY_IFACE_INIT, msg);
+        }
 }
 
 void MobileAgent::receiveSignal(cComponent *source, simsignal_t signalID, double d)
@@ -1308,66 +1386,6 @@ void MobileAgent::receiveSignal(cComponent *source, simsignal_t signalID, double
 //        if(mgmt) {
 //        }
 //    }
-}
-
-
-void MobileAgent::updateAddressTable(int id, InterfaceUnit *iu)
-{
-    if(seqnoState == ASSOCIATED) {
-        auto it = addressUnit.find(id);
-        if(it != addressUnit.end()) { // updating interface
-            if(it->first != id) throw cRuntimeError("ERROR in updateAddressTable: provided id should be same with entry");
-            (it->second)->active = iu->active;
-            (it->second)->priority = iu->priority;
-            (it->second)->careOfAddress = iu->careOfAddress;
-            if(iu->active) {    // presents an interface that has been associated
-//                am.addIpToMap(agentId, iu->careOfAddress);
-                insertAddress(agentId, id, iu->careOfAddress);
-                sendAllPacketsInQueue();
-            } else { // presents an interface has been disassociated
-//                am.removeIpFromMap(agentId, iu->careOfAddress);
-                deleteAddress(agentId,id,iu->careOfAddress);
-            }
-            // *** for output
-//            int seq = am.getSeqNo(agentId);
-//            int ack = am.getAckNo(agentId);
-            int s = getSeqNo(agentId);
-            int a = getAckNo(agentId);
-            if(iu->active) {    // presents an interface that has been associated
-//                EV_DEBUG << "MA: Adding CoA-IP: " << iu->careOfAddress << " s:" << seq << " a:" << ack << endl;
-                EV_DEBUG << "MA: Adding CoA-IP: " << iu->careOfAddress << " s:" << s << " a:" << a << endl;
-            } else { // presents an interface has been disassociated
-//                EV_DEBUG << "MA: Removing CoA-IP: " << iu->careOfAddress << " s:" << seq << " a:" << ack << endl;
-                EV_DEBUG << "MA: Removing CoA-IP: " << iu->careOfAddress << " s:" << s << " a:" << a << endl;
-            }
-            // ***
-        } else { // adding interface in list if not known
-            addressUnit.insert(std::make_pair(id,iu)); // if not, include this new
-//            am.addIpToMap(agentId, iu->careOfAddress);
-            insertAddress(agentId, id, iu->careOfAddress);
-        }
-//        createSequenceUpdate(agentId, am.getSeqNo(agentId), am.getAckNo(agentId)); // next address must be updated by seq update
-        createSequenceUpdate(agentId, getSeqNo(agentId), getAckNo(agentId)); // next address must be updated by seq update
-    } else
-        if(sessionState == UNASSOCIATED) {
-            addressUnit.insert(std::make_pair(id,iu)); // if not, include this new
-//            am.addIpToMap(agentId, iu->careOfAddress);
-            insertAddress(agentId, id, iu->careOfAddress);
-//            int seq = am.getSeqNo(agentId);
-//            int ack = am.getAckNo(agentId);
-//            EV_DEBUG << "MA: Interface-IP: " << iu->careOfAddress << " s:" << seq << " a:" << ack << endl;
-            int s = getSeqNo(agentId);
-            int a = getAckNo(agentId);
-            EV_DEBUG << "MA: Interface-IP: " << iu->careOfAddress << " s:" << s << " a:" << a << endl;
-            createSessionInit(); // first address is initialzed with session init
-        } else { // delayin process if one were started
-            cMessage *msg = new cMessage("interfaceDelay", MSG_INTERFACE_DELAY);
-            InterfaceInit *ii = new InterfaceInit();
-            ii->id = id;
-            ii->iu = iu;
-            msg->setContextPointer(ii);
-            scheduleAt(simTime()+TIMEDELAY_IFACE_INIT, msg);
-        }
 }
 
 MobileAgent::LinkUnit *MobileAgent::getLinkUnit(MACAddress mac)

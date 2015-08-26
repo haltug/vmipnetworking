@@ -38,6 +38,7 @@ namespace inet {
 #define TIMERKEY_MA_INIT         7
 #define TIMERKEY_SEQ_UPDATE_NOT  8
 #define TIMERKEY_UPDATE_ACK      9
+#define TIMERKEY_IF_CHANGE       10
 //#define TIMERKEY_UDP_OUT_MSG     10
 //#define TIMERKEY_TCP_OUT_MSG     11
 
@@ -52,6 +53,7 @@ namespace inet {
 #define TIMERTYPE_MA_INIT       57
 #define TIMERTYPE_SEQ_UPDATE_NOT 58
 #define TIMERTYPE_UPDATE_ACK    59
+#define TIMERTYPE_IF_CHANGE     60
 //#define TIMERTYPE_UDP_OUT_MSG   60
 //#define TIMERTYPE_TCP_OUT_MSG   61
 
@@ -75,6 +77,7 @@ namespace inet {
 #define MSG_INTERFACE_DELAY     116
 #define MSG_UPDATE_ACK          117
 #define MSG_ICMP_RETRANSMIT     118
+#define MSG_IF_CHANGE           119
 
 //========== Retransmission time of messages ==========
 #define TIMEOUT_SESSION_INIT    0.5 // retransmission time of ca init in sec
@@ -83,6 +86,7 @@ namespace inet {
 #define TIMEOUT_LOC_UPDATE      1
 #define TIMEDELAY_IF_DOWN       3   // delay of ip msg handler
 #define TIMEDELAY_IF_UP         0
+#define TIMEDELAY_IF_CHANGE     0
 #define TIMEDELAY_FLOW_REQ      1 // unit is [s]
 #define TIMEDELAY_PKT_PROCESS   5
 #define TIMEDELAY_MA_INIT       1 // unit is [s]
@@ -282,6 +286,10 @@ class INET_API Agent : public cSimpleModule
     public:
         bool active = false;
     };
+    class InterfaceChangeTimer : public ExpiryTimer {
+    public:
+        bool active = false;
+    };
     class FlowRequestTimer : public ExpiryTimer {
     public:
         FlowTuple tuple;
@@ -311,7 +319,7 @@ class INET_API Agent : public cSimpleModule
     bool cancelAndDeleteExpiryTimer(const IPv6Address& dest, int interfaceId, int timerType, uint64 id = 0, uint seq = 0, uint ack = 0);
 //============================================= Timer configuration ===========================
 
-//=============================================  Address Control System ===========================
+//=============================================  Addressing Control System ===========================
     struct AddressTuple {
         int interface;
         IPv6Address address;
