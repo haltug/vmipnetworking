@@ -19,6 +19,7 @@
 
 #include <map>
 #include <vector>
+#include <deque>
 #include "inet/common/INETDefs.h"
 #include "inet/networklayer/contract/ipv6/IPv6Address.h"
 #include "inet/networklayer/icmpv6/ICMPv6Message_m.h"
@@ -38,28 +39,21 @@ class MobileAgent : public cListener, public Agent
     virtual void initialize(int stage) override;
     virtual void handleMessage(cMessage *msg) override;
 
-    class InterfaceUnit { // represents the entry of addressTable for interface up/down
-    public:
-        virtual ~InterfaceUnit() {};
-        bool active;
-        int priority;
-        IPv6Address careOfAddress;
-    };
-    typedef std::map<int, InterfaceUnit *> AddressUnit; // represents the address table
-    AddressUnit addressUnit;
-
-    struct InterfaceInit {
-        int id;
-        InterfaceUnit *iu;
-    };
-
     class LinkUnit { // a tuple to represent the quality of a link.
     public:
         virtual ~LinkUnit() {};
         double snir; // stored unit is something around 10^-12 W. Could be more or less.
-        double per;
+//        double per;
+        simtime_t timestamp;
+        LinkUnit(double _snir, simtime_t _timestamp) {
+            snir = _snir;
+//            per = _per;
+            timestamp = _timestamp;
+        }
     };
-    typedef std::map<MACAddress, LinkUnit *> LinkTable; // table of mac address. value contains link parameter
+    typedef std::deque<LinkUnit *> LinkBuffer;
+    LinkBuffer linkBuffer;
+    typedef std::map<MACAddress,LinkBuffer *> LinkTable; // table of mac address. value contains link parameter
     LinkTable linkTable;
 
     class PacketTimer {
@@ -109,6 +103,7 @@ class MobileAgent : public cListener, public Agent
     static simsignal_t controlSignalLoad;
     static simsignal_t dataSignalLoad;
     static simsignal_t interfaceSnir;
+    static simsignal_t interfaceId;
     static simsignal_t sequenceUpdateCa;
     static simsignal_t sequenceUpdateDa;
     static simsignal_t flowRequest;
@@ -117,6 +112,8 @@ class MobileAgent : public cListener, public Agent
     long sequenceUpdateCaStat = 0;
     long sequenceUpdateDaStat = 0;
     long flowRequestStat = 0;
+    double interfaceSnirStat = 0;
+    long interfaceIdStat = 0;
 
   public:
     //  AGENT MANAGEMENT
@@ -145,21 +142,25 @@ class MobileAgent : public cListener, public Agent
     void sendUpperLayerPacket(cPacket *packet, IPv6ControlInfo *controlInfo, IPv6Address agentAddr, short prot);
 
 //  INTERFACE LISTENER FUNCTIONS
-    InterfaceUnit* getInterfaceUnit(int id); // returns the instance of the interfaceId for setting interface configuration
     void processInterfaceDown(int id);
     void handleInterfaceDown(cMessage *msg); // is called when interface gets disconnected. Changes are stored in interface map.
     void processInterfaceUp(int id);
     void handleInterfaceUp(cMessage *msg); // is called when interface gets connected. Changes are stored in interface map.
     void processInterfaceChange(int id);
     void handleInterfaceChange(cMessage *msg);
-    void updateAddressTable(int id, InterfaceUnit *iu); // changing address map when node gets out of reachability. Is called by handleInterfaceUpMsg...
+
 //  LISTENER FUNCTIONS: handling interface up/down
     virtual void receiveSignal(cComponent *source, simsignal_t signalID, cObject *obj) override;
     virtual void receiveSignal(cComponent *source, simsignal_t signalID, double d) override;
+
 //  LINK CONFIGURATION
-    LinkUnit* getLinkUnit(MACAddress mac); // returns the instance of LinkUnit for link configuration such as SNR, PER,..
+    LinkBuffer* getLinkBuffer(MACAddress mac);
+    LinkBuffer* getLinkBuffer(InterfaceEntry *ie);
+    void addLinkUnit(LinkBuffer* buffer, LinkUnit *unit);
+    double getMeanSnir(InterfaceEntry *ie);
     InterfaceEntry *getInterface(IPv6Address destAddr = IPv6Address::UNSPECIFIED_ADDRESS, int destPort = -1, int sourcePort = -1, short protocol = -1);
     bool isInterfaceUp();
+
 //  PACKET PROCESSING
     void sendToLowerLayer(cMessage *msg, const IPv6Address& destAddr, simtime_t sendTime = 0); // resend after timer expired
 //  PACKET QUEUEING

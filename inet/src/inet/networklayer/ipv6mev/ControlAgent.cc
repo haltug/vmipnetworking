@@ -359,9 +359,9 @@ void ControlAgent::processAgentMessage(IdentificationHeader* agentHeader, IPv6Co
 void ControlAgent::initializeSession(IdentificationHeader *agentHeader, IPv6Address destAddr)
 {
     if(std::find(mobileIdList.begin(), mobileIdList.end(), agentHeader->getId()) != mobileIdList.end()) {
-//        EV << "CA: Id already exists. Skipping initializing, check for mistakes." << endl;
+        EV << "CA: Id already exists. Skipping initializing, check for mistakes." << endl;
     } else {
-//        EV << "CA: Received session Init message. Adding id to list: " << agentHeader->getId() << endl;
+        EV << "CA: Received session Init message. Adding id to list: " << agentHeader->getId() << endl;
         mobileIdList.push_back(agentHeader->getId()); // adding id to list (registering id)
         sendSessionInitResponse(destAddr);
     }

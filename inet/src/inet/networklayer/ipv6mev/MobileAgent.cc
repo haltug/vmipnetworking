@@ -44,6 +44,7 @@ Define_Module(MobileAgent);
 simsignal_t MobileAgent::controlSignalLoad = registerSignal("controlSignalLoad");
 simsignal_t MobileAgent::dataSignalLoad = registerSignal("dataSignalLoad");
 simsignal_t MobileAgent::interfaceSnir = registerSignal("interfaceSnir");
+simsignal_t MobileAgent::interfaceId = registerSignal("interfaceId");
 simsignal_t MobileAgent::sequenceUpdateCa = registerSignal("sequenceUpdateCa");
 simsignal_t MobileAgent::sequenceUpdateDa = registerSignal("sequenceUpdateDa");
 simsignal_t MobileAgent::flowRequest = registerSignal("flowRequest");
@@ -56,18 +57,14 @@ MobileAgent::~MobileAgent() {
         it++;
         cancelAndDeleteExpiryTimer(key.dest,key.interfaceID,key.type);
     }
-    auto it2 = addressUnit.begin();
-    while(it2 != addressUnit.end()) {
-        InterfaceUnit *iu = it2->second;
-        it2++;
-        delete iu;
-    }
-    auto it3 = linkTable.begin();
-    while(it3 != linkTable.end()) {
-        LinkUnit *lu = it3->second;
-        it3++;
-        delete lu;
-    }
+//    auto it2 = linkTable.begin();
+//    while(it2 != linkTable.end()) {
+//        LinkBuffer *lb = it2->second;
+//        while(!lb->empty())
+//            lb->pop();
+//        it2++;
+//        delete lb;
+//    }
     auto it4 = packetQueue.begin();
     while(it4 != packetQueue.end()) {
         PacketTimerKey packet = it4->first;
@@ -96,7 +93,8 @@ void MobileAgent::initialize(int stage)
         WATCH(sequenceUpdateCaStat);
         WATCH(sequenceUpdateDaStat);
         WATCH(flowRequestStat);
-//        WATCH(am);
+        WATCH(interfaceSnirStat);
+        WATCH(interfaceIdStat);
         WATCH(*this);
 
     }
@@ -169,11 +167,11 @@ void MobileAgent::handleMessage(cMessage *msg)
         else if(msg->getKind() == MSG_ICMP_RETRANSMIT) { // from MA
             processOutgoingIcmpPacket(msg);
         }
-        else if(msg->getKind() == MSG_INTERFACE_DELAY) { // from MA
-            InterfaceInit *ii = (InterfaceInit *) msg->getContextPointer();
-            updateAddressTable(ii->id, ii->iu);
-            delete msg;
-        }
+//        else if(msg->getKind() == MSG_INTERFACE_DELAY) { // from MA
+//            InterfaceInit *ii = (InterfaceInit *) msg->getContextPointer();
+//            updateAddressTable(ii->id, ii->iu);
+//            delete msg;
+//        }
         else {
             if(msg)
                 EV << "ERROR_MA: kind: " << msg->getKind() << " className:" << msg->getClassName() << endl;
@@ -302,27 +300,6 @@ void MobileAgent::sendSequenceInit(cMessage *msg) {
         throw cRuntimeError("MA: no interface provided in sendSeqInit.");
     sit->nextScheduledTime = simTime() + sit->ackTimeout;
     sit->ackTimeout = (sit->ackTimeout)*2;
-//    IdentificationHeader *ih = getAgentHeader(1, IP_PROT_NONE, am.getSeqNo(agentId), 0, agentId);
-//    ih->setIsIdInitialized(true);
-//    ih->setIsIdAcked(true);
-//    ih->setIsSeqValid(true);
-//    ih->setIsIpModified(true);
-//    ih->setIpAddingField(1);
-//    ih->setIpRemovingField(0);
-//    ih->setIpAcknowledgementNumber(0);
-//    AddressManagement::AddressChange ac = am.getAddressEntriesOfSeqNo(agentId,am.getSeqNo(agentId));
-//    ih->setIPaddressesArraySize(ac.addedAddresses);
-//    ih->setIpAddingField(ac.addedAddresses);
-//    if(ac.addedAddresses > 0) {
-//        if(ac.addedAddresses != ac.getAddedIPv6AddressList.size()) throw cRuntimeError("MA:sendSeqInit: value of Add list must have size of integer.");
-//        for(int i=0; i<ac.addedAddresses; i++) {
-//            ih->setIPaddresses(i,ac.getAddedIPv6AddressList.at(i));
-//        }
-//    }
-////    ih->setIPaddressesArraySize(1);
-////    ih->setIPaddresses(0,ie->ipv6Data()->getPreferredAddress());
-//    ih->setByteLength(SIZE_AGENT_HEADER+SIZE_ADDING_ADDR_TO_HDR);
-        // ADS
     IdentificationHeader *ih = getAgentHeader(1, IP_PROT_NONE, getSeqNo(agentId), 0, agentId);
     ih->setIsIdInitialized(true);
     ih->setIsIdAcked(true);
@@ -455,16 +432,6 @@ void MobileAgent::sendFlowRequest(cMessage *msg) {
     EV << "MA: Sending flow request." << endl;
     const IPv6Address nodeAddress = frt->nodeAddress;
     const IPv6Address &dest =  frt->dest;
-//    IdentificationHeader *ih = getAgentHeader(1, IP_PROT_NONE, am.getSeqNo(agentId), am.getAckNo(agentId), agentId);
-//    ih->setIsIdInitialized(true);
-//    ih->setIsIdAcked(true);
-//    ih->setIsSeqValid(true);
-//    ih->setIsAckValid(true);
-//    ih->setIsWithNodeAddr(true);
-//    ih->setIPaddressesArraySize(1);
-//    ih->setIPaddresses(0,nodeAddress);
-//    ih->setByteLength(SIZE_AGENT_HEADER+SIZE_ADDING_ADDR_TO_HDR);
-        // ADS
     IdentificationHeader *ih = getAgentHeader(1, IP_PROT_NONE, getSeqNo(agentId), getAckNo(agentId), agentId);
     ih->setIsIdInitialized(true);
     ih->setIsIdAcked(true);
@@ -531,11 +498,6 @@ void MobileAgent::performSequenceInitResponse(IdentificationHeader *agentHeader,
         int a = getAckNo(agentId);
         bool t = cancelAndDeleteExpiryTimer(ControlAgentAddress,-1, TIMERKEY_SEQNO_INIT);
         EV_DEBUG << "MA: Received AckNo. Timer existed? => " << t << ". SeqNo initialized." << " s:" << s << " a:" << a << endl;
-        // ADS
-//        am.setAckNo(agentId, agentHeader->getIpSequenceNumber()); // ack is set the first time
-//        int seq = am.getSeqNo(agentId);
-//        int ack = am.getAckNo(agentId);
-//        EV_DEBUG << "MA: Received AckNo. Timer existed? => " << t << ". SeqNo initialized." << " s:" << seq << " a:" << ack << endl;
     } else {
         throw cRuntimeError("MA: Byte length does not match the expected size.SequenceInitResponse");
     }
@@ -564,10 +526,6 @@ void MobileAgent::performFlowRequestResponse(IdentificationHeader *agentHeader, 
 void MobileAgent::performSequenceUpdateResponse(IdentificationHeader *agentHeader, IPv6Address destAddr)
 {
     if(agentHeader->getByteLength() == SIZE_AGENT_HEADER) {
-//        if(agentHeader->getIpSequenceNumber() > am.getAckNo(agentId)) {
-//            cancelAndDeleteExpiryTimer(ControlAgentAddress,-1, TIMERKEY_SEQ_UPDATE, agentId, agentHeader->getIpSequenceNumber(), am.getAckNo(agentId));
-//            am.setAckNo(agentId, agentHeader->getIpSequenceNumber());
-//            EV_DEBUG << "MA: Received update acknowledgment from CA. Removed timer. SeqNo=" << am.getSeqNo(agentId) << endl;
         if(agentHeader->getIpSequenceNumber() > getAckNo(agentId)) {
             cancelAndDeleteExpiryTimer(ControlAgentAddress,-1, TIMERKEY_SEQ_UPDATE, agentId, agentHeader->getIpSequenceNumber(), getAckNo(agentId));
             setAckNo(agentId, agentHeader->getIpSequenceNumber());
@@ -575,7 +533,6 @@ void MobileAgent::performSequenceUpdateResponse(IdentificationHeader *agentHeade
             EV_DEBUG << "MA: Received update acknowledgment from CA. Removed timer. SeqNo=" << s << endl;
         } else {
             EV_DEBUG << "MA: Received update acknowledgment from CA contains older sequence value. Dropping message. SeqNo="<< getSeqNo(agentId) << endl;
-//            EV_DEBUG << "MA: Received update acknowledgment from CA contains older sequence value. Dropping message. SeqNo="<< am.getSeqNo(agentId) << endl;
         }
     } else {
         throw cRuntimeError("MA: Byte length does not match the expected size.");
@@ -1114,35 +1071,19 @@ void MobileAgent::receiveSignal(cComponent *source, simsignal_t signalID, cObjec
     if(signalID == NF_INTERFACE_IPv6CONFIG_CHANGED) { // is triggered when address is modified
         if(dynamic_cast<InterfaceEntryChangeDetails *>(obj)) {
             InterfaceEntry *ie = check_and_cast<const InterfaceEntryChangeDetails *>(obj)->getInterfaceEntry();
-            EV_DEBUG << "------- CONFIG_SIGNAL ------- :\nAddress:" << ie->ipv6Data()->getPreferredAddress() << " \nInfo:" << obj->info() << endl;
+//            EV_DEBUG << "------- CONFIG_CHANGED ------- :\nInfo:" << obj->info() << endl;
             processInterfaceChange(ie->getInterfaceId()); // dadTimeout event
         }
     }
     if(signalID == NF_INTERFACE_STATE_CHANGED) { // is triggered when carrier setting is changed
         if(dynamic_cast<InterfaceEntryChangeDetails *>(obj)) {
             InterfaceEntry *ie = check_and_cast<const InterfaceEntryChangeDetails *>(obj)->getInterfaceEntry();
-            EV_DEBUG << "------- STATE_SIGNAL ------- :\nAddress:" << ie->ipv6Data()->getPreferredAddress() << " \nInfo:" << obj->info() << endl;
-
+//            EV_DEBUG << "------- STATE_CHANGED ------- :\nInfo:" << obj->info() << endl;
             if(ie->isUp())
                 processInterfaceUp(ie->getInterfaceId()); // assocResp-OK event
             else
                 processInterfaceDown(ie->getInterfaceId()); // beaconTimeout event
         }
-    }
-}
-
-MobileAgent::InterfaceUnit *MobileAgent::getInterfaceUnit(int id)
-{
-    InterfaceUnit *iu;
-    auto it = addressUnit.find(id);
-    if(it != addressUnit.end()) { // addressTable contains an instance of interfaceUnit
-        iu = it->second;
-        return iu;
-    } else {
-        iu = new InterfaceUnit();
-        iu->active = false;
-        iu->priority = -1;
-        return iu;
     }
 }
 
@@ -1310,52 +1251,6 @@ void MobileAgent::handleInterfaceChange(cMessage *msg)
     delete msg;
 }
 
-void MobileAgent::updateAddressTable(int id, InterfaceUnit *iu)
-{
-    if(seqnoState == ASSOCIATED) {
-        auto it = addressUnit.find(id);
-        if(it != addressUnit.end()) { // updating interface
-            if(it->first != id) throw cRuntimeError("ERROR in updateAddressTable: provided id should be same with entry");
-            (it->second)->active = iu->active;
-            (it->second)->priority = iu->priority;
-            (it->second)->careOfAddress = iu->careOfAddress;
-            if(iu->active) {    // presents an interface that has been associated
-                insertAddress(agentId, id, iu->careOfAddress);
-                sendAllPacketsInQueue();
-            } else { // presents an interface has been disassociated
-                deleteAddress(agentId,id,iu->careOfAddress);
-            }
-            // *** for output
-            int s = getSeqNo(agentId);
-            int a = getAckNo(agentId);
-            if(iu->active) {    // presents an interface that has been associated
-                EV_DEBUG << "MA: Adding CoA-IP: " << iu->careOfAddress << " s:" << s << " a:" << a << endl;
-            } else { // presents an interface has been disassociated
-                EV_DEBUG << "MA: Removing CoA-IP: " << iu->careOfAddress << " s:" << s << " a:" << a << endl;
-            }
-        } else { // adding interface in list if not known
-            addressUnit.insert(std::make_pair(id,iu)); // if not, include this new
-            insertAddress(agentId, id, iu->careOfAddress);
-        }
-        createSequenceUpdate(agentId, getSeqNo(agentId), getAckNo(agentId)); // next address must be updated by seq update
-    } else
-        if(sessionState == UNASSOCIATED) {
-            addressUnit.insert(std::make_pair(id,iu)); // if not, include this new
-            insertAddress(agentId, id, iu->careOfAddress);
-            int s = getSeqNo(agentId);
-            int a = getAckNo(agentId);
-            EV_DEBUG << "MA: Interface-IP: " << iu->careOfAddress << " s:" << s << " a:" << a << endl;
-            createSessionInit(); // first address is initialzed with session init
-        } else { // delayin process if one were started
-            cMessage *msg = new cMessage("interfaceDelay", MSG_INTERFACE_DELAY);
-            InterfaceInit *ii = new InterfaceInit();
-            ii->id = id;
-            ii->iu = iu;
-            msg->setContextPointer(ii);
-            scheduleAt(simTime()+TIMEDELAY_IFACE_INIT, msg);
-        }
-}
-
 void MobileAgent::receiveSignal(cComponent *source, simsignal_t signalID, double d)
 {
     Enter_Method_Silent();
@@ -1364,17 +1259,19 @@ void MobileAgent::receiveSignal(cComponent *source, simsignal_t signalID, double
         if(radio) {
             ieee80211::Ieee80211Mac *mac = (ieee80211::Ieee80211Mac *) radio->getParentModule()->getSubmodule("mac");
             if(mac) {
-                LinkUnit *lu = getLinkUnit(mac->getMacAddress());
                 if(signalID == physicallayer::Radio::minSNIRSignal) {
-                    lu->snir = d;
+                    LinkBuffer *lb = getLinkBuffer(mac->getMacAddress());
+                    LinkUnit *lu = new LinkUnit(d, simTime());
+                    addLinkUnit(lb,lu);
                     emit(interfaceSnir, d);
+                    interfaceSnirStat = d;
 //                    EV << "MA: SNR=" << d << " MAC= " << mac->getMacAddress() << endl;
                 }
-                if(signalID == physicallayer::Radio::packetErrorRateSignal) {
-                    LinkUnit *lu = getLinkUnit(mac->getMacAddress());
-                    lu->per = d;
+//                if(signalID == physicallayer::Radio::packetErrorRateSignal) {
+//                    LinkUnit *lu = getLinkUnit(mac->getMacAddress());
+//                    lu->per = d;
 //                    EV << "MA: PER=" << d << " MAC= " << mac->getMacAddress() << endl;
-                }
+//                }
             }
         }
     }
@@ -1388,20 +1285,73 @@ void MobileAgent::receiveSignal(cComponent *source, simsignal_t signalID, double
 //    }
 }
 
-MobileAgent::LinkUnit *MobileAgent::getLinkUnit(MACAddress mac)
+MobileAgent::LinkBuffer *MobileAgent::getLinkBuffer(MACAddress mac)
 {
-    LinkUnit *lu;
+    LinkBuffer *lb;
     auto it = linkTable.find(mac);
-    if(it != linkTable.end()) { // linkTable contains an instance of linkUnit
-        lu = it->second;
-        return lu;
+    if(it != linkTable.end()) { // linkTable contains an instance of linkBuffer
+        lb = it->second;
+        return lb;
     } else {
-        lu = new LinkUnit();
-        lu->snir = 0;
-        lu->per = 0;
-        linkTable.insert(std::make_pair(mac,lu));
-        EV << "MA: Created MAC entry: " << mac << endl;
-        return lu;
+        lb = new LinkBuffer();
+        linkTable.insert(std::make_pair(mac,lb));
+        EV << "MA: Created MAC Entry: " << mac << endl;
+        return lb;
+    }
+}
+
+MobileAgent::LinkBuffer *MobileAgent::getLinkBuffer(InterfaceEntry *ie)
+{
+    LinkBuffer *lb;
+    auto it = linkTable.find(ie->getMacAddress());
+    if(it != linkTable.end()) { // linkTable contains an instance of linkBuffer
+        lb = it->second;
+        return lb;
+    }
+    return lb;
+}
+
+void MobileAgent::addLinkUnit(LinkBuffer* lb, LinkUnit *lu)
+{
+    if(!lb || !lu)
+        throw cRuntimeError("MA: Pointer of addLinkUnit function should not be a nullptr.");
+    if(lb->empty()) {
+        lb->push_back(lu);
+    } else {
+        LinkUnit *unit = lb->front();
+        if(!unit)
+            throw cRuntimeError("MA: Pointer of LinkUnit should not be a nullptr.");
+        while(unit) {
+            if(unit->timestamp + INTERVAL_LINK_BUFFER < simTime()) {
+                lb->pop_front();
+                if(lb->empty())
+                    break;
+                unit = lb->front();
+            } else {
+                break;
+            }
+        }
+        lb->push_back(lu);
+    }
+}
+
+double MobileAgent::getMeanSnir(InterfaceEntry *ie)
+{
+    LinkBuffer *lb = getLinkBuffer(ie->getMacAddress());
+    if(lb) {
+        if(lb->empty())
+            return 0;
+        else {
+            double snir = 0;
+            double size = lb->size();
+            std::deque<LinkUnit *>::iterator it = lb->begin();
+            while(it != lb->end()) {
+                snir += (*it++)->snir;
+            }
+            return snir/size;
+        }
+    } else {
+        return 0;
     }
 }
 
@@ -1411,15 +1361,18 @@ InterfaceEntry *MobileAgent::getInterface(IPv6Address destAddr, int destPort, in
     double maxSnr = 0;
     for (int i=0; i<ift->getNumInterfaces(); i++) {
         if(!(ift->getInterface(i)->isLoopback()) && ift->getInterface(i)->isUp()) {// && ift->getInterface(i)->ipv6Data()->getPreferredAddress().isGlobal()) {
-            LinkUnit *lu = getLinkUnit(ift->getInterface(i)->getMacAddress());
-            if(lu->snir >= maxSnr) {
-                maxSnr = lu->snir; // selecting highest snr interface
+            double snr = getMeanSnir(ift->getInterface(i));
+            if(snr >= maxSnr) {
+                maxSnr = snr; // selecting highest snr interface
                 ie=ift->getInterface(i);
             }
         }
     }
-    if(ie)
+    if(ie) {
+        interfaceIdStat = ie->getInterfaceId();
+        emit(interfaceId, interfaceIdStat);
         return ie;
+    }
     else {
     // if an interface with carrier does not exist return any interface but not loopback
         for (int i=0; i<ift->getNumInterfaces(); i++) {
@@ -1456,8 +1409,8 @@ void MobileAgent::sendToLowerLayer(cMessage *msg, const IPv6Address& destAddr, s
     }
     msg->setControlInfo(ctrlInfo);
     cGate *outgate = gate("toLowerLayer");
-    LinkUnit *lu = getLinkUnit(ie->getMacAddress());
-    EV << "MA2IP: Dest=" << ctrlInfo->getDestAddr() << " Src=" << ctrlInfo->getSrcAddr() << " If=" << ctrlInfo->getInterfaceId() << " SNIR=" << lu->snir << endl;
+//    LinkUnit *lu = getLinkUnit(ie->getMacAddress());
+//    EV << "MA2IP: Dest=" << ctrlInfo->getDestAddr() << " Src=" << ctrlInfo->getSrcAddr() << " If=" << ctrlInfo->getInterfaceId() << " SNIR=" << lu->snir << endl;
     if (delayTime > 0) {
 //        EV << "delayed sending" << endl;
         sendDelayed(msg, delayTime, outgate);
@@ -1474,14 +1427,12 @@ void MobileAgent::sendAllPacketsInQueue()
         PacketTimerKey key = it.first;
         cancelPacketTimer(key);
         PacketTimer *pkt = it.second;
-//        EV << "MA: iterating and schedulting through queue. Destined schedule time: " << pkt->nextScheduledTime << endl;
         pkt->nextScheduledTime = simTime();
         if(pkt->packet->getKind() == MSG_TCP_RETRANSMIT || pkt->packet->getKind() == MSG_UDP_RETRANSMIT || pkt->packet->getKind() == MSG_ICMP_RETRANSMIT)
             scheduleAt(pkt->nextScheduledTime, pkt->packet);
         else
             throw cRuntimeError("MA: message type is unknown. Set kind to tcp or upd.");
     }
-//    EV << "MA: End of looping." << endl;
 }
 
 MobileAgent::PacketTimer *MobileAgent::getPacketTimer(PacketTimerKey& key)
@@ -1498,7 +1449,6 @@ MobileAgent::PacketTimer *MobileAgent::getPacketTimer(PacketTimerKey& key)
         msg->destPort = key.destPort;
         msg->sourcePort = key.sourcePort;
         msg->prot = key.prot;
-//        EV << "MA: INSERT ENTRY IN PACKET QUEUE." << endl;
         packetQueue.insert(std::make_pair(key, msg));
     }
     return msg;

@@ -92,7 +92,7 @@ namespace inet {
 #define TIMEDELAY_MA_INIT       1 // unit is [s]
 #define MAX_PKT_LIFETIME        30 // specifies retransmission attempts until pkt is discarded for udp tcp
 #define TIMEDELAY_IFACE_INIT    1 // delaying registration of interface when MA is in init stage.
-//#define TIMEOUT_FLOW_REQ        1
+#define INTERVAL_LINK_BUFFER    2
 
 //========== Header SIZE ===========
 #define SIZE_AGENT_HEADER        16
