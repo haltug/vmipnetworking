@@ -43,6 +43,7 @@ std::ostream& operator<<(std::ostream& os, const Agent& a)
 //}
 
 // ==============================================================================
+
 // ==============================================================================
 Agent::FlowUnit *Agent::getFlowUnit(FlowTuple &tuple)
 {
@@ -327,7 +328,7 @@ void Agent::insertAddress(uint64 id, int iface, IPv6Address addr)
         AddressTuple tuple(iface, addr);
         std::vector<AddressTuple>::iterator it = std::find(addressMap[id].addressTable[addressMap[id].seqNo].begin(), addressMap[id].addressTable[addressMap[id].seqNo].end(), tuple);
         if(it != addressMap[id].addressTable[addressMap[id].seqNo].end()) {
-            EV << "AM_insertAddress: Inserting IP address=" << it->address << " with if=" << it->interface << " again. This should not happen." << endl;
+            EV_WARN << "AM_insertAddress: Inserting IP address=" << it->address << " with if=" << it->interface << " again. This should not happen." << endl;
             return;
         } else { // interface is not assigned with an ip address
             AddressList list(addressMap[id].addressTable[addressMap[id].seqNo]); // copying old list

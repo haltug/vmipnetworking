@@ -22,6 +22,7 @@ simple DataAgent
 {
     parameters:
         @display("i=block/join");
+        bool enableNodeRequesting = default(false);
         string interfaceTableModule;
         *.interfaceTableModule = default(absPath(interfaceTableModule));
         @statistic[numMobileAgents](title="numMobileAgents"; record=last,vector; interpolationmode=none);

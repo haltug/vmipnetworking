@@ -58,6 +58,7 @@ class DataAgent : public Agent
     virtual int numInitStages() const override { return NUM_INIT_STAGES; }
     virtual void initialize(int stage) override;
     virtual void handleMessage(cMessage *msg) override;
+    bool enableNodeRequesting = false;
   public:
     void createSequenceUpdateNotificaiton(uint64 mobileId, uint seq);
     void sendSequenceUpdateNotification(cMessage *msg); // used by DA to notify CA of changes

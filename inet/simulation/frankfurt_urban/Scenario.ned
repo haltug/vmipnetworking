@@ -35,8 +35,9 @@ channel ethernetline extends ned.DatarateChannel
 network frankfurt_urban
 {
     parameters:
-        double total_mn;
-        double total_cn;
+        int total_cn;
+        int total_mn;
+        int total_da;
         @display("bgb=6231,2104;bgi=background/frankfurtUrban,s");
 
     submodules:
@@ -120,7 +121,7 @@ network frankfurt_urban
             parameters:
                 @display("p=420,101;is=vl");
         }
-        DA: DataAgent {
+        DA[total_da]: DataAgent {
             parameters:
                 @display("p=1948,201;is=vl");
         }
@@ -138,8 +139,6 @@ network frankfurt_urban
         R_3.ethg$i++ <-- ethernetline <-- R_5.ethg$o++;
         CA.ethg$o++ --> ethernetline --> R_5.ethg$i++;
         CA.ethg$i++ <-- ethernetline <-- R_5.ethg$o++;
-        DA.ethg$o++ --> ethernetline --> R_10.ethg$i++;
-        DA.ethg$i++ <-- ethernetline <-- R_10.ethg$o++;
         R_10.ethg$o++ --> ethernetline --> R_5.ethg$i++;
         R_10.ethg$i++ <-- ethernetline <-- R_5.ethg$o++;
         AP_1.ethg$o++ --> ethernetline --> R_1.ethg$i++;
@@ -163,5 +162,9 @@ network frankfurt_urban
         for i=0..total_cn-1 {
             CN[i].ethg$o++ --> ethernetline --> R_10.ethg$i++;
             CN[i].ethg$i++ <-- ethernetline <-- R_10.ethg$o++;
+        }
+		for i=0..total_da-1 {
+            DA[i].ethg$o++ --> ethernetline --> R_10.ethg$i++;
+            DA[i].ethg$i++ <-- ethernetline <-- R_10.ethg$o++;
         }
 }

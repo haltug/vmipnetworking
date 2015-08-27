@@ -106,10 +106,7 @@ namespace inet {
 class IInterfaceTable;
 class IPv6ControlInfo;
 class IPv6Datagram;
-class AddressManagement;
-/**
- * TODO - Generated class
- */
+
 class INET_API Agent : public cSimpleModule
 {
   public:
@@ -185,10 +182,10 @@ class INET_API Agent : public cSimpleModule
      * All fields are by default false. Type: MA=1, CA=2, DA=3
      */
     IdentificationHeader *getAgentHeader(short type, short protocol, uint seq, uint ack, uint64 id);
+
     // Interface Id of DA or local id of MA/CA
     uint64 agentId;
-
-//============================================= Timer configuration ===========================
+//============================================= Timer configuration
     class ExpiryTimer {
     public:
         virtual ~ExpiryTimer() {}; // TODO should delete pointers
@@ -312,14 +309,14 @@ class INET_API Agent : public cSimpleModule
         uint64 id;
         uint seq;
     };
-    // TODO should it be declared as virtual?
+
     ExpiryTimer *getExpiryTimer(TimerKey& key, int timerType);
     bool pendingExpiryTimer(const IPv6Address& dest, int interfaceId, int timerType, uint64 id = 0, uint seq = 0);
     bool cancelExpiryTimer(const IPv6Address& dest, int interfaceId, int timerType, uint64 id = 0, uint seq = 0, uint ack = 0);
     bool cancelAndDeleteExpiryTimer(const IPv6Address& dest, int interfaceId, int timerType, uint64 id = 0, uint seq = 0, uint ack = 0);
-//============================================= Timer configuration ===========================
+// Timer configuration ===========================
 
-//=============================================  Addressing Control System ===========================
+//=============================================  Addressing Control System
     struct AddressTuple {
         int interface;
         IPv6Address address;
@@ -381,7 +378,7 @@ class INET_API Agent : public cSimpleModule
     std::string str(AddressList addrList) const;
     std::string str(AddressMap addrMap) const;
     friend std::ostream& operator<<(std::ostream& os, const Agent& a);
-//=============================================  Address Control System ===========================
+// Address Control System ===========================
 };
 } //namespace
 
