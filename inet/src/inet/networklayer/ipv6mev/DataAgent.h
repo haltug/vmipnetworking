@@ -31,6 +31,10 @@ namespace inet {
 class DataAgent : public Agent
 {
     virtual ~DataAgent();
+
+    // local variables
+    bool enableNodeRequesting;
+
     // statistics
     static simsignal_t numMobileAgents;
     static simsignal_t numFlows;
@@ -58,7 +62,6 @@ class DataAgent : public Agent
     virtual int numInitStages() const override { return NUM_INIT_STAGES; }
     virtual void initialize(int stage) override;
     virtual void handleMessage(cMessage *msg) override;
-    bool enableNodeRequesting = false;
   public:
     void createSequenceUpdateNotificaiton(uint64 mobileId, uint seq);
     void sendSequenceUpdateNotification(cMessage *msg); // used by DA to notify CA of changes
@@ -80,7 +83,8 @@ class DataAgent : public Agent
     void processIncomingIcmpPacket(ICMPv6Message *icmp, IPv6ControlInfo *controlInfo);
     void processOutgoingIcmpPacket(cMessage *msg);
     // INTERFACE
-    InterfaceEntry *getInterface(); //const ,
+    InterfaceEntry *getInterface();
+    IPv6Address getValidAddress(uint64 id);
     void sendToLowerLayer(cMessage *msg, const IPv6Address& destAddr, simtime_t sendTime = 0); // resend after timer expired
 };
 

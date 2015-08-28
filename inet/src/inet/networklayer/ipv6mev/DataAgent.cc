@@ -583,7 +583,7 @@ void DataAgent::processUdpFromNode(cMessage *msg)
         tuple.destAddress = controlInfo->getSourceAddress().toIPv6();
         tuple.interfaceId = controlInfo->getSourceAddress().toIPv6().getInterfaceId();
         FlowUnit *funit = getFlowUnit(tuple);
-        if(funit->state == REGISTERED && funit->isFlowActive) {
+        if((funit->state == REGISTERED && funit->isFlowActive) || enableNodeRequesting) {
             IdentificationHeader *ih = getAgentHeader(3, IP_PROT_UDP, getSeqNo(funit->id), 0, tuple.interfaceId);
             ih->setIsIdInitialized(true);
             ih->setIsIdAcked(true);
@@ -596,11 +596,19 @@ void DataAgent::processUdpFromNode(cMessage *msg)
             emit(outgoingTrafficPktAgent, outgoingTrafficPktAgentStat);
             outgoingTrafficSizeAgentStat = ih->getByteLength();
             emit(outgoingTrafficSizeAgent, outgoingTrafficSizeAgentStat);
-            sendToLowerLayer(ih,funit->mobileAgent);
+            if(isIdInitialized(funit->id)) {
+                if(isAddressInserted(funit->id, getSeqNo(funit->id), funit->mobileAgent)) {
+                    sendToLowerLayer(ih,funit->mobileAgent);
+                } else {
+                    sendToLowerLayer(ih,getValidAddress(funit->id));
+                }
+            } else {
+                EV_WARN << "DA_processTcpFromNode: Incoming message is dropped. No matching Mobile Agent is found." << endl;
+            }
         } else
-            throw cRuntimeError("DA:forward: could not find tuple of incoming udp packet.");
+            throw cRuntimeError("DA_processUdpFromNode: No flow tuple exists. Mobile Agent needs to initiate the connection.");
     } else
-        throw cRuntimeError("DA:forward: could not cast to UDPPacket.");
+        throw cRuntimeError("DA_processUdpFromNode: Incoming packet could not cast to TCPPacket.");
     delete controlInfo;
 }
 
@@ -627,7 +635,7 @@ void DataAgent::processTcpFromNode(cMessage *msg)
         tuple.interfaceId = controlInfo->getSourceAddress().toIPv6().getInterfaceId();
 //        EV << "DA: Received regular message from Node, ADDR:" << tuple.destAddress << " DP:" << tuple.destPort << " SP:"<< tuple.sourcePort << endl;
         FlowUnit *funit = getFlowUnit(tuple);
-        if(funit->state == REGISTERED && funit->isFlowActive) {
+        if((funit->state == REGISTERED && funit->isFlowActive) || enableNodeRequesting) {
             IdentificationHeader *ih = getAgentHeader(3, IP_PROT_TCP, getSeqNo(funit->id), 0, tuple.interfaceId);
             ih->setIsIdInitialized(true);
             ih->setIsIdAcked(true);
@@ -640,11 +648,19 @@ void DataAgent::processTcpFromNode(cMessage *msg)
             outgoingTrafficSizeAgentStat = ih->getByteLength();
             emit(outgoingTrafficSizeAgent, outgoingTrafficSizeAgentStat);
 //            EV << "DA: Forwarding regular TCP packet to: "<< funit->mobileAgent << " from node:"<< funit->nodeAddress <<" via Id2: " << funit->id  << " Size" << tcpseg->getByteLength() << endl;
-            sendToLowerLayer(ih,funit->mobileAgent);
+            if(isIdInitialized(funit->id)) {
+                if(isAddressInserted(funit->id, getSeqNo(funit->id), funit->mobileAgent)) {
+                    sendToLowerLayer(ih,funit->mobileAgent);
+                } else {
+                    sendToLowerLayer(ih,getValidAddress(funit->id));
+                }
+            } else {
+                EV_WARN << "DA_processTcpFromNode: Incoming message is dropped. No matching Mobile Agent is found." << endl;
+            }
         } else
-            throw cRuntimeError("DA:forward: could not find tuple of incoming tcp packet.");
+            throw cRuntimeError("DA_processTcpFromNode: No flow tuple exists. Mobile Agent needs to initiate the connection.");
     } else
-        throw cRuntimeError("DA:forward: could not cast to TCPPacket.");
+        throw cRuntimeError("DA_processTcpFromNode: Incoming packet could not cast to TCPPacket.");
     delete controlInfo;
 }
 
@@ -654,19 +670,32 @@ void DataAgent::processOutgoingIcmpPacket(cMessage *msg)
     send(msg, outgate);
 }
 
+// returns any valid interface of node
 InterfaceEntry *DataAgent::getInterface() { // const IPv6Address &destAddr,
     InterfaceEntry *ie = nullptr;
     for (int i=0; i<ift->getNumInterfaces(); i++) {
         ie = ift->getInterface(i);
-        if(!(ie->isLoopback()) && ie->isUp() && ie->ipv6Data()->getPreferredAddress().isGlobal()) {
+        if(!(ie->isLoopback()) && ie->ipv6Data()->getPreferredAddress().isGlobal()) {
             return ie;
         }
     }
     return ie;
 }
 
+// checks if address is in table inserted, if so, it returns given address.
+IPv6Address DataAgent::getValidAddress(uint64 id)
+{
+    AddressDiff ad = getAddressList(id, getSeqNo(id));
+    if(ad.insertedList.size() > 0) {
+        for(int idx=0; idx < ad.insertedList.size(); idx++)
+            return ad.insertedList.at(idx).address;
+    } else
+        throw cRuntimeError("DA_getValidAddress: Address list of Mobile Agent is empty.");
+
+}
+
+
 void DataAgent::sendToLowerLayer(cMessage *msg, const IPv6Address& destAddr, simtime_t delayTime) {
-//    EV << "A: Creating IPv6ControlInfo to lower layer" << endl;
     IPv6ControlInfo *ctrlInfo = new IPv6ControlInfo();
     ctrlInfo->setProtocol(IP_PROT_IPv6EXT_ID);
     ctrlInfo->setDestAddr(destAddr);
@@ -679,7 +708,7 @@ void DataAgent::sendToLowerLayer(cMessage *msg, const IPv6Address& destAddr, sim
     msg->setControlInfo(ctrlInfo);
     cGate *outgate = gate("toLowerLayer");
     if (delayTime > 0) {
-        EV << "delayed sending" << endl;
+        EV_DEBUG << "DA_sendToLowerLayer: Sending delayed." << endl;
         sendDelayed(msg, delayTime, outgate);
     }
     else {

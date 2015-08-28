@@ -629,7 +629,8 @@ void IPv6::handleReceivedICMP(ICMPv6Message *msg)
     int type = msg->getType();
     if (type < 128) {
         // ICMP errors are delivered to the appropriate higher layer protocols
-        EV_INFO << "ICMPv6 packet: passing it to higher layer\n";
+        EV_INFO << "ICMPv6 packet: passing it to higher layer. Type " << type << endl;
+        EV_DEBUG << "ICMPv6 packet: " << msg->getFullName() << "\n" << msg->getArrivalGateId() << "\n" << msg->getKind() << endl;
         IPv6Datagram *bogusPacket = check_and_cast<IPv6Datagram *>(msg->getEncapsulatedPacket());
         int protocol = bogusPacket->getTransportProtocol();
         int gateindex = mapping.getOutputGateForProtocol(protocol);
