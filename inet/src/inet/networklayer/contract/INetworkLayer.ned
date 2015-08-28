@@ -52,6 +52,4 @@ moduleinterface INetworkLayerLower
 //
 moduleinterface INetworkLayer extends INetworkLayerUpper, INetworkLayerLower
 {
-	parameters:
-        @display("i=block/fork");
 }

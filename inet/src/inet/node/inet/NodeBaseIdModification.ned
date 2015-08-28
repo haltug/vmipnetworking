@@ -41,11 +41,11 @@ import inet.power.contract.IEnergyGenerator;
 //    - use this model only as a base type. In simulations use ~Router,
 //      ~StandardHost, ~WirelessHost and ~AdhocHost
 //
-module NodeBaseIdModification like INode
+module NodeBaseIdModification like INetworkNode
 {
     parameters:
         @display("bgb=,448");
-        @node;
+        @networkNode;
         @labels(node,ethernet-node,wireless-node);
         bool hasStatus = default(false);
         int numExtInterfaces = default(0);

@@ -53,10 +53,11 @@ network DataAgent extends NodeBaseIdModification
         idLayer.udpIn <-- networkLayer.transportOut++;
         idLayer.tcpOut --> networkLayer.transportIn++;
         idLayer.tcpIn <-- networkLayer.transportOut++;
-        idLayer.icmpIpOut --> networkLayer.icmpIpIn;
-        idLayer.icmpIpIn <-- networkLayer.icmpIpOut;
+		idLayer.icmpIn <-- networkLayer.transportOut++;
+		idLayer.icmpOut --> networkLayer.transportIn++;
         
-        idLayer.icmpOut --> icmpv6.ipv6In;
-        idLayer.icmpIn <-- icmpv6.ipv6Out; 
+        
+        icmpv6.ipv6Out --> idLayer.fromICMP;
+        icmpv6.ipv6In <-- idLayer.toICMP;
         icmpv6.errorOut --> ipv6ErrorHandling.in;
 }

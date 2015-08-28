@@ -22,6 +22,7 @@
 #include "inet/networklayer/ipv6/IPv6InterfaceData.h"
 
 #include "inet/networklayer/icmpv6/ICMPv6Message_m.h"
+#include "inet/networklayer/common/IPSocket.h"
 #include "inet/networklayer/contract/ipv6/IPv6ControlInfo.h"
 #include "inet/networklayer/ipv6/IPv6Datagram.h"
 
@@ -46,6 +47,10 @@ void ICMPv6::initialize(int stage)
         isOperational = (!nodeStatus) || nodeStatus->getState() == NodeStatus::UP;
         if (!isOperational)
             throw cRuntimeError("This module doesn't support starting in node DOWN state");
+    }
+    if (stage == INITSTAGE_NETWORK_LAYER_2) {
+        IPSocket socket(gate("ipv6Out"));
+        socket.registerProtocol(IP_PROT_IPv6_ICMP);
     }
 }
 
@@ -131,7 +136,6 @@ void ICMPv6::processEchoRequest(ICMPv6EchoRequestMsg *request)
     IPv6ControlInfo *replyCtrl = new IPv6ControlInfo();
     replyCtrl->setProtocol(IP_PROT_IPv6_ICMP);
     replyCtrl->setDestAddr(ctrl->getSrcAddr());
-    EV << "Responsing ICMP Echo Request." << endl;
 
     if (ctrl->getDestAddr().isMulticast()    /*TODO check for anycast too*/) {
         IInterfaceTable *it = getModuleFromPar<IInterfaceTable>(par("interfaceTableModule"), this);
@@ -144,8 +148,8 @@ void ICMPv6::processEchoRequest(ICMPv6EchoRequestMsg *request)
     else
         replyCtrl->setSrcAddr(ctrl->getDestAddr());
 
-    EV << "Target=" << ctrl->getDestAddr()<< endl;
     reply->setControlInfo(replyCtrl);
+
     delete request;
     sendToIP(reply);
 }

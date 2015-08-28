@@ -201,14 +201,14 @@ void LMacLayer::handleSelfMessage(cMessage *msg)
                 }
 
                 if (myId >= reservedMobileSlots)
-                    mySlot = ((int)TraCIModuleFinder<>::findHost(this)->getId()) % (numSlots - reservedMobileSlots);
+                    mySlot = ((int)FindModule<>::findHost(this)->getId()) % (numSlots - reservedMobileSlots);
                 else
                     mySlot = myId;
                 //occSlotsDirect[mySlot] = address;
                 //occSlotsAway[mySlot] = address;
                 currSlot = 0;
 
-                EV_DETAIL << "ID: " << TraCIModuleFinder<>::findHost(this)->getId() << ". Picked random slot: " << mySlot << endl;
+                EV_DETAIL << "ID: " << FindModule<>::findHost(this)->getId() << ". Picked random slot: " << mySlot << endl;
 
                 macState = SLEEP;
                 EV_DETAIL << "Old state: INIT, New state: SLEEP" << endl;
@@ -626,7 +626,7 @@ void LMacLayer::findNewSlot()
         EV << "ERROR: My new slot is : " << mySlot << endl;
     }
     EV << "ERROR: I needed to find new slot\n";
-    slotChange->recordWithTimestamp(simTime(), TraCIModuleFinder<>::findHost(this)->getId() - 4);
+    slotChange->recordWithTimestamp(simTime(), FindModule<>::findHost(this)->getId() - 4);
 }
 
 cPacket *LMacLayer::decapsMsg(LMacFrame *msg)

@@ -23,6 +23,7 @@
 #include "inet/networklayer/contract/INetworkProtocolControlInfo.h"
 #include "inet/networklayer/common/IPSocket.h"
 #include "inet/common/ModuleAccess.h"
+#include "inet/common/serializer/sctp/SCTPSerializer.h"
 
 #ifdef WITH_IPv4
 #include "inet/networklayer/ipv4/IPv4Datagram.h"
@@ -30,14 +31,13 @@
 
 #include "inet/transportlayer/contract/udp/UDPControlInfo_m.h"
 #include "inet/transportlayer/contract/udp/UDPSocket.h"
+#include "inet/transportlayer/contract/sctp/SCTPSocket.h"
 
 namespace inet {
 
 namespace sctp {
 
 Define_Module(SCTP);
-
-int32 SCTP::nextAssocId = 0;
 
 void SCTP::printInfoAssocMap()
 {
@@ -325,7 +325,7 @@ void SCTP::sendAbortFromMain(SCTPMessage *sctpmsg, L3Address fromAddr, L3Address
         controlInfo->setSourceAddress(fromAddr);
         controlInfo->setDestinationAddress(toAddr);
         msg->setControlInfo(check_and_cast<cObject *>(controlInfo));
-        send(msg, "to_ip");
+        send_to_ip(msg);
     }
 }
 
@@ -353,6 +353,19 @@ void SCTP::sendShutdownCompleteFromMain(SCTPMessage *sctpmsg, L3Address fromAddr
     controlInfo->setSourceAddress(fromAddr);
     controlInfo->setDestinationAddress(toAddr);
     msg->setControlInfo(check_and_cast<cObject *>(controlInfo));
+    send_to_ip(msg);
+}
+
+void SCTP::send_to_ip(SCTPMessage *msg)
+{
+// enable this and run all SCTP tests tp see if SCTP serializer correctly handles all SCTP packets
+#if 0
+    char buff[4096];
+    serializer::Buffer b(buff, 4096);
+    serializer::Context ctx;
+    serializer::SCTPSerializer().serializePacket(msg, b, ctx);
+    ASSERT(b.getPos() == msg->getByteLength());
+#endif
     send(msg, "to_ip");
 }
 
@@ -730,7 +743,7 @@ void SCTP::addForkedAssociation(SCTPAssociation *assoc, SCTPAssociation *newAsso
     key.appGateIndex = assoc->appGateIndex;
     key.assocId = assoc->assocId;
     sctpAppAssocMap.erase(key);
-    key.assocId = assoc->assocId = getNewAssocId();
+    key.assocId = assoc->assocId = SCTPSocket::getNewAssocId();
     sctpAppAssocMap[key] = assoc;
 
     // ...and newAssoc will live on with the old assocId

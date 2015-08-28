@@ -71,12 +71,13 @@ void DataAgent::initialize(int stage)
     }
     if(stage == INITSTAGE_TRANSPORT_LAYER) {
         IPSocket ipSocket(gate("toLowerLayer")); // register own protocol
-        ipSocket.registerProtocol(IP_PROT_IPv6_ICMP);
         ipSocket.registerProtocol(IP_PROT_IPv6EXT_ID);
         IPSocket ipSocket2(gate("udpOut")); // TODO test if one can register from first socket
         ipSocket2.registerProtocol(IP_PROT_UDP);
         IPSocket ipSocket3(gate("tcpOut"));
         ipSocket3.registerProtocol(IP_PROT_TCP);
+        IPSocket ipSocket4(gate("icmpOut"));
+        ipSocket4.registerProtocol(IP_PROT_IPv6_ICMP);
         sessionState = UNASSOCIATED;
     }
     if (stage == INITSTAGE_APPLICATION_LAYER) {
@@ -98,24 +99,24 @@ void DataAgent::handleMessage(cMessage *msg)
         if (dynamic_cast<IdentificationHeader *> (msg)) {
             IPv6ControlInfo *controlInfo = check_and_cast<IPv6ControlInfo *>(msg->removeControlInfo());
             processAgentMessage((IdentificationHeader *) msg, controlInfo);
-        } else {
-            EV_WARN << "handleMessage: Received of gate <fromLowerLayer> unknown message type." << endl;
-            delete msg;
-        }
-    } else if(msg->arrivedOn("icmpIpIn")) {
+        } else
         if (dynamic_cast<ICMPv6Message *> (msg)) {
             IPv6ControlInfo *controlInfo = check_and_cast<IPv6ControlInfo *>(msg->removeControlInfo());
             processIncomingIcmpPacket((ICMPv6Message *)msg, controlInfo);
         } else {
+            EV_WARN << "handleMessage: Received of gate <fromLowerLayer> unknown message type." << endl;
             EV_WARN << "handleMessage: Received of gate <icmpIpIn> unknown message type." << endl;
             delete msg;
         }
+    } else if(msg->arrivedOn("fromICMP")) {
+        processOutgoingIcmpPacket(msg);
     } else if(msg->arrivedOn("udpIn")) {
         processUdpFromNode(msg);
     } else if(msg->arrivedOn("tcpIn")) {
         processTcpFromNode(msg);
     } else if(msg->arrivedOn("icmpIn")) {
-        processOutgoingIcmpPacket(msg);
+        IPv6ControlInfo *controlInfo = check_and_cast<IPv6ControlInfo *>(msg->removeControlInfo());
+        processIncomingIcmpPacket((ICMPv6Message *)msg, controlInfo);
     } else
         throw cRuntimeError("handleMessage: Unknown message received.");
 }
@@ -557,7 +558,7 @@ void DataAgent::processIncomingIcmpPacket(ICMPv6Message *icmp, IPv6ControlInfo *
     } else {
 //        EV << "DA: Forwarding message to ICMP module. Type=" << icmp->getType() << endl;
         icmp->setControlInfo(controlInfo);
-        cGate *outgate = gate("icmpOut");
+        cGate *outgate = gate("toICMP");
         send(icmp, outgate);
     }
 }
@@ -666,7 +667,7 @@ void DataAgent::processTcpFromNode(cMessage *msg)
 
 void DataAgent::processOutgoingIcmpPacket(cMessage *msg)
 {
-    cGate *outgate = gate("icmpIpOut");
+    cGate *outgate = gate("icmpOut");
     send(msg, outgate);
 }
 

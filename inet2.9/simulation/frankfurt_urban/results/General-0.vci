@@ -1,0 +1,291 @@
+file 15450763 1440749650                                        
+version 2
+run General-0-20150828-10:13:33-997
+attr configname General
+attr datetime 20150828-10:13:33
+attr experiment General
+attr inifile omnetpp.ini
+attr iterationvars ""
+attr iterationvars2 $repetition=0
+attr measurement ""
+attr network frankfurt_urban
+attr processid 997
+attr repetition 0
+attr replication #0
+attr resultdir results
+attr runnumber 0
+attr seedset 1
+
+vector 79  frankfurt_urban.CN[0].eth[0].queue.pauseQueue  queueLength:vector  ETV
+attr interpolationmode  sample-hold
+attr title  "queue length, vector"
+vector 83  frankfurt_urban.CN[0].eth[0].queue.dataQueue  queueLength:vector  ETV
+attr interpolationmode  sample-hold
+attr title  "queue length, vector"
+vector 140  frankfurt_urban.MA[0].wlan[0].mgmt  dataQueueLen:vector  ETV
+attr interpolationmode  sample-hold
+attr title  "data queue length, vector"
+vector 146  frankfurt_urban.MA[0].wlan[0].radio  radioMode:vector  ETV
+attr interpolationmode  sample-hold
+attr source  radioModeChanged
+attr title  "Radio mode, vector"
+vector 149  frankfurt_urban.MA[0].wlan[0].radio  radioChannel:vector  ETV
+attr interpolationmode  sample-hold
+attr source  radioChannelChanged
+attr title  "Radio channel, vector"
+vector 147  frankfurt_urban.MA[0].wlan[0].radio  receptionState:vector  ETV
+attr interpolationmode  sample-hold
+attr source  receptionStateChanged
+attr title  "Radio reception state, vector"
+vector 155  frankfurt_urban.MA[0].wlan[0].mac  State  ETV
+attr enum  "BACKOFF=3, DEFER=1, IDLE=0, RECEIVE=8, WAITACK=4, WAITAIFS=2, WAITCTS=6, WAITMULTICAST=5, WAITSIFS=7"
+attr enumname  inet::Ieee80211Mac
+vector 152  frankfurt_urban.MA[0].mobility  speed  ETV
+vector 153  frankfurt_urban.MA[0].mobility  acceleration  ETV
+vector 154  frankfurt_urban.MA[0].mobility  co2emission  ETV
+vector 65  frankfurt_urban.CN[0].eth[0].mac  rxPkOk:vector(packetBytes)  ETV
+attr interpolationmode  none
+attr source  rxPkOk
+attr title  "packets received OK, vector(packetBytes)"
+vector 66  frankfurt_urban.CN[0].eth[0].mac  passedUpPk:vector(packetBytes)  ETV
+attr interpolationmode  none
+attr source  packetSentToUpper
+attr title  "packets passed to higher layer, vector(packetBytes)"
+vector 74  frankfurt_urban.CN[0].eth[0].encap  decapPk:vector(packetBytes)  ETV
+attr interpolationmode  none
+attr source  decapPk
+attr title  "packets decapsulated, vector(packetBytes)"
+vector 137  frankfurt_urban.MA[0].wlan[0].agent  sentRequest:vector  ETV
+attr title  "sent requests, vector"
+vector 157  frankfurt_urban.MA[0].wlan[0].mac  "throughput AC0"  ETV
+vector 122  frankfurt_urban.MA[0].idLayer  interfaceSnir:vector  ETV
+attr interpolationmode  none
+attr title  "interfaceSnir, vector"
+vector 145  frankfurt_urban.MA[0].wlan[0].mac  rcvdPkFromLL:vector(packetBytes)  ETV
+attr interpolationmode  none
+attr source  packetReceivedFromLower
+attr title  "packets received from lower layer, vector(packetBytes)"
+vector 142  frankfurt_urban.MA[0].wlan[0].mac  passedUpPk:vector(packetBytes)  ETV
+attr interpolationmode  none
+attr source  packetSentToUpper
+attr title  "packets passed to higher layer, vector(packetBytes)"
+vector 144  frankfurt_urban.MA[0].wlan[0].mac  rcvdPkFromHL:vector(packetBytes)  ETV
+attr interpolationmode  none
+attr source  packetReceivedFromUpper
+attr title  "packets received from higher layer, vector(packetBytes)"
+vector 143  frankfurt_urban.MA[0].wlan[0].mac  sentDownPk:vector(packetBytes)  ETV
+attr interpolationmode  none
+attr source  packetSentToLower
+attr title  "packets sent to lower layer, vector(packetBytes)"
+vector 148  frankfurt_urban.MA[0].wlan[0].radio  transmissionState:vector  ETV
+attr interpolationmode  sample-hold
+attr source  transmissionStateChanged
+attr title  "Radio transmission state, vector"
+vector 60  frankfurt_urban.CN[0].networkLayer.neighbourDiscovery  startDAD:vector  ETV
+attr title  "DAD started, vector"
+vector 73  frankfurt_urban.CN[0].eth[0].encap  encapPk:vector(packetBytes)  ETV
+attr interpolationmode  none
+attr source  encapPk
+attr title  "packets encapsulated, vector(packetBytes)"
+vector 80  frankfurt_urban.CN[0].eth[0].queue.dataQueue  rcvdPk:vector(packetBytes)  ETV
+attr interpolationmode  none
+attr title  "received packets, vector(packetBytes)"
+vector 82  frankfurt_urban.CN[0].eth[0].queue.dataQueue  queueingTime:vector  ETV
+attr interpolationmode  none
+attr title  "queueing time, vector"
+vector 69  frankfurt_urban.CN[0].eth[0].mac  rxPkFromHL:vector(packetBytes)  ETV
+attr interpolationmode  none
+attr source  rxPkFromHL
+attr title  "packet bytes from higher layer, vector(packetBytes)"
+vector 64  frankfurt_urban.CN[0].eth[0].mac  txPk:vector(packetBytes)  ETV
+attr interpolationmode  none
+attr source  txPk
+attr title  "packets transmitted, vector(packetBytes)"
+vector 133  frankfurt_urban.MA[0].networkLayer.neighbourDiscovery  startDAD:vector  ETV
+attr title  "DAD started, vector"
+vector 138  frankfurt_urban.MA[0].wlan[0].agent  acceptConfirm:vector  ETV
+attr title  "accepted confirms, vector"
+vector 158  frankfurt_urban.MA[0].wlan[0].mac  "Mac delay AC0"  ETV
+vector 156  frankfurt_urban.MA[0].wlan[0].mac  "jitter AC0"  ETV
+vector 120  frankfurt_urban.MA[0].idLayer  controlSignalLoad:vector  ETV
+attr interpolationmode  none
+attr title  "controlSignalLoad, vector"
+attr unit  B
+vector 123  frankfurt_urban.MA[0].idLayer  interfaceId:vector  ETV
+attr interpolationmode  none
+attr title  "interfaceId, vector"
+vector 131  frankfurt_urban.MA[0].pingApp[0]  pingTxSeq:vector  ETV
+attr interpolationmode  none
+attr title  "ping tx seq, vector"
+vector 126  frankfurt_urban.MA[0].idLayer  flowRequest:vector  ETV
+attr interpolationmode  none
+attr title  "flowRequest, vector"
+vector 127  frankfurt_urban.MA[0].idLayer  flowRequestDelay:vector  ETV
+attr interpolationmode  none
+attr title  "flowRequestDelay, vector"
+vector 121  frankfurt_urban.MA[0].idLayer  dataSignalLoad:vector  ETV
+attr interpolationmode  none
+attr title  "dataSignalLoad, vector"
+attr unit  B
+vector 132  frankfurt_urban.MA[0].pingApp[0]  pingRxSeq:vector  ETV
+attr interpolationmode  none
+attr title  "ping rx seq, vector"
+vector 128  frankfurt_urban.MA[0].pingApp[0]  rtt:vector  ETV
+attr interpolationmode  none
+attr title  "ping round-trip time, vector"
+attr unit  s
+vector 129  frankfurt_urban.MA[0].pingApp[0]  numLost:vector  ETV
+attr interpolationmode  none
+attr title  "pings lost, vector"
+vector 179  frankfurt_urban.MA[1].wlan[0].mgmt  dataQueueLen:vector  ETV
+attr interpolationmode  sample-hold
+attr title  "data queue length, vector"
+vector 185  frankfurt_urban.MA[1].wlan[0].radio  radioMode:vector  ETV
+attr interpolationmode  sample-hold
+attr source  radioModeChanged
+attr title  "Radio mode, vector"
+vector 188  frankfurt_urban.MA[1].wlan[0].radio  radioChannel:vector  ETV
+attr interpolationmode  sample-hold
+attr source  radioChannelChanged
+attr title  "Radio channel, vector"
+vector 186  frankfurt_urban.MA[1].wlan[0].radio  receptionState:vector  ETV
+attr interpolationmode  sample-hold
+attr source  receptionStateChanged
+attr title  "Radio reception state, vector"
+vector 194  frankfurt_urban.MA[1].wlan[0].mac  State  ETV
+attr enum  "BACKOFF=3, DEFER=1, IDLE=0, RECEIVE=8, WAITACK=4, WAITAIFS=2, WAITCTS=6, WAITMULTICAST=5, WAITSIFS=7"
+attr enumname  inet::Ieee80211Mac
+vector 196  frankfurt_urban.MA[1].wlan[0].mac  "throughput AC0"  ETV
+vector 170  frankfurt_urban.MA[1].pingApp[0]  pingTxSeq:vector  ETV
+attr interpolationmode  none
+attr title  "ping tx seq, vector"
+vector 191  frankfurt_urban.MA[1].mobility  speed  ETV
+vector 192  frankfurt_urban.MA[1].mobility  acceleration  ETV
+vector 193  frankfurt_urban.MA[1].mobility  co2emission  ETV
+vector 176  frankfurt_urban.MA[1].wlan[0].agent  sentRequest:vector  ETV
+attr title  "sent requests, vector"
+vector 161  frankfurt_urban.MA[1].idLayer  interfaceSnir:vector  ETV
+attr interpolationmode  none
+attr title  "interfaceSnir, vector"
+vector 184  frankfurt_urban.MA[1].wlan[0].mac  rcvdPkFromLL:vector(packetBytes)  ETV
+attr interpolationmode  none
+attr source  packetReceivedFromLower
+attr title  "packets received from lower layer, vector(packetBytes)"
+vector 181  frankfurt_urban.MA[1].wlan[0].mac  passedUpPk:vector(packetBytes)  ETV
+attr interpolationmode  none
+attr source  packetSentToUpper
+attr title  "packets passed to higher layer, vector(packetBytes)"
+vector 183  frankfurt_urban.MA[1].wlan[0].mac  rcvdPkFromHL:vector(packetBytes)  ETV
+attr interpolationmode  none
+attr source  packetReceivedFromUpper
+attr title  "packets received from higher layer, vector(packetBytes)"
+vector 182  frankfurt_urban.MA[1].wlan[0].mac  sentDownPk:vector(packetBytes)  ETV
+attr interpolationmode  none
+attr source  packetSentToLower
+attr title  "packets sent to lower layer, vector(packetBytes)"
+vector 187  frankfurt_urban.MA[1].wlan[0].radio  transmissionState:vector  ETV
+attr interpolationmode  sample-hold
+attr source  transmissionStateChanged
+attr title  "Radio transmission state, vector"
+vector 172  frankfurt_urban.MA[1].networkLayer.neighbourDiscovery  startDAD:vector  ETV
+attr title  "DAD started, vector"
+vector 177  frankfurt_urban.MA[1].wlan[0].agent  acceptConfirm:vector  ETV
+attr title  "accepted confirms, vector"
+vector 197  frankfurt_urban.MA[1].wlan[0].mac  "Mac delay AC0"  ETV
+vector 195  frankfurt_urban.MA[1].wlan[0].mac  "jitter AC0"  ETV
+vector 159  frankfurt_urban.MA[1].idLayer  controlSignalLoad:vector  ETV
+attr interpolationmode  none
+attr title  "controlSignalLoad, vector"
+attr unit  B
+vector 162  frankfurt_urban.MA[1].idLayer  interfaceId:vector  ETV
+attr interpolationmode  none
+attr title  "interfaceId, vector"
+vector 165  frankfurt_urban.MA[1].idLayer  flowRequest:vector  ETV
+attr interpolationmode  none
+attr title  "flowRequest, vector"
+vector 166  frankfurt_urban.MA[1].idLayer  flowRequestDelay:vector  ETV
+attr interpolationmode  none
+attr title  "flowRequestDelay, vector"
+vector 160  frankfurt_urban.MA[1].idLayer  dataSignalLoad:vector  ETV
+attr interpolationmode  none
+attr title  "dataSignalLoad, vector"
+attr unit  B
+vector 171  frankfurt_urban.MA[1].pingApp[0]  pingRxSeq:vector  ETV
+attr interpolationmode  none
+attr title  "ping rx seq, vector"
+vector 167  frankfurt_urban.MA[1].pingApp[0]  rtt:vector  ETV
+attr interpolationmode  none
+attr title  "ping round-trip time, vector"
+attr unit  s
+vector 168  frankfurt_urban.MA[1].pingApp[0]  numLost:vector  ETV
+attr interpolationmode  none
+attr title  "pings lost, vector"
+60	10353 26 12490 12490 0.945157302683 0.945157302683 1 1 1 1 1
+64	10379 20760 12498 961088 0.945163022683 55.500979847396 695 74 126 87314 10980412
+65	31139 20759 1823 961076 0.140782377437 55.500968775396 695 82 126 87346 10985916
+66	51898 20759 1823 961076 0.140782377437 55.500968775396 695 82 126 87346 10985916
+69	72657 20760 12497 961087 0.945162302683 55.500978775396 695 74 126 87314 10980412
+73	93417 20760 12493 961083 0.945162302683 55.500978775396 695 56 108 74804 8062288
+74	114177 20759 1824 961077 0.140782377437 55.500968775396 695 64 108 74836 8066640
+79	134936 9 0 0 0 0 1 0 0 0 0
+80	134945 20760 12495 961085 0.945162302683 55.500978775396 695 74 126 87314 10980412
+82	155705 19376 12495 961085 0.945162302683 55.500978775396 695 0 0 0 0
+83	175081 38761 0 961085 0 55.500978775396 1391 0 1 695 695
+120	213842 73 41259 128696 3.172558976492 10 3 16 32 80 2304
+121	213915 9021 130242 960660 10.100185131872 55.5 455 100 100 45500 4550000
+122	222936 181657 4732 962158 0.343764888343 55.561597434134 4264 1.1926389177975 67100.574862454 18443802.176979 601859536453.42
+123	404593 9144 41259 960660 3.172558976492 55.5 460 101 101 46460 4692460
+126	413737 16 128696 128696 10 10 1 1 1 1 1
+127	413753 42 130240 130240 10.100185131872 10.100185131872 1 0.100185131872 0.100185131872 0.100185131872 0.01003706064821
+128	413795 18944 130554 961325 10.100970569308 55.501873624092 455 0.00050442181 0.006629858568 0.751360986008 0.001985929903473
+129	432739 29 130554 130554 10.100970569308 10.100970569308 1 1 1 1 1
+131	432768 8918 128692 960655 10 55.5 456 0 455 103740 31502380
+132	441686 13914 130554 961325 10.100970569308 55.501873624092 455 1 455 103740 31502380
+133	455600 27 12612 12612 0.950565462326 0.950565462326 1 1 1 1 1
+137	455627 78 4279 14715 0.31779939623 1.117969478224 3 1 4 7 21
+138	455705 80 14641 14824 1.11779939623 1.118440560218 3 1 4 7 21
+140	455785 15 1317 1317 0.1 0.1 1 0 0 0 0
+142	455800 87686 4733 962159 0.343764888343 55.561597434134 2898 34 176 295306 36326268
+143	543486 37059 5594 961329 0.41782739623 55.501878624092 1313 14 176 155284 26212648
+144	580545 11686 5593 960668 0.41779939623 55.500005 466 34 176 80894 14165556
+145	592231 129099 4733 962159 0.343764888343 55.561597434134 4264 14 176 424180 56807824
+146	721330 69830 1317 961346 0.1 55.501922624092 2628 0 3 6567 17073
+147	791160 314727 1317 962158 0.1 55.561597434134 11163 0 4 22660 73894
+148	1105887 139600 5595 961346 0.41782739623 55.501922624092 5252 0 2 5252 7878
+149	1245487 145 1317 14728 0.1 1.117979478224 6 0 11 20 160
+152	1245632 2805133 1324 962552 0.101397379798 55.584554938275 66219 0 44.437504883918 1694091.0909074 53103360.539217
+153	4050765 1893906 1324 962552 0.101397379798 55.584554938275 66219 -4.500000000045 2.5938958733136 165.47110800818 2197.677004309
+154	5944671 2801767 1324 962552 0.101397379798 55.584554938275 66219 -2.8036785547416 37.201223834259 331293.66028214 2504828.5134463
+155	8746438 1401946 1317 962159 0.1 55.561597434134 50434 0 7 87056 324888
+156	10148384 12978 16289 962143 1.225017242138 55.561509434134 451 0 0.000981413086 0.001389572132 1.0475556487154e-06
+157	10161362 21429 4719 962143 0.343584888343 55.561509434134 534 0 28152.124899124 6370211.9493516 91921463425.655
+158	10182791 19253 14687 961110 1.117913478224 55.500987292528 463 0.000114081994 0.006021858568 0.490751147 0.0012342364682748
+159	10202044 79 478544 479978 32.143305927277 32.2 3 16 32 80 2304
+160	10202123 4645 482306 960661 32.301081139979 55.5 234 100 100 23400 2340000
+161	10206768 106373 446628 962155 30.261596904616 55.561595026784 2489 2.5749388727669 81923.6794596 15309867.078691 677512392522.21
+162	10313141 4778 478544 960661 32.143305927277 55.5 239 101 101 24139 2438039
+165	10317919 18 479978 479978 32.2 32.2 1 1 1 1 1
+166	10317937 42 482304 482304 32.301081139979 32.301081139979 1 0.101081139979 0.101081139979 0.101081139979 0.010217396859454
+167	10317979 9730 482635 961198 32.301957190095 55.501164885178 233 0.000664727606 0.008546201411 0.503929436895 0.0015003952509065
+168	10327709 60 482635 581593 32.301957190095 37.103201512077 2 21 22 43 925
+170	10327769 4940 443901 960657 30.1 55.5 255 0 254 32385 5494655
+171	10332709 7147 482635 961198 32.301957190095 55.501164885178 234 20 254 32174 5491744
+172	10339856 29 459390 459390 31.009497013362 31.009497013362 1 1 1 1 1
+176	10339885 87 446010 459518 30.219893663097 31.020063743477 3 1 4 7 21
+177	10339972 87 459435 459640 31.019893663097 31.020534823857 3 1 4 7 21
+179	10340059 18 443897 443897 30.1 30.1 1 0 0 0 0
+181	10340077 45629 446629 962156 30.261596904616 55.561595026784 1494 34 176 164294 21679756
+182	10385706 22883 447893 961202 30.319921663097 55.501169885178 817 14 176 103790 17650932
+183	10408589 6152 447892 960669 30.319893663097 55.500005 244 34 176 41890 7308196
+184	10414741 75811 446629 962156 30.261596904616 55.561595026784 2489 14 176 255210 35867148
+185	10490552 43029 443897 961219 30.1 55.501213885178 1636 0 3 4087 10625
+186	10533581 186991 443897 962155 30.1 55.561595026784 6624 0 4 13296 43226
+187	10720572 85986 447894 961219 30.319921663097 55.501213885178 3268 0 2 3268 4902
+188	10806558 164 443897 459531 30.1 31.020073743477 6 0 11 20 160
+191	10806722 1406600 443911 962551 30.100033 55.584554424077 33022 0 44.428949860954 811745.31887507 26155533.773004
+192	12213322 952430 443911 962551 30.100033 55.584554424077 33022 -1.0852364254526 2.5999280445538 444.27197860002 905.86122905794
+193	13165752 1404838 443911 962551 30.100033 55.584554424077 33022 -0.30438163854176 38.700889546213 165242.60857217 1261485.6534157
+194	14570590 854568 443897 962156 30.1 55.561595026784 30850 0 7 53558 200978
+195	15425158 6013 461775 960669 31.144432199474 55.500005 206 0 0.003800005439 0.054958597691 0.00012244751755737
+196	15431171 9546 443897 960669 30.1 55.500005 244 0 28159.14374971 3238601.2050348 56427983488.77
+197	15440717 10046 459486 960809 31.020007743477 55.500135331564 241 0.00011408038 0.008091201411 0.352254034272 0.00094908514921139

@@ -51,6 +51,7 @@ module IPv4NetworkLayer like INetworkLayer
         output pingOut[] @labels(PingPayload/up);
         input igmpIn;
         output igmpOut;
+
     submodules:
         configurator: IPv4NodeConfigurator {
             @display("p=39,158");

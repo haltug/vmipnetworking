@@ -40,11 +40,11 @@ import inet.power.contract.IEnergyGenerator;
 //    - use this model only as a base type. In simulations use ~Router,
 //      ~StandardHost, ~WirelessHost and ~AdhocHost
 //
-module NodeBase like INode
+module NodeBase like INetworkNode
 {
     parameters:
         @display("bgb=,448");
-        @node;
+        @networkNode;
         @labels(node,ethernet-node,wireless-node);
         bool hasStatus = default(false);
         int numExtInterfaces = default(0);
@@ -104,15 +104,15 @@ module NodeBase like INode
             @display("p=53,350,r,10");
         }
         lo0: LoopbackInterface {
-            @display("p=22,406");
+            @display("p=78,406");
         }
         wlan[numRadios]: <default("Ieee80211Nic")> like IWirelessNic {
             parameters:
-                @display("p=353,406,row,60;q=queue");
+                @display("p=216,406,row,60;q=queue");
         }
         eth[sizeof(ethg)]: <default("EthernetInterface")> like IWiredNic {
             parameters:
-                @display("p=456,406,row,60;q=txQueue");
+                @display("p=368,406,row,60;q=txQueue");
         }
         ppp[sizeof(pppg)]: <default("PPPInterface")> like IWiredNic {
             parameters:
@@ -120,11 +120,11 @@ module NodeBase like INode
         }
         ext[numExtInterfaces]: <default("ExtInterface")> like IExternalNic {
             parameters:
-                @display("p=102,406,row,10;q=txQueue;i=block/ifcard");
+                @display("p=149,406,row,10;q=txQueue;i=block/ifcard");
         }
         tun[numTunInterfaces]: <default("TunInterface")> like ITunNic {
             parameters:
-                @display("p=231,406,row,10;q=txQueue;i=block/ifcard");
+                @display("p=213,406,row,10;q=txQueue;i=block/ifcard");
         }
 
     connections allowunconnected:

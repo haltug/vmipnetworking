@@ -1,0 +1,416 @@
+file 7475402 1440768160                                         
+version 2
+run PING-0-20150828-15:21:30-9890
+attr configname PING
+attr datetime 20150828-15:21:30
+attr experiment PING
+attr inifile omnetpp.ini
+attr iterationvars ""
+attr iterationvars2 $repetition=0
+attr measurement ""
+attr network test_field
+attr processid 9890
+attr repetition 0
+attr replication #0
+attr resultdir results
+attr runnumber 0
+attr seedset 1
+
+vector 24  test_field.CN[0].eth[0].queue.pauseQueue  queueLength:vector  ETV
+attr interpolationmode  sample-hold
+attr title  "queue length, vector"
+vector 28  test_field.CN[0].eth[0].queue.dataQueue  queueLength:vector  ETV
+attr interpolationmode  sample-hold
+attr title  "queue length, vector"
+vector 49  test_field.MA[0].wlan[0].mgmt  dataQueueLen:vector  ETV
+attr interpolationmode  sample-hold
+attr title  "data queue length, vector"
+vector 62  test_field.MA[0].wlan[1].mgmt  dataQueueLen:vector  ETV
+attr interpolationmode  sample-hold
+attr title  "data queue length, vector"
+vector 92  test_field.MA[1].wlan[0].mgmt  dataQueueLen:vector  ETV
+attr interpolationmode  sample-hold
+attr title  "data queue length, vector"
+vector 105  test_field.MA[1].wlan[1].mgmt  dataQueueLen:vector  ETV
+attr interpolationmode  sample-hold
+attr title  "data queue length, vector"
+vector 55  test_field.MA[0].wlan[0].radio  radioMode:vector  ETV
+attr interpolationmode  sample-hold
+attr source  radioModeChanged
+attr title  "Radio mode, vector"
+vector 58  test_field.MA[0].wlan[0].radio  radioChannel:vector  ETV
+attr interpolationmode  sample-hold
+attr source  radioChannelChanged
+attr title  "Radio channel, vector"
+vector 68  test_field.MA[0].wlan[1].radio  radioMode:vector  ETV
+attr interpolationmode  sample-hold
+attr source  radioModeChanged
+attr title  "Radio mode, vector"
+vector 71  test_field.MA[0].wlan[1].radio  radioChannel:vector  ETV
+attr interpolationmode  sample-hold
+attr source  radioChannelChanged
+attr title  "Radio channel, vector"
+vector 98  test_field.MA[1].wlan[0].radio  radioMode:vector  ETV
+attr interpolationmode  sample-hold
+attr source  radioModeChanged
+attr title  "Radio mode, vector"
+vector 101  test_field.MA[1].wlan[0].radio  radioChannel:vector  ETV
+attr interpolationmode  sample-hold
+attr source  radioChannelChanged
+attr title  "Radio channel, vector"
+vector 111  test_field.MA[1].wlan[1].radio  radioMode:vector  ETV
+attr interpolationmode  sample-hold
+attr source  radioModeChanged
+attr title  "Radio mode, vector"
+vector 114  test_field.MA[1].wlan[1].radio  radioChannel:vector  ETV
+attr interpolationmode  sample-hold
+attr source  radioChannelChanged
+attr title  "Radio channel, vector"
+vector 56  test_field.MA[0].wlan[0].radio  receptionState:vector  ETV
+attr interpolationmode  sample-hold
+attr source  receptionStateChanged
+attr title  "Radio reception state, vector"
+vector 127  test_field.MA[0].wlan[0].mac  State  ETV
+attr enum  "BACKOFF=3, DEFER=1, IDLE=0, RECEIVE=8, WAITACK=4, WAITAIFS=2, WAITCTS=6, WAITMULTICAST=5, WAITSIFS=7"
+attr enumname  inet::Ieee80211Mac
+vector 69  test_field.MA[0].wlan[1].radio  receptionState:vector  ETV
+attr interpolationmode  sample-hold
+attr source  receptionStateChanged
+attr title  "Radio reception state, vector"
+vector 131  test_field.MA[0].wlan[1].mac  State  ETV
+attr enum  "BACKOFF=3, DEFER=1, IDLE=0, RECEIVE=8, WAITACK=4, WAITAIFS=2, WAITCTS=6, WAITMULTICAST=5, WAITSIFS=7"
+attr enumname  inet::Ieee80211Mac
+vector 99  test_field.MA[1].wlan[0].radio  receptionState:vector  ETV
+attr interpolationmode  sample-hold
+attr source  receptionStateChanged
+attr title  "Radio reception state, vector"
+vector 135  test_field.MA[1].wlan[0].mac  State  ETV
+attr enum  "BACKOFF=3, DEFER=1, IDLE=0, RECEIVE=8, WAITACK=4, WAITAIFS=2, WAITCTS=6, WAITMULTICAST=5, WAITSIFS=7"
+attr enumname  inet::Ieee80211Mac
+vector 112  test_field.MA[1].wlan[1].radio  receptionState:vector  ETV
+attr interpolationmode  sample-hold
+attr source  receptionStateChanged
+attr title  "Radio reception state, vector"
+vector 139  test_field.MA[1].wlan[1].mac  State  ETV
+attr enum  "BACKOFF=3, DEFER=1, IDLE=0, RECEIVE=8, WAITACK=4, WAITAIFS=2, WAITCTS=6, WAITMULTICAST=5, WAITSIFS=7"
+attr enumname  inet::Ieee80211Mac
+vector 46  test_field.MA[0].wlan[0].agent  sentRequest:vector  ETV
+attr title  "sent requests, vector"
+vector 10  test_field.CN[0].eth[0].mac  rxPkOk:vector(packetBytes)  ETV
+attr interpolationmode  none
+attr source  rxPkOk
+attr title  "packets received OK, vector(packetBytes)"
+vector 11  test_field.CN[0].eth[0].mac  passedUpPk:vector(packetBytes)  ETV
+attr interpolationmode  none
+attr source  packetSentToUpper
+attr title  "packets passed to higher layer, vector(packetBytes)"
+vector 19  test_field.CN[0].eth[0].encap  decapPk:vector(packetBytes)  ETV
+attr interpolationmode  none
+attr source  decapPk
+attr title  "packets decapsulated, vector(packetBytes)"
+vector 89  test_field.MA[1].wlan[0].agent  sentRequest:vector  ETV
+attr title  "sent requests, vector"
+vector 137  test_field.MA[1].wlan[0].mac  "throughput AC0"  ETV
+vector 74  test_field.MA[1].idLayer  interfaceSnir:vector  ETV
+attr interpolationmode  none
+attr title  "interfaceSnir, vector"
+vector 97  test_field.MA[1].wlan[0].mac  rcvdPkFromLL:vector(packetBytes)  ETV
+attr interpolationmode  none
+attr source  packetReceivedFromLower
+attr title  "packets received from lower layer, vector(packetBytes)"
+vector 94  test_field.MA[1].wlan[0].mac  passedUpPk:vector(packetBytes)  ETV
+attr interpolationmode  none
+attr source  packetSentToUpper
+attr title  "packets passed to higher layer, vector(packetBytes)"
+vector 102  test_field.MA[1].wlan[1].agent  sentRequest:vector  ETV
+attr title  "sent requests, vector"
+vector 59  test_field.MA[0].wlan[1].agent  sentRequest:vector  ETV
+attr title  "sent requests, vector"
+vector 53  test_field.MA[0].wlan[0].mac  rcvdPkFromHL:vector(packetBytes)  ETV
+attr interpolationmode  none
+attr source  packetReceivedFromUpper
+attr title  "packets received from higher layer, vector(packetBytes)"
+vector 129  test_field.MA[0].wlan[0].mac  "throughput AC0"  ETV
+vector 52  test_field.MA[0].wlan[0].mac  sentDownPk:vector(packetBytes)  ETV
+attr interpolationmode  none
+attr source  packetSentToLower
+attr title  "packets sent to lower layer, vector(packetBytes)"
+vector 57  test_field.MA[0].wlan[0].radio  transmissionState:vector  ETV
+attr interpolationmode  sample-hold
+attr source  transmissionStateChanged
+attr title  "Radio transmission state, vector"
+vector 141  test_field.MA[1].wlan[1].mac  "throughput AC0"  ETV
+vector 110  test_field.MA[1].wlan[1].mac  rcvdPkFromLL:vector(packetBytes)  ETV
+attr interpolationmode  none
+attr source  packetReceivedFromLower
+attr title  "packets received from lower layer, vector(packetBytes)"
+vector 107  test_field.MA[1].wlan[1].mac  passedUpPk:vector(packetBytes)  ETV
+attr interpolationmode  none
+attr source  packetSentToUpper
+attr title  "packets passed to higher layer, vector(packetBytes)"
+vector 96  test_field.MA[1].wlan[0].mac  rcvdPkFromHL:vector(packetBytes)  ETV
+attr interpolationmode  none
+attr source  packetReceivedFromUpper
+attr title  "packets received from higher layer, vector(packetBytes)"
+vector 95  test_field.MA[1].wlan[0].mac  sentDownPk:vector(packetBytes)  ETV
+attr interpolationmode  none
+attr source  packetSentToLower
+attr title  "packets sent to lower layer, vector(packetBytes)"
+vector 100  test_field.MA[1].wlan[0].radio  transmissionState:vector  ETV
+attr interpolationmode  sample-hold
+attr source  transmissionStateChanged
+attr title  "Radio transmission state, vector"
+vector 109  test_field.MA[1].wlan[1].mac  rcvdPkFromHL:vector(packetBytes)  ETV
+attr interpolationmode  none
+attr source  packetReceivedFromUpper
+attr title  "packets received from higher layer, vector(packetBytes)"
+vector 108  test_field.MA[1].wlan[1].mac  sentDownPk:vector(packetBytes)  ETV
+attr interpolationmode  none
+attr source  packetSentToLower
+attr title  "packets sent to lower layer, vector(packetBytes)"
+vector 113  test_field.MA[1].wlan[1].radio  transmissionState:vector  ETV
+attr interpolationmode  sample-hold
+attr source  transmissionStateChanged
+attr title  "Radio transmission state, vector"
+vector 66  test_field.MA[0].wlan[1].mac  rcvdPkFromHL:vector(packetBytes)  ETV
+attr interpolationmode  none
+attr source  packetReceivedFromUpper
+attr title  "packets received from higher layer, vector(packetBytes)"
+vector 133  test_field.MA[0].wlan[1].mac  "throughput AC0"  ETV
+vector 65  test_field.MA[0].wlan[1].mac  sentDownPk:vector(packetBytes)  ETV
+attr interpolationmode  none
+attr source  packetSentToLower
+attr title  "packets sent to lower layer, vector(packetBytes)"
+vector 70  test_field.MA[0].wlan[1].radio  transmissionState:vector  ETV
+attr interpolationmode  sample-hold
+attr source  transmissionStateChanged
+attr title  "Radio transmission state, vector"
+vector 31  test_field.MA[0].idLayer  interfaceSnir:vector  ETV
+attr interpolationmode  none
+attr title  "interfaceSnir, vector"
+vector 67  test_field.MA[0].wlan[1].mac  rcvdPkFromLL:vector(packetBytes)  ETV
+attr interpolationmode  none
+attr source  packetReceivedFromLower
+attr title  "packets received from lower layer, vector(packetBytes)"
+vector 64  test_field.MA[0].wlan[1].mac  passedUpPk:vector(packetBytes)  ETV
+attr interpolationmode  none
+attr source  packetSentToUpper
+attr title  "packets passed to higher layer, vector(packetBytes)"
+vector 42  test_field.MA[0].networkLayer.neighbourDiscovery  startDAD:vector  ETV
+attr title  "DAD started, vector"
+vector 85  test_field.MA[1].networkLayer.neighbourDiscovery  startDAD:vector  ETV
+attr title  "DAD started, vector"
+vector 48  test_field.MA[0].wlan[0].agent  dropConfirm:vector  ETV
+attr title  "dropped confirms, vector"
+vector 103  test_field.MA[1].wlan[1].agent  acceptConfirm:vector  ETV
+attr title  "accepted confirms, vector"
+vector 142  test_field.MA[1].wlan[1].mac  "Mac delay AC0"  ETV
+vector 60  test_field.MA[0].wlan[1].agent  acceptConfirm:vector  ETV
+attr title  "accepted confirms, vector"
+vector 134  test_field.MA[0].wlan[1].mac  "Mac delay AC0"  ETV
+vector 90  test_field.MA[1].wlan[0].agent  acceptConfirm:vector  ETV
+attr title  "accepted confirms, vector"
+vector 138  test_field.MA[1].wlan[0].mac  "Mac delay AC0"  ETV
+vector 132  test_field.MA[0].wlan[1].mac  "jitter AC0"  ETV
+vector 5  test_field.CN[0].networkLayer.neighbourDiscovery  startDAD:vector  ETV
+attr title  "DAD started, vector"
+vector 18  test_field.CN[0].eth[0].encap  encapPk:vector(packetBytes)  ETV
+attr interpolationmode  none
+attr source  encapPk
+attr title  "packets encapsulated, vector(packetBytes)"
+vector 25  test_field.CN[0].eth[0].queue.dataQueue  rcvdPk:vector(packetBytes)  ETV
+attr interpolationmode  none
+attr title  "received packets, vector(packetBytes)"
+vector 27  test_field.CN[0].eth[0].queue.dataQueue  queueingTime:vector  ETV
+attr interpolationmode  none
+attr title  "queueing time, vector"
+vector 14  test_field.CN[0].eth[0].mac  rxPkFromHL:vector(packetBytes)  ETV
+attr interpolationmode  none
+attr source  rxPkFromHL
+attr title  "packet bytes from higher layer, vector(packetBytes)"
+vector 9  test_field.CN[0].eth[0].mac  txPk:vector(packetBytes)  ETV
+attr interpolationmode  none
+attr source  txPk
+attr title  "packets transmitted, vector(packetBytes)"
+vector 140  test_field.MA[1].wlan[1].mac  "jitter AC0"  ETV
+vector 136  test_field.MA[1].wlan[0].mac  "jitter AC0"  ETV
+vector 29  test_field.MA[0].idLayer  controlSignalLoad:vector  ETV
+attr interpolationmode  none
+attr title  "controlSignalLoad, vector"
+attr unit  B
+vector 32  test_field.MA[0].idLayer  interfaceId:vector  ETV
+attr interpolationmode  none
+attr title  "interfaceId, vector"
+vector 72  test_field.MA[1].idLayer  controlSignalLoad:vector  ETV
+attr interpolationmode  none
+attr title  "controlSignalLoad, vector"
+attr unit  B
+vector 75  test_field.MA[1].idLayer  interfaceId:vector  ETV
+attr interpolationmode  none
+attr title  "interfaceId, vector"
+vector 76  test_field.MA[1].idLayer  sequenceUpdateCa:vector  ETV
+attr interpolationmode  none
+attr title  "sequenceUpdateCa, vector"
+vector 91  test_field.MA[1].wlan[0].agent  dropConfirm:vector  ETV
+attr title  "dropped confirms, vector"
+vector 40  test_field.MA[0].pingApp[0]  pingTxSeq:vector  ETV
+attr interpolationmode  none
+attr title  "ping tx seq, vector"
+vector 83  test_field.MA[1].pingApp[0]  pingTxSeq:vector  ETV
+attr interpolationmode  none
+attr title  "ping tx seq, vector"
+vector 35  test_field.MA[0].idLayer  flowRequest:vector  ETV
+attr interpolationmode  none
+attr title  "flowRequest, vector"
+vector 78  test_field.MA[1].idLayer  flowRequest:vector  ETV
+attr interpolationmode  none
+attr title  "flowRequest, vector"
+vector 36  test_field.MA[0].idLayer  flowRequestDelay:vector  ETV
+attr interpolationmode  none
+attr title  "flowRequestDelay, vector"
+vector 30  test_field.MA[0].idLayer  dataSignalLoad:vector  ETV
+attr interpolationmode  none
+attr title  "dataSignalLoad, vector"
+attr unit  B
+vector 79  test_field.MA[1].idLayer  flowRequestDelay:vector  ETV
+attr interpolationmode  none
+attr title  "flowRequestDelay, vector"
+vector 73  test_field.MA[1].idLayer  dataSignalLoad:vector  ETV
+attr interpolationmode  none
+attr title  "dataSignalLoad, vector"
+attr unit  B
+vector 41  test_field.MA[0].pingApp[0]  pingRxSeq:vector  ETV
+attr interpolationmode  none
+attr title  "ping rx seq, vector"
+vector 37  test_field.MA[0].pingApp[0]  rtt:vector  ETV
+attr interpolationmode  none
+attr title  "ping round-trip time, vector"
+attr unit  s
+vector 84  test_field.MA[1].pingApp[0]  pingRxSeq:vector  ETV
+attr interpolationmode  none
+attr title  "ping rx seq, vector"
+vector 80  test_field.MA[1].pingApp[0]  rtt:vector  ETV
+attr interpolationmode  none
+attr title  "ping round-trip time, vector"
+attr unit  s
+vector 104  test_field.MA[1].wlan[1].agent  dropConfirm:vector  ETV
+attr title  "dropped confirms, vector"
+vector 61  test_field.MA[0].wlan[1].agent  dropConfirm:vector  ETV
+attr title  "dropped confirms, vector"
+vector 33  test_field.MA[0].idLayer  sequenceUpdateCa:vector  ETV
+attr interpolationmode  none
+attr title  "sequenceUpdateCa, vector"
+vector 77  test_field.MA[1].idLayer  sequenceUpdateDa:vector  ETV
+attr interpolationmode  none
+attr title  "sequenceUpdateDa, vector"
+vector 81  test_field.MA[1].pingApp[0]  numLost:vector  ETV
+attr interpolationmode  none
+attr title  "pings lost, vector"
+vector 54  test_field.MA[0].wlan[0].mac  rcvdPkFromLL:vector(packetBytes)  ETV
+attr interpolationmode  none
+attr source  packetReceivedFromLower
+attr title  "packets received from lower layer, vector(packetBytes)"
+vector 51  test_field.MA[0].wlan[0].mac  passedUpPk:vector(packetBytes)  ETV
+attr interpolationmode  none
+attr source  packetSentToUpper
+attr title  "packets passed to higher layer, vector(packetBytes)"
+vector 38  test_field.MA[0].pingApp[0]  numLost:vector  ETV
+attr interpolationmode  none
+attr title  "pings lost, vector"
+5	14814 24 3787 3787 0.869988683518 0.869988683518 1 1 1 1 1
+9	14838 10192 3795 888109 0.870000883518 246.003393013848 347 74 118 40418 4724812
+10	25030 10536 48 888096 0.029526350919 246.003372933848 347 82 118 40450 4730316
+11	35566 10536 48 888096 0.029526350919 246.003372933848 347 82 118 40450 4730316
+14	46102 10538 3794 888108 0.869993683518 246.003382933848 347 74 118 40418 4724812
+18	56640 10537 3790 888104 0.869993683518 246.003382933848 347 56 100 34172 3382192
+19	67177 10536 50 888097 0.029526350919 246.003372933848 347 64 100 34204 3386544
+24	77713 9 0 0 0 0 1 0 0 0 0
+25	77722 10537 3792 888106 0.869993683518 246.003382933848 347 74 118 40418 4724812
+27	88259 9945 3792 888106 0.869993683518 246.003382933848 347 0 3.239999e-06 2.0039991e-05 5.7431952080015e-11
+28	98204 19728 0 888106 0 246.003382933848 695 0 1 347 347
+29	117932 659 12062 693343 3.273379074076 192.962485904935 23 16 32 720 22784
+30	118591 2449 36136 887670 10.100239786756 246 147 92 92 13524 1244208
+31	121040 239813 1676 888815 0.408603708115 246.169126103904 5681 19.811873570922 19484.908587445 17667884.51646 115479138848.18
+32	360853 2712 12062 887670 3.273379074076 246 152 102 102 15504 1581408
+33	363565 581 129363 693343 35.519126529935 192.962485904935 20 1 20 210 2870
+35	364146 14 35097 35097 10 10 1 1 1 1 1
+36	364160 40 36134 36134 10.100239786756 10.100239786756 1 0.100239786756 0.100239786756 0.100239786756 0.010048014848888
+37	364200 4762 36672 887978 10.102844094215 246.002799310098 115 0.002048668369 0.102844094215 0.525791789271 0.012432895430975
+38	368962 121 274370 755685 78.002800127446 210.002282580197 4 67 122 374 37498
+40	369083 4048 35089 887664 10 246 237 0 236 27966 4409306
+41	373131 3485 36672 887978 10.102844094215 246.002799310098 115 0 236 16486 2750464
+42	376616 50 1685 1685 0.410972968069 0.410972968069 2 1 1 2 2
+46	376666 10662 10 887612 0.027701578661 245.977701578661 375 1 1 375 375
+48	387328 10639 2626 887612 0.677701578661 245.977701578661 374 1 1 374 374
+49	397967 9 0 0 0 0 1 0 0 0 0
+51	397976 5314 269715 888676 76.743064608142 246.14306411081 180 40 40 7200 288000
+52	403290 22051 399 888507 0.127729578661 246.077729578661 749 40 40 29960 1198400
+53	425341 22051 398 888506 0.127701578661 246.077701578661 749 40 40 29960 1198400
+54	447392 5314 269715 888676 76.743064608142 246.14306411081 180 40 40 7200 288000
+55	452706 42622 0 888519 0 246.078241578661 1500 0 3 3747 9741
+56	495328 52881 0 888674 0 246.14306411081 1859 0 4 1650 3810
+57	548209 85208 400 888519 0.127729578661 246.078241578661 2996 0 2 2996 4494
+58	633417 21309 0 887615 0 245.977701578661 750 0 2 1123 1871
+59	654726 5290 392 709671 0.118974217842 197.669835672714 186 1 4 198 240
+60	660016 246 3008 709756 0.768974217842 197.670673815449 9 1 4 21 63
+61	660262 5045 121221 707483 33.019126529935 197.019126529935 177 1 1 177 177
+62	665307 9 0 0 0 0 1 0 0 0 0
+64	665316 146425 1677 888816 0.408603708115 246.169126103904 4884 34 200 467768 50408496
+65	811741 20660 1005 887979 0.219002217842 246.002804310098 728 14 168 53720 6790528
+66	832401 14657 1004 887678 0.218974217842 246.000005 522 34 168 40270 4832780
+67	847058 164907 1677 888816 0.408603708115 246.169126103904 5501 14 200 521186 58427204
+68	1011965 39439 0 887990 0 246.003108310098 1458 0 3 3642 9468
+69	1051404 353300 0 888815 0 246.169126103904 12539 0 4 28392 94572
+70	1404704 78842 1006 887990 0.219002217842 246.003108310098 2912 0 2 2912 4368
+71	1483546 10426 0 709682 0 197.669845672714 367 0 4 1284 4596
+72	1493972 895 12637 819794 3.287701523851 228.278313158919 31 16 48 1024 34816
+73	1494867 3110 36199 887671 10.100616868082 246 185 92 124 17116 1586576
+74	1497977 328793 342 888819 0.102010622104 246.169126177854 7803 0.10620989755298 19484.908587445 11781898.589852 37651313520.323
+75	1826770 3828 12637 887671 3.287701523851 246 204 102 102 20808 2122416
+76	1830598 818 16076 819794 4.215724137461 228.278313158919 28 1 28 406 7714
+77	1831416 86 180363 819793 51.218845509684 228.278313158919 3 1 3 6 14
+78	1831502 14 35098 35098 10 10 1 1 1 1 1
+79	1831516 40 36197 36197 10.100616868082 10.100616868082 1 0.100616868082 0.100616868082 0.100616868082 0.010123754142631
+80	1831556 7136 36727 888247 10.103401298983 246.005547842991 173 0.002057387822 0.281209323106 1.137588930563 0.14277477282376
+81	1838692 148 180996 820298 51.225843744944 228.281209323106 5 18 64 204 9442
+83	1838840 4048 35090 887665 10 246 237 0 236 27966 4409306
+84	1842888 5161 36727 888247 10.103401298983 246.005547842991 173 0 236 19751 3048887
+85	1848049 136 1693 816019 0.420502786012 227.230128202496 5 1 1 5 5
+89	1848185 9024 250 888396 0.055878063384 246.042524036223 317 1 4 325 353
+90	1857209 161 3584 606602 0.855878063384 168.393927307748 6 1 4 14 42
+91	1857370 8838 32263 888396 9.092524037167 246.042524036223 310 1 1 310 310
+92	1866208 9 0 0 0 0 1 0 0 0 0
+94	1866217 27472 344 888522 0.102010622104 246.078241653248 930 34 116 77036 7560952
+95	1893689 18850 544 888660 0.155906063384 246.142552036223 640 14 108 25576 1039544
+96	1912539 18630 543 888652 0.155878063384 246.142524036223 632 34 108 25464 1037976
+97	1931169 27751 344 888522 0.102010622104 246.078241653248 940 14 116 77442 7594116
+98	1958920 36434 0 888673 0 246.143064036223 1282 0 3 3202 8324
+99	1995354 89161 0 888673 0 246.143064036223 3165 0 4 5347 16631
+100	2084515 75392 545 888673 0.155906063384 246.143064036223 2560 0 2 2560 3840
+101	2159907 18554 0 888399 0 246.042524036223 630 0 2 941 1565
+102	2178461 3161 388 815815 0.116373222065 227.182371063607 107 1 4 123 179
+103	2181622 343 2826 815908 0.766373222065 227.183362192938 12 1 4 28 84
+104	2181965 2817 120809 812883 32.881931932994 226.381931934235 95 1 1 95 95
+105	2184782 10 0 0 0 0 1 0 0 0 0
+107	2184792 190098 469 888820 0.131931646401 246.169126177854 6144 34 168 589334 63608092
+108	2374890 20602 942 888248 0.216401222065 246.005552842991 712 14 200 57036 7904216
+109	2395492 11773 941 887679 0.216373222065 246.000005 415 34 200 41944 5856016
+110	2407265 212340 469 888820 0.131931646401 246.169126177854 6863 14 200 651172 72869232
+111	2619605 39254 0 888260 0 246.005856842991 1426 0 3 3562 9260
+112	2658859 443724 0 888819 0 246.169126177854 15237 0 4 35191 117701
+113	3102583 78468 943 888260 0.216401222065 246.005856842991 2848 0 2 2848 4272
+114	3181051 6103 0 815824 0 227.182381063607 207 0 4 721 2575
+127	3187154 517026 0 888676 0 246.14306411081 17560 0 5 46438 184254
+129	3704180 24673 398 888506 0.127701578661 246.077701578661 750 0 1489.4041360566 769634.18856258 835211033.44979
+131	3728853 1401838 0 888816 0 246.169126103904 48330 0 7 48424 183612
+132	5130691 4591 3778 888342 0.869126174545 246.031662753754 153 0 0.003451877729 0.009550057859 2.5581701681579e-05
+133	5135282 55683 1004 888724 0.218974217842 246.144302000134 1790 0 21960.871951116 2392127.4726099 25785528032.85
+134	5190965 6824 3058 887896 0.769619628789 246.001008310114 162 0.000377142793 0.00471236169 0.215271902317 0.00057807355283934
+135	5197789 575992 0 888682 0 246.143272036223 19642 0 7 39570 156986
+136	5773781 163 4151 624914 0.981424154574 173.44956875514 5 0 0.00052100004 0.000988000002 4.89530006188e-07
+137	5773944 27057 333 888511 0.100890622104 246.077729653248 857 0 8639.999813808 627971.71094616 840084368.25147
+138	5801001 285 3622 624755 0.856254928543 173.395607990803 7 0.000376865159 0.000897865199 0.003658846645 2.2537324106676e-06
+139	5801286 1597026 0 888820 0 246.169126177854 55224 0 7 44576 170916
+140	7398312 5981 3819 888344 0.871266430064 246.031662827851 199 0 0.003459078379 0.01400197712 3.1764654890646e-05
+141	7404293 61969 459 888726 0.131355646401 246.144302074111 2000 0 32748.233109828 2775799.7054393 33524935186.027
+142	7466262 9140 2864 888191 0.766749792196 246.00358584301 216 0.000376570131 0.004110438658 0.206520319546 0.00042598107838377

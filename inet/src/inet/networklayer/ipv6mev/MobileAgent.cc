@@ -99,8 +99,8 @@ void MobileAgent::initialize(int stage)
     if(stage == INITSTAGE_TRANSPORT_LAYER) {
         if(isIdLayerEnabled) {
             IPSocket ipSocket(gate("toLowerLayer")); // register own protocol
-            ipSocket.registerProtocol(IP_PROT_IPv6_ICMP);
-            ipSocket.registerProtocol(IP_PROT_IPv6EXT_ID);
+            ipSocket.registerProtocol(IP_PROT_IPv6_ICMP); // only ICMP and ID packets can received
+            ipSocket.registerProtocol(IP_PROT_IPv6EXT_ID); // other packets are not parsed.
             interfaceNotifier = getContainingNode(this);
             interfaceNotifier->subscribe(NF_INTERFACE_IPv6CONFIG_CHANGED,this);
             interfaceNotifier->subscribe(NF_INTERFACE_STATE_CHANGED,this);
@@ -165,11 +165,6 @@ void MobileAgent::handleMessage(cMessage *msg)
         else if(msg->getKind() == MSG_ICMP_RETRANSMIT) { // from MA
             processOutgoingIcmpPacket(msg);
         }
-//        else if(msg->getKind() == MSG_INTERFACE_DELAY) { // from MA
-//            InterfaceInit *ii = (InterfaceInit *) msg->getContextPointer();
-//            updateAddressTable(ii->id, ii->iu);
-//            delete msg;
-//        }
         else {
             if(msg)
                 EV << "ERROR_MA: kind: " << msg->getKind() << " className:" << msg->getClassName() << endl;
@@ -188,7 +183,7 @@ void MobileAgent::handleMessage(cMessage *msg)
         else
             send(msg, "tcpIpOut");
     }
-    else if(msg->arrivedOn("icmpIn")) { // icmp messages from ICMP module
+    else if(msg->arrivedOn("fromICMP")) { // icmp messages from ICMP module
         if(isIdLayerEnabled)
             processOutgoingIcmpPacket(msg);
         else
@@ -199,17 +194,18 @@ void MobileAgent::handleMessage(cMessage *msg)
         if (dynamic_cast<IdentificationHeader *> (msg)) {
             IPv6ControlInfo *controlInfo = check_and_cast<IPv6ControlInfo *>(msg->removeControlInfo());
             processAgentMessage((IdentificationHeader *) msg, controlInfo);
-        } else {
-            throw cRuntimeError("MA: IP module should only forward ID packages.");
-        }
-    }
-    else if(msg->arrivedOn("icmpIpIn")) {
+        } else
         if (dynamic_cast<ICMPv6Message *> (msg)) { // icmp messages from IP module
             IPv6ControlInfo *controlInfo = check_and_cast<IPv6ControlInfo *>(msg->removeControlInfo());
             processIncomingIcmpPacket((ICMPv6Message *) msg, controlInfo);
         } else {
             throw cRuntimeError("MA: IP module should only forward ICMP messages");
+            throw cRuntimeError("MA: IP module should only forward ID packages.");
         }
+    }
+    else if(msg->arrivedOn("icmpIpIn")) {
+        if(!isIdLayerEnabled)
+            send(msg, "toICMP");
     }
     else if(msg->arrivedOn("udpIpIn")) { // icmp messages from ICMP module
         if(!isIdLayerEnabled)

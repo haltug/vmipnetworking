@@ -106,7 +106,7 @@ const INoise *ScalarAnalogModelBase::computeNoise(const IListening *listening, c
             }
         }
         else if (areOverlappingBands(commonCarrierFrequency, commonBandwidth, scalarBackgroundNoise->getCarrierFrequency(), scalarBackgroundNoise->getBandwidth()))
-            throw cRuntimeError("Overlapping bands are not supported. Backgroundnoise mode.");
+            throw cRuntimeError("Overlapping bands are not supported");
     }
     EV_DEBUG << "Noise power begin " << endl;
     W noise = W(0);

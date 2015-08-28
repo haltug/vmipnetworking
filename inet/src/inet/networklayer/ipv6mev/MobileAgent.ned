@@ -35,18 +35,20 @@ simple MobileAgent
 		@statistic[sequenceUpdateDa](title="sequenceUpdateDa"; record=last,vector; interpolationmode=none);
 		@statistic[flowRequest](title="flowRequest"; record=last,vector; interpolationmode=none);
 		@statistic[flowRequestDelay](title="flowRequestDelay"; record=count,vector; interpolationmode=none);
-        
- 	gates:
+	
+ 	gates: 
+ 	    // TODO remove @loose fromLowerLayer
 	    input fromLowerLayer @loose; // connection to network layer module
-	    output toLowerLayer @loose;
+	    output toLowerLayer @loose; 
 	    input fromTCP; // connection to tcp module
 	    output toTCP;
 	    input fromUDP; // connection to udp module
 	    output toUDP;
-        input icmpIn; // connection to icmp module
-        output icmpOut;
-        input icmpIpIn; // used for direct message exchange between icmp module and ipv6 module,
-        output icmpIpOut; // because ipv6 modules has defined gates for icmp messages
+        input fromICMP; // connection to icmp module
+        output toICMP;
+        // connections btw id module and ipv6 module
+		input icmpIpIn; 
+        output icmpIpOut;
         input tcpIpIn @loose; // used only for disabled id layer
         output tcpIpOut @loose; // used only for disabled id layer
         input udpIpIn @loose; // used only for disabled id layer

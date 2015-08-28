@@ -41,6 +41,7 @@ module GenericNetworkLayer like INetworkLayer
         output transportOut[] @labels(IPv4ControlInfo/up);
         input pingIn[] @labels(PingPayload/down);
         output pingOut[] @labels(PingPayload/up);
+
     submodules:
         gnp: GenericNetworkProtocol {
             parameters:

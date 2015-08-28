@@ -197,11 +197,10 @@ void IPv6RoutingTable::receiveSignal(cComponent *source, simsignal_t signalID, c
     else if (signalID == NF_INTERFACE_STATE_CHANGED) {
         const InterfaceEntry *interfaceEntry = check_and_cast<const InterfaceEntryChangeDetails*>(obj)->getInterfaceEntry();
         int interfaceEntryId = interfaceEntry->getInterfaceId();
+
+        // an interface went down
         if (!interfaceEntry->isUp()) {
             purgeDestCacheForInterfaceID(interfaceEntryId);
-//            IPv6Address linkLocalAddr = IPv6Address().formLinkLocalAddress(interfaceEntry->getInterfaceToken());
-//            interfaceEntry->ipv6Data()->assignAddress(linkLocalAddr, true, SIMTIME_ZERO, SIMTIME_ZERO);
-//            deleteInterfaceRoutes(interfaceEntry);
         }
     }
     else if (signalID == NF_INTERFACE_CONFIG_CHANGED) {
@@ -728,7 +727,7 @@ void IPv6RoutingTable::internalAddRoute(IPv6Route *route)
 
     // we keep entries sorted by prefix length in routeList, so that we can
     // stop at the first match when doing the longest prefix matching
-    std::sort(routeList.begin(), routeList.end(), RouteLessThan(*this));
+    std::stable_sort(routeList.begin(), routeList.end(), RouteLessThan(*this));
 }
 
 IPv6Route *IPv6RoutingTable::internalRemoveRoute(IPv6Route *route)

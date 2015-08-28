@@ -26,13 +26,11 @@ namespace inet {
 const uint32 LINK_LOCAL_PREFIX = 0xFE800000;
 const uint32 SITE_LOCAL_PREFIX = 0xFEC00000;
 const uint32 MULTICAST_PREFIX = 0xFF000000;
-const uint32 ID_VALUE_PREFIX  = 0x1D000000;
 
 // Link and Site local masks should only preserve 10 bits as prefix length is 10.
 const uint32 LINK_LOCAL_MASK = 0xFFC00000;
 const uint32 SITE_LOCAL_MASK = 0xFFC00000;
 const uint32 MULTICAST_MASK = 0xFF000000;
-const uint32 ID_MASK        = 0xFF000000;
 
 // RFC 3513: IPv6 Addressing Architecture
 // Section 2.7.1: Pre-defined Multicast Addresses
@@ -46,7 +44,6 @@ const IPv6Address IPv6Address::ALL_ROUTERS_5("FF05::2");
 const IPv6Address IPv6Address::SOLICITED_NODE_PREFIX("FF02:0:0:0:0:1:FF00:0");
 const IPv6Address IPv6Address::LINKLOCAL_PREFIX("FE80::");
 const IPv6Address IPv6Address::LL_MANET_ROUTERS("FF02:0:0:0:0:0:0:6D");
-const IPv6Address IPv6Address::ID_PREFIX("1D::");
 
 // Helper: Parses at most 8 colon-separated 16-bit hex numbers ("groups"),
 // and returns their count. Advances s just over the last hex digit converted.
@@ -206,13 +203,6 @@ std::string IPv6Address::str() const
     return os.str();
 }
 
-std::string IPv6Address::str_interfaceId() const
-{
-    std::stringstream os;
-    os << getInterfaceId();
-    return os.str();
-}
-
 IPv6Address::Scope IPv6Address::getScope() const
 {
     //Mask the given IPv6 address with the different mask types
@@ -227,9 +217,6 @@ IPv6Address::Scope IPv6Address::getScope() const
     }
     else if ((d[0] & MULTICAST_MASK) == MULTICAST_PREFIX) {
         return MULTICAST;
-    }
-    else if ((d[0] & ID_MASK) == ID_VALUE_PREFIX) {
-        return ID;
     }
     else if (d[0] == 0x00000000 && d[1] == 0x00000000 && d[2] == 0x00000000) {
         if (d[3] == 0x00000000) {
@@ -267,9 +254,6 @@ const char *IPv6Address::scopeName(Scope scope)
 
         case GLOBAL:
             return "global";
-
-        case ID:
-            return "id";
 
         default:
             return "???";
@@ -342,8 +326,8 @@ IPv6Address IPv6Address::getSuffix(int prefixLength) const
     return IPv6Address(d[0] & ~mask[0], d[1] & ~mask[1], d[2] & ~mask[2], d[3] & ~mask[3]);
 }
 
-uint64 IPv6Address::getInterfaceId() const
-{
+uint64 IPv6Address::getInterfaceId() const // --HA
+{ // returns last 64 bit address
     uint64 id = (uint64) d[2];
     id = id << 32;
     id = id | (uint64) d[3];

@@ -20,11 +20,10 @@
 
 #include "inet/transportlayer/contract/sctp/SCTPSocket.h"
 #include "inet/transportlayer/contract/sctp/SCTPCommand_m.h"
-#include "inet/transportlayer/sctp/SCTP.h"
 
 namespace inet {
 
-using namespace sctp;
+int32 SCTPSocket::nextAssocId = 0;
 
 SCTPSocket::SCTPSocket(bool type)
 {
@@ -37,7 +36,7 @@ SCTPSocket::SCTPSocket(bool type)
     lastStream = -1;
     oneToOne = type;
     if (oneToOne)
-        assocId = SCTP::getNewAssocId();
+        assocId = getNewAssocId();
     else
         assocId = 0;
     EV_INFO << "sockstate=" << stateName(sockstate) << "\n";
@@ -163,7 +162,7 @@ void SCTPSocket::listen(bool fork, bool reset, uint32 requests, uint32 messagesT
     if (oneToOne)
         openCmd->setAssocId(assocId);
     else
-        openCmd->setAssocId(SCTP::getNewAssocId());
+        openCmd->setAssocId(getNewAssocId());
     openCmd->setFork(fork);
     openCmd->setInboundStreams(inboundStreams);
     openCmd->setOutboundStreams(outboundStreams);
@@ -198,7 +197,7 @@ void SCTPSocket::connect(L3Address remoteAddress, int32 remotePort, bool streamR
     if (oneToOne)
         openCmd->setAssocId(assocId);
     else
-        openCmd->setAssocId(SCTP::getNewAssocId());
+        openCmd->setAssocId(getNewAssocId());
     EV_INFO << "Socket connect. Assoc=" << openCmd->getAssocId() << ", sockstate=" << stateName(sockstate) << "\n";
     openCmd->setLocalAddresses(localAddresses);
     openCmd->setLocalPort(localPrt);
@@ -241,8 +240,8 @@ void SCTPSocket::send(SCTPSimpleMessage *msg, int32 prMethod, double prValue, in
     sendCommand->setPrMethod(prMethod);
     sendCommand->setLast(last);
     sendCommand->setPrimary(primary);
-    sendCommand->setSendUnordered( (msg->getKind() == SCTP_C_SEND_ORDERED) ?
-                                      COMPLETE_MESG_ORDERED : COMPLETE_MESG_UNORDERED );
+    sendCommand->setSendUnordered( (msg->getKind() == SCTP_C_SEND_UNORDERED) ?
+                                   COMPLETE_MESG_UNORDERED : COMPLETE_MESG_ORDERED );
 
     cPacket* cmsg = new cPacket("SCTP_C_SEND");
     cmsg->setKind(SCTP_C_SEND);
@@ -254,6 +253,24 @@ void SCTPSocket::send(SCTPSimpleMessage *msg, int32 prMethod, double prValue, in
 
 void SCTPSocket::sendMsg(cMessage *cmsg)
 {
+    SCTPSendInfo *sendCommand;
+
+    if (cmsg->getControlInfo()) {
+        sendCommand = check_and_cast<SCTPSendInfo *>(cmsg->removeControlInfo());
+        if (sendCommand->getSid() == -1) {
+            lastStream = (lastStream + 1) % outboundStreams;
+            sendCommand->setSid(lastStream);
+        }
+        sendCommand->setAssocId(assocId);
+        cmsg->setControlInfo(sendCommand);
+    } else {
+        sendCommand = new SCTPSendInfo();
+        sendCommand->setAssocId(assocId);
+        lastStream = (lastStream + 1) % outboundStreams;
+        sendCommand->setSid(lastStream);
+        cmsg->setControlInfo(sendCommand);
+    }
+    cmsg->setKind(SCTP_C_SEND);
     sendToSCTP(cmsg);
 }
 

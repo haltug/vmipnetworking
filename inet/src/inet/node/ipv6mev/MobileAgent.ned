@@ -105,6 +105,8 @@ module MobileAgent extends NodeBaseIdModification
 		idLayer.tcpIpOut --> networkLayer.transportIn++ if !idLayer.isIdLayerEnabled;
 		idLayer.udpIpIn <-- networkLayer.transportOut++ if !idLayer.isIdLayerEnabled;
 		idLayer.udpIpOut --> networkLayer.transportIn++ if !idLayer.isIdLayerEnabled;
+        idLayer.icmpIpIn <-- networkLayer.transportOut++;
+		idLayer.icmpIpOut --> networkLayer.transportIn++;
 		
         for i=0..numTcpApps-1 {
             tcpApp[i].tcpOut --> tcp.appIn++;
@@ -121,6 +123,9 @@ module MobileAgent extends NodeBaseIdModification
 
         udp.ipOut --> idLayer.fromUDP if hasUdp;
         udp.ipIn <-- idLayer.toUDP if hasUdp;
+        
+		icmpv6.ipv6Out --> idLayer.fromICMP;
+        icmpv6.ipv6In <-- idLayer.toICMP;
 
         for i=0..numSctpApps-1 {
             sctpApp[i].sctpOut --> sctp.from_appl++;
@@ -134,11 +139,6 @@ module MobileAgent extends NodeBaseIdModification
             tunApp[i].tunIn <-- tun[i].appOut if hasTun;
         }
 		
-		idLayer.icmpIpOut --> networkLayer.icmpIpIn;
-        idLayer.icmpIpIn <-- networkLayer.icmpIpOut;        
-        idLayer.icmpOut --> icmpv6.ipv6In;
-        idLayer.icmpIn <-- icmpv6.ipv6Out;
-
         // ICMPv6 to IPv6ErrorHandling
         icmpv6.errorOut --> ipv6ErrorHandling.in;
 

@@ -44,6 +44,6 @@ simple DataAgent
         output tcpOut;
         input icmpIn; 
         output icmpOut;
-        input icmpIpIn;
-        output icmpIpOut;
+        input fromICMP; // connection to icmp module
+        output toICMP;
 }

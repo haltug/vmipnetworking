@@ -12,7 +12,7 @@ namespace inet {
  * @ingroup utils
  */
 template<typename T = cModule *const>
-class TraCIModuleFinder
+class FindModule
 {
   public:
     /**
@@ -114,8 +114,8 @@ class AccessModuleWrap
     T *get(cModule *const from = nullptr)
     {
         if (!pModule) {
-            pModule = TraCIModuleFinder<T *>::findSubModule(
-                        TraCIModuleFinder<>::findHost(from != nullptr ? from : getSimulation()->getContextModule()));
+            pModule = FindModule<T *>::findSubModule(
+                        FindModule<>::findHost(from != nullptr ? from : getSimulation()->getContextModule()));
         }
         return pModule;
     }

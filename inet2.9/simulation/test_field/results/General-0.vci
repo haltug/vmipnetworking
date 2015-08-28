@@ -1,0 +1,118 @@
+file 4403 1440754504                                            
+version 2
+run General-0-20150828-11:34:29-1211
+attr configname General
+attr datetime 20150828-11:34:29
+attr experiment General
+attr inifile omnetpp.ini
+attr iterationvars ""
+attr iterationvars2 $repetition=0
+attr measurement ""
+attr network test_field
+attr processid 1211
+attr repetition 0
+attr replication #0
+attr resultdir results
+attr runnumber 0
+attr seedset 1
+
+vector 19  test_field.CN[0].eth[0].queue.pauseQueue  queueLength:vector  ETV
+attr interpolationmode  sample-hold
+attr title  "queue length, vector"
+vector 23  test_field.CN[0].eth[0].queue.dataQueue  queueLength:vector  ETV
+attr interpolationmode  sample-hold
+attr title  "queue length, vector"
+vector 39  test_field.MA[0].wlan[0].mgmt  dataQueueLen:vector  ETV
+attr interpolationmode  sample-hold
+attr title  "data queue length, vector"
+vector 52  test_field.MA[0].wlan[1].mgmt  dataQueueLen:vector  ETV
+attr interpolationmode  sample-hold
+attr title  "data queue length, vector"
+vector 77  test_field.MA[1].wlan[0].mgmt  dataQueueLen:vector  ETV
+attr interpolationmode  sample-hold
+attr title  "data queue length, vector"
+vector 90  test_field.MA[1].wlan[1].mgmt  dataQueueLen:vector  ETV
+attr interpolationmode  sample-hold
+attr title  "data queue length, vector"
+vector 45  test_field.MA[0].wlan[0].radio  radioMode:vector  ETV
+attr interpolationmode  sample-hold
+attr source  radioModeChanged
+attr title  "Radio mode, vector"
+vector 48  test_field.MA[0].wlan[0].radio  radioChannel:vector  ETV
+attr interpolationmode  sample-hold
+attr source  radioChannelChanged
+attr title  "Radio channel, vector"
+vector 58  test_field.MA[0].wlan[1].radio  radioMode:vector  ETV
+attr interpolationmode  sample-hold
+attr source  radioModeChanged
+attr title  "Radio mode, vector"
+vector 61  test_field.MA[0].wlan[1].radio  radioChannel:vector  ETV
+attr interpolationmode  sample-hold
+attr source  radioChannelChanged
+attr title  "Radio channel, vector"
+vector 83  test_field.MA[1].wlan[0].radio  radioMode:vector  ETV
+attr interpolationmode  sample-hold
+attr source  radioModeChanged
+attr title  "Radio mode, vector"
+vector 86  test_field.MA[1].wlan[0].radio  radioChannel:vector  ETV
+attr interpolationmode  sample-hold
+attr source  radioChannelChanged
+attr title  "Radio channel, vector"
+vector 96  test_field.MA[1].wlan[1].radio  radioMode:vector  ETV
+attr interpolationmode  sample-hold
+attr source  radioModeChanged
+attr title  "Radio mode, vector"
+vector 99  test_field.MA[1].wlan[1].radio  radioChannel:vector  ETV
+attr interpolationmode  sample-hold
+attr source  radioChannelChanged
+attr title  "Radio channel, vector"
+vector 46  test_field.MA[0].wlan[0].radio  receptionState:vector  ETV
+attr interpolationmode  sample-hold
+attr source  receptionStateChanged
+attr title  "Radio reception state, vector"
+vector 112  test_field.MA[0].wlan[0].mac  State  ETV
+attr enum  "BACKOFF=3, DEFER=1, IDLE=0, RECEIVE=8, WAITACK=4, WAITAIFS=2, WAITCTS=6, WAITMULTICAST=5, WAITSIFS=7"
+attr enumname  inet::Ieee80211Mac
+vector 59  test_field.MA[0].wlan[1].radio  receptionState:vector  ETV
+attr interpolationmode  sample-hold
+attr source  receptionStateChanged
+attr title  "Radio reception state, vector"
+vector 116  test_field.MA[0].wlan[1].mac  State  ETV
+attr enum  "BACKOFF=3, DEFER=1, IDLE=0, RECEIVE=8, WAITACK=4, WAITAIFS=2, WAITCTS=6, WAITMULTICAST=5, WAITSIFS=7"
+attr enumname  inet::Ieee80211Mac
+vector 84  test_field.MA[1].wlan[0].radio  receptionState:vector  ETV
+attr interpolationmode  sample-hold
+attr source  receptionStateChanged
+attr title  "Radio reception state, vector"
+vector 120  test_field.MA[1].wlan[0].mac  State  ETV
+attr enum  "BACKOFF=3, DEFER=1, IDLE=0, RECEIVE=8, WAITACK=4, WAITAIFS=2, WAITCTS=6, WAITMULTICAST=5, WAITSIFS=7"
+attr enumname  inet::Ieee80211Mac
+vector 97  test_field.MA[1].wlan[1].radio  receptionState:vector  ETV
+attr interpolationmode  sample-hold
+attr source  receptionStateChanged
+attr title  "Radio reception state, vector"
+vector 124  test_field.MA[1].wlan[1].mac  State  ETV
+attr enum  "BACKOFF=3, DEFER=1, IDLE=0, RECEIVE=8, WAITACK=4, WAITAIFS=2, WAITCTS=6, WAITMULTICAST=5, WAITSIFS=7"
+attr enumname  inet::Ieee80211Mac
+19	4125 9 0 0 0 0 1 0 0 0 0
+23	4134 9 0 0 0 0 1 0 0 0 0
+39	4143 9 0 0 0 0 1 0 0 0 0
+45	4152 18 0 0 0 0 2 0 2 2 4
+46	4170 9 0 0 0 0 1 1 1 1 1
+48	4179 9 0 0 0 0 1 0 0 0 0
+52	4188 9 0 0 0 0 1 0 0 0 0
+58	4197 18 0 0 0 0 2 0 2 2 4
+59	4215 9 0 0 0 0 1 1 1 1 1
+61	4224 9 0 0 0 0 1 0 0 0 0
+77	4233 9 0 0 0 0 1 0 0 0 0
+83	4242 18 0 0 0 0 2 0 2 2 4
+84	4260 9 0 0 0 0 1 1 1 1 1
+86	4269 9 0 0 0 0 1 0 0 0 0
+90	4278 9 0 0 0 0 1 0 0 0 0
+96	4287 18 0 0 0 0 2 0 2 2 4
+97	4305 9 0 0 0 0 1 1 1 1 1
+99	4314 9 0 0 0 0 1 0 0 0 0
+112	4323 20 0 0 0 0 2 0 0 0 0
+116	4343 20 0 0 0 0 2 0 0 0 0
+120	4363 20 0 0 0 0 2 0 0 0 0
+124	4383 20 0 0 0 0 2 0 0 0 0

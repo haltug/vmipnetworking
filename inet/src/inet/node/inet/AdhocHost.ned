@@ -34,7 +34,7 @@ import inet.networklayer.contract.IManetRouting;
 module AdhocHost extends WirelessHost
 {
     parameters:
-//        @display("i=device/cellphone");
+        @display("i=device/cellphone");
         wlan[*].mgmtType = default("Ieee80211MgmtAdhoc");  // use adhoc management
         string routingProtocol @enum("AODVUU","DYMOUM","DYMO","DSRUU","OLSR","OLSR_ETX","DSDV_2","Batman") = default("");  // used mobile routing protocol. see: inet.networklayer.manetrouting
         forwarding = default(true);

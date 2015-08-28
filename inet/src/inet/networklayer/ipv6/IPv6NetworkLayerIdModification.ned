@@ -85,9 +85,6 @@ module IPv6NetworkLayerIdModification like INetworkLayer
         for i=0..sizeof(transportOut)-1 {
             ipv6.transportOut++ --> { @display("m=n"); } --> transportOut[i];
         }
-        // IPv6 to ICMPv6
-        ipv6.icmpOut --> icmpIpOut;
-        ipv6.icmpIn <-- icmpIpIn;
 
         // IPv6 to IPv6 Tunneling
         iptunneling.upperLayerIn <-- ipv6.upperTunnelingOut;

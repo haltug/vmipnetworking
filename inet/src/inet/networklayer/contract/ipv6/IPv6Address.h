@@ -57,8 +57,7 @@ class INET_API IPv6Address
         MULTICAST,
         LINK,
         SITE,
-        GLOBAL,
-        ID
+        GLOBAL
     };
 
     /** @name Predefined addresses */
@@ -92,9 +91,6 @@ class INET_API IPv6Address
 
     /** Link-local MANET routers multicast address */
     static const IPv6Address LL_MANET_ROUTERS;
-
-    /** The ID prefix (1D::) = 29 = 00011101*/
-    static const IPv6Address ID_PREFIX;
     //@}
 
     /**
@@ -242,11 +238,6 @@ class INET_API IPv6Address
     uint64 getInterfaceId() const;
 
     /**
-     * Prints the interface Id of the IPv6Address.
-     */
-    std::string str_interfaceId() const;
-
-    /**
      * Overwrites the first prefixLength bits of the address with
      * the bits from the address passed as argument.
      * Return value is the object itself.
@@ -316,9 +307,6 @@ class INET_API IPv6Address
 
     /** Utility function based on getScope() */
     bool isGlobal() const { return getScope() == GLOBAL; }
-
-    /** Utility function based on getScope() */
-    bool isId() const { return getScope() == ID; }
 
     /**
      * Get the 4-bit scope field of an IPv6 multicast address.

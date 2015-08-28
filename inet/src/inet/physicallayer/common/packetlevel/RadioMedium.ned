@@ -48,6 +48,7 @@ module RadioMedium like IRadioMedium
         string neighborCacheType = default("");   // NED type of the neighbor cache model
         string communicationCacheType = default("VectorCommunicationCache"); // NED type of the communication cache model
         string mediumVisualizerType = default("MediumVisualizer"); // NED type of the medium visualizer
+
         // filter parameters that control when radio frames are sent to receiver radios
         string rangeFilter = default("");       // when either set to 'interferenceRange' or 'communicationRange' the radio medium doesn't send radio frames to a radio if it's outside the provided range
         bool radioModeFilter = default(false);  // when enabled the radio medium doesn't send radio frames to a radio if it's neither in receiver nor in transceiver mode

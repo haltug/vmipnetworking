@@ -118,9 +118,10 @@ void Ieee80211AgentSTA::receiveSignal(cComponent *source, simsignal_t signalID, 
 {
     Enter_Method_Silent();
     printNotificationBanner(signalID, obj);
+
     if (signalID == NF_L2_BEACON_LOST) {
         InterfaceEntry *ie = (InterfaceEntry *) obj;
-        if(ie == myIface) {
+        if(ie == myIface) { // --HA
             EV << "beacon lost, starting scanning again\n";
             getContainingNode(this)->bubble("Beacon lost!");
             //sendDisassociateRequest();

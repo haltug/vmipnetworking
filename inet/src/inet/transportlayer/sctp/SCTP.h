@@ -185,7 +185,6 @@ class INET_API SCTP : public cSimpleModule
     IInterfaceTable *ift;
 
     int32 sizeAssocMap;
-    static int32 nextAssocId;
 
     uint16 nextEphemeralPort;
 
@@ -216,6 +215,8 @@ class INET_API SCTP : public cSimpleModule
     virtual int numInitStages() const override { return NUM_INIT_STAGES; }
     virtual void handleMessage(cMessage *msg) override;
     virtual void finish() override;
+    virtual void send_to_ip(SCTPMessage *msg);
+
 
     inline AssocStat *getAssocStat(uint32 assocId)
     {
@@ -245,12 +246,6 @@ class INET_API SCTP : public cSimpleModule
      * To be called from SCTPAssociation: reserves an ephemeral port for the connection.
      */
     uint16 getEphemeralPort();
-
-    /**
-     * Generates a new integer, to be used as assocId. (assocId is part of the key
-     * which associates connections with their apps).
-     */
-    static int32 getNewAssocId() { return ++nextAssocId; }
 
     SCTPAssociation *getAssoc(int32 assocId);
     SCTPAssociation *findAssocWithVTag(uint32 peerVTag, uint32 remotePort, uint32 localPort);

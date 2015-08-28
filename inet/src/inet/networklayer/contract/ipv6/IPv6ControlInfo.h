@@ -112,14 +112,6 @@ class INET_API IPv6ControlInfo : public IPv6ControlInfo_Base, public INetworkPro
     virtual void setHopLimit(short hopLimit) override { IPv6ControlInfo_Base::setHopLimit(hopLimit); }
 };
 
-class INET_API IPv6ControlInfoWithId : public IPv6ControlInfo
-{
-    virtual L3Address getSourceAddress() const override { return L3Address(srcAddr_var); }
-    virtual void setSourceAddress(const L3Address& address) override { srcAddr_var = address.toIPv6(); }
-    virtual L3Address getDestinationAddress() const override { return L3Address(destAddr_var); }
-    virtual void setDestinationAddress(const L3Address& address) override { destAddr_var = address.toIPv6(); } // it's an IPv6 address with prefix 1D::
-};
-
 } // namespace inet
 
 #endif // ifndef __INET_IPV6CONTROLINFO_H

@@ -42,7 +42,7 @@ import inet.networklayer.common.InterfaceTable;
 module AccessPoint
 {
     parameters:
-        @node();
+        @networkNode();
         @labels(node,ethernet-node,wireless-node);
         @display("i=device/accesspoint");
         string mobilityType = default("StationaryMobility"); // how the node moves around. see: inet.mobility
@@ -69,7 +69,7 @@ module AccessPoint
                 @display("p=208,43");
         }
         macTable: <macTableType> like IMACAddressTable {
-            @display("p=114,43;is=s");
+            @display("p=73,19;is=s");
         }
         relayUnit: <relayUnitType> like IMACRelayUnit if sizeof(ethg)+numRadios>1 && relayUnitType != "" {
             parameters:
