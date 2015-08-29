@@ -166,9 +166,7 @@ void MobileAgent::handleMessage(cMessage *msg)
             processOutgoingIcmpPacket(msg);
         }
         else {
-            if(msg)
-                EV << "ERROR_MA: kind: " << msg->getKind() << " className:" << msg->getClassName() << endl;
-            throw cRuntimeError("handleMessage: Unknown timer expired. Which timer msg is unknown?");
+            throw cRuntimeError("MA_handleMessage: Unknown selfMessage received. Kind: %s ClassName: %s", msg->getKind(), msg->getClassName());
         }
     }
     else if(msg->arrivedOn("fromUDP")) {
@@ -189,20 +187,6 @@ void MobileAgent::handleMessage(cMessage *msg)
         else
             send(msg, "icmpIpOut");
     }
-
-    else if(msg->arrivedOn("fromLowerLayer")) {
-        if (dynamic_cast<IdentificationHeader *> (msg)) {
-            IPv6ControlInfo *controlInfo = check_and_cast<IPv6ControlInfo *>(msg->removeControlInfo());
-            processAgentMessage((IdentificationHeader *) msg, controlInfo);
-        } else
-        if (dynamic_cast<ICMPv6Message *> (msg)) { // icmp messages from IP module
-            IPv6ControlInfo *controlInfo = check_and_cast<IPv6ControlInfo *>(msg->removeControlInfo());
-            processIncomingIcmpPacket((ICMPv6Message *) msg, controlInfo);
-        } else {
-            throw cRuntimeError("MA: IP module should only forward ICMP messages");
-            throw cRuntimeError("MA: IP module should only forward ID packages.");
-        }
-    }
     else if(msg->arrivedOn("icmpIpIn")) {
         if(!isIdLayerEnabled)
             send(msg, "toICMP");
@@ -214,6 +198,18 @@ void MobileAgent::handleMessage(cMessage *msg)
     else if(msg->arrivedOn("tcpIpIn")) { // icmp messages from ICMP module
         if(!isIdLayerEnabled)
             send(msg, "toTCP");
+    }
+    else if(msg->arrivedOn("fromLowerLayer")) {
+        if (dynamic_cast<IdentificationHeader *> (msg)) {
+            IPv6ControlInfo *controlInfo = check_and_cast<IPv6ControlInfo *>(msg->removeControlInfo());
+            processAgentMessage((IdentificationHeader *) msg, controlInfo);
+        } else
+        if (dynamic_cast<ICMPv6Message *> (msg)) { // icmp messages from IP module
+            IPv6ControlInfo *controlInfo = check_and_cast<IPv6ControlInfo *>(msg->removeControlInfo());
+            processIncomingIcmpPacket((ICMPv6Message *) msg, controlInfo);
+        } else {
+            throw cRuntimeError("MA: IP module should only forward ID packages.");
+        }
     }
     else
         if(isIdLayerEnabled)
@@ -315,7 +311,6 @@ void MobileAgent::sendSequenceInit(cMessage *msg) {
 }
 
 void MobileAgent::createSequenceUpdate(uint64 mobileId, uint seq, uint ack) {
-//    EV << "MA: Create sequence update to CA" << endl;
     if(sessionState != ASSOCIATED &&  seqnoState != ASSOCIATED)
         throw cRuntimeError("MA: Not registered at CA. Cannot run seq init.");
     if(seq == ack) // nothing to update
@@ -394,7 +389,7 @@ void MobileAgent::createFlowRequest(FlowTuple &tuple) {
     frt->nodeAddress = funit->nodeAddress;
     InterfaceEntry *ie = getInterface(ControlAgentAddress);
     if(!ie) {
-        EV_INFO << "MA: Delaying flow request. no interface provided." << endl;
+        EV_INFO << "MA_createFlowRequest: Delaying flow request. No interface provided." << endl;
         frt->ie = nullptr;
         frt->nextScheduledTime = simTime()+TIMEDELAY_FLOW_REQ;
     } else {
@@ -406,12 +401,14 @@ void MobileAgent::createFlowRequest(FlowTuple &tuple) {
 }
 
 void MobileAgent::sendFlowRequest(cMessage *msg) {
+    EV_INFO << "MA_sendFlowRequest: Preparing flow request." << endl;
     FlowRequestTimer *frt = (FlowRequestTimer *) msg->getContextPointer();
     frt->ackTimeout = (frt->ackTimeout)*2;
     frt->nextScheduledTime = simTime()+frt->ackTimeout;
     if(!frt->ie) { // if interface is provided, send message, else delay transmission
         frt->ie = getInterface(frt->dest); // check if interface is now provided
         if(!frt->ie) { // no interface yet
+            EV_INFO << "MA_sendFlowRequest: Delaying flow request due to missing associated interface." << endl;
             scheduleAt(frt->nextScheduledTime, msg);
             return;
         }
@@ -419,7 +416,7 @@ void MobileAgent::sendFlowRequest(cMessage *msg) {
     flowRequestSignal = simTime();
     flowRequestStat++;
     emit(flowRequest, flowRequestStat);
-    EV_INFO << "MA: Sending flow request." << endl;
+    EV_INFO << "MA_sendFlowRequest: Sending flow request." << endl;
     const IPv6Address nodeAddress = frt->nodeAddress;
     const IPv6Address &dest =  frt->dest;
     IdentificationHeader *ih = getAgentHeader(1, IP_PROT_NONE, getSeqNo(agentId), getAckNo(agentId), agentId);
@@ -627,9 +624,8 @@ void MobileAgent::processIncomingIcmpPacket(IdentificationHeader *agentHeader, I
 
 void MobileAgent::processIncomingIcmpPacket(ICMPv6Message *icmp, IPv6ControlInfo *controlInfo)
 {
-//    EV << "MA: Received ICMP from any node except from data agent (no Id header)." << endl;
     icmp->setControlInfo(controlInfo);
-    cGate *outgate = gate("icmpOut");
+    cGate *outgate = gate("toICMP");
     send(icmp, outgate);
 }
 
@@ -941,7 +937,7 @@ void MobileAgent::processOutgoingIcmpPacket(cMessage *msg)
                             } else {
                                 deletePacketTimerEntry(packet); // removes just from the queue but does not delete message
                             }
-                        } else {
+//                        } else {
                         }
                         sendUpperLayerPacket(icmp, controlInfo, funit->dataAgent, IP_PROT_IPv6_ICMP);
                     } else
@@ -1273,7 +1269,7 @@ MobileAgent::LinkBuffer *MobileAgent::getLinkBuffer(InterfaceEntry *ie)
         lb = it->second;
         return lb;
     }
-    return lb;
+    return lb = nullptr;
 }
 
 void MobileAgent::addLinkUnit(LinkBuffer* lb, LinkUnit *lu)

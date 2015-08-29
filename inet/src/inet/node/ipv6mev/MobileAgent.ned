@@ -101,12 +101,12 @@ module MobileAgent extends NodeBaseIdModification
         idLayer.fromLowerLayer <-- networkLayer.transportOut++ if idLayer.isIdLayerEnabled;
         idLayer.toLowerLayer --> networkLayer.transportIn++ if idLayer.isIdLayerEnabled;
 		
+        idLayer.icmpIpIn <-- networkLayer.transportOut++;
+		idLayer.icmpIpOut --> networkLayer.transportIn++;
 		idLayer.tcpIpIn <-- networkLayer.transportOut++ if !idLayer.isIdLayerEnabled;
 		idLayer.tcpIpOut --> networkLayer.transportIn++ if !idLayer.isIdLayerEnabled;
 		idLayer.udpIpIn <-- networkLayer.transportOut++ if !idLayer.isIdLayerEnabled;
 		idLayer.udpIpOut --> networkLayer.transportIn++ if !idLayer.isIdLayerEnabled;
-        idLayer.icmpIpIn <-- networkLayer.transportOut++;
-		idLayer.icmpIpOut --> networkLayer.transportIn++;
 		
         for i=0..numTcpApps-1 {
             tcpApp[i].tcpOut --> tcp.appIn++;

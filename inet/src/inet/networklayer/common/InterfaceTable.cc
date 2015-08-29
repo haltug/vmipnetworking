@@ -73,6 +73,8 @@ void InterfaceTable::initialize(int stage)
     if (stage == INITSTAGE_LOCAL) {
         // get a pointer to the host module
         host = getContainingNode(this);
+        host->subscribe(NF_L2_ASSOCIATED,this);
+        host->subscribe(NF_L2_DISASSOCIATED,this);
         WATCH_PTRVECTOR(idToInterface);
     }
     else if (stage == INITSTAGE_NETWORK_LAYER) {
