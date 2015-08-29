@@ -38,15 +38,10 @@ Define_Module(TraCIScenarioManager);
 TraCIScenarioManager::TraCIScenarioManager() {}
 
 TraCIScenarioManager::~TraCIScenarioManager() {
-//	if(connectAndStartTrigger)
 	    cancelAndDelete(connectAndStartTrigger);
-//	if(executeOneTimestepTrigger)
 	    cancelAndDelete(executeOneTimestepTrigger);
-//	if(myAddVehicleTimer)
 	    cancelAndDelete(myAddVehicleTimer);
-//	if(commandIfc)
 	    delete commandIfc;
-//	if(connection)
 	    delete connection;
 }
 
@@ -55,7 +50,7 @@ void TraCIScenarioManager::initialize(int stage) {
 	if (stage != 1) {
 		return;
 	}
-	debug = par("debug");
+	debug = par("debug"); // meaningless
 	connectAt = par("connectAt");
 	firstStepAt = par("firstStepAt");
 	updateInterval = par("updateInterval");

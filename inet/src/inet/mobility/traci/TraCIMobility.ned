@@ -30,7 +30,7 @@ import inet.mobility.base.MovingMobilityBase;
 //
 // See the Veins website <a href="http://veins.car2x.org/"> for a tutorial, documentation, and publications </a>.
 //
-// @author Christoph Sommer, David Eckhoff, Luca Bedogni, Bastian Halmos, Stefan Joerer
+// @author Christoph Sommer, David Eckhoff, Luca Bedogni, Bastian Halmos, Stefan Joerer, Halis Altug
 //
 // @see TraCIScenarioManager
 // @see TraCIScenarioManagerLaunchd
@@ -43,7 +43,6 @@ simple TraCIMobility extends MovingMobilityBase
         string traciManager = "manager";
         string environmentModule = "environment";
 //		double updateInterval @unit(s) = default(0.1s);
-		
 //======== Start position, if not randomized.
 //        double initialX; 
 //        double initialY;
