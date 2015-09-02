@@ -32,6 +32,7 @@ class MobileAgent : public cListener, public Agent
 {
     virtual ~MobileAgent();
     bool isIdLayerEnabled;
+    bool enableNodeRequesting;
   protected:
     IInterfaceTable *ift = nullptr; // for recognizing changes etc
     cModule *interfaceNotifier = nullptr; // listens for changes in interfacetable
@@ -123,7 +124,7 @@ class MobileAgent : public cListener, public Agent
     void sendSequenceInit(cMessage *msg); // for sending sequence msg to CA
     void createSequenceUpdate(uint64 mobileId, uint seq, uint ack);
     void sendSequenceUpdate(cMessage *msg);
-    void createFlowRequest(FlowTuple &tuple);
+    bool createFlowRequest(FlowTuple &tuple);
     void sendFlowRequest(cMessage *msg);
 //  PACKET PROCESSING INCOMING MESSAGES
     void processAgentMessage(IdentificationHeader *agentHeader, IPv6ControlInfo *ipCtrlInfo); // starting point of any receiving msg. assigns msg according header

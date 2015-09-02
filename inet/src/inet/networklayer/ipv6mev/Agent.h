@@ -39,6 +39,7 @@ namespace inet {
 #define TIMERKEY_SEQ_UPDATE_NOT  8
 #define TIMERKEY_UPDATE_ACK      9
 #define TIMERKEY_IF_CHANGE       10
+#define TIMERKEY_SEQ_UPDATE_ACK  11
 //#define TIMERKEY_UDP_OUT_MSG     10
 //#define TIMERKEY_TCP_OUT_MSG     11
 
@@ -54,6 +55,7 @@ namespace inet {
 #define TIMERTYPE_SEQ_UPDATE_NOT 58
 #define TIMERTYPE_UPDATE_ACK    59
 #define TIMERTYPE_IF_CHANGE     60
+#define TIMERTYPE_SEQ_UPDATE_ACK 61
 //#define TIMERTYPE_UDP_OUT_MSG   60
 //#define TIMERTYPE_TCP_OUT_MSG   61
 
@@ -78,21 +80,23 @@ namespace inet {
 #define MSG_UPDATE_ACK          117
 #define MSG_ICMP_RETRANSMIT     118
 #define MSG_IF_CHANGE           119
+#define MSG_SEQ_UPDATE_ACK      120
 
 //========== Retransmission time of messages ==========
-#define TIMEOUT_SESSION_INIT    0.5 // retransmission time of ca init in sec
-#define TIMEOUT_SEQNO_INIT      0.5
+#define TIMEOUT_SESSION_INIT    0.25 // retransmission time of ca init in sec
+#define TIMEOUT_SEQNO_INIT      0.25
 #define TIMEOUT_SEQ_UPDATE      0.5
 #define TIMEOUT_LOC_UPDATE      1
 #define TIMEDELAY_IF_DOWN       3   // delay of ip msg handler
 #define TIMEDELAY_IF_UP         0
 #define TIMEDELAY_IF_CHANGE     0
-#define TIMEDELAY_FLOW_REQ      1 // unit is [s]
+#define TIMEDELAY_FLOW_REQ      0.25 // unit is [s]
 #define TIMEDELAY_PKT_PROCESS   5
 #define TIMEDELAY_MA_INIT       1 // unit is [s]
 #define MAX_PKT_LIFETIME        30 // specifies retransmission attempts until pkt is discarded for udp tcp
 #define TIMEDELAY_IFACE_INIT    1 // delaying registration of interface when MA is in init stage.
 #define INTERVAL_LINK_BUFFER    2
+#define TIMEDELAY_SEQ_UPDATE_ACK 1
 
 //========== Header SIZE ===========
 #define SIZE_AGENT_HEADER        16
@@ -171,6 +175,9 @@ class INET_API Agent : public cSimpleModule
 
     typedef std::map<FlowTuple, FlowUnit> FlowTable; // IPv6address should be replaced with DataAgent <cn,da>
     FlowTable flowTable;
+    friend std::ostream& operator<<(std::ostream& os, const FlowTuple& ft);
+    friend std::ostream& operator<<(std::ostream& os, const FlowUnit& fu);
+
 
     typedef std::map<IPv6Address,IPv6Address> AddressAssociation; // nodeAddress -> agentAddress
     AddressAssociation addressAssociation;
@@ -309,7 +316,11 @@ class INET_API Agent : public cSimpleModule
         uint64 id;
         uint seq;
     };
-
+    class SequenceUpdateAckTimer : public ExpiryTimer {
+    public:
+        uint64 id;
+        uint seq;
+    };
     ExpiryTimer *getExpiryTimer(TimerKey& key, int timerType);
     bool pendingExpiryTimer(const IPv6Address& dest, int interfaceId, int timerType, uint64 id = 0, uint seq = 0);
     bool cancelExpiryTimer(const IPv6Address& dest, int interfaceId, int timerType, uint64 id = 0, uint seq = 0, uint ack = 0);
@@ -357,6 +368,7 @@ class INET_API Agent : public cSimpleModule
     bool isInterfaceInserted(uint64 id, uint seq, int iface);
     bool isSeqNoAcknowledged(uint64 id);
     bool isIdInitialized(uint64 id);
+    bool isSeqNoInitialized(uint64 id);
     uint getSeqNo(uint64 id); // returns the last sequence number
     void setSeqNo(uint64 id, uint seqno);
     uint getAckNo(uint64 id);     // returns the last ack number

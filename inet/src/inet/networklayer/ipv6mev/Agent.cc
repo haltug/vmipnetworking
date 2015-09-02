@@ -32,6 +32,18 @@ std::ostream& operator<<(std::ostream& os, const Agent& a)
     return os;
 };
 
+std::ostream& operator<<(std::ostream& os, const Agent::FlowTuple& ft)
+{
+    os << "Tuple {\nP: " << ft.protocol << " \nDest: "<< ft.destAddress << ":" << ft.destPort << " \nSrc: _:" << ft.sourcePort << " \nId: " << ft.interfaceId << "\n}";
+    return os;
+}
+
+std::ostream& operator<<(std::ostream& os, const Agent::FlowUnit& fu)
+{
+    os << "\nUnit {\nState: " << fu.state << " \nId: " << fu.id << " \nMobileAgent: " << fu.mobileAgent.str() << " \nDataAgent: " << fu.dataAgent << " \nCorrNode: " << fu.nodeAddress << "\n}";
+    return os;
+}
+
 // TODO implement destructor
 //Agent::~Agent() {
 //    auto it = expiredTimerList.begin();
@@ -125,7 +137,7 @@ IdentificationHeader *Agent::getAgentHeader(short type, short protocol, uint seq
 //=========================================================================================================
 //============================ Timer ==========================
 // Returns the corresponding timer. If a timer does not exist, it is created and inserted to list.
-// If a timer exists, it is canceled and should be overwritten
+// If a timer exists, it is canceled and will be overwritten
 Agent::ExpiryTimer *Agent::getExpiryTimer(TimerKey& key, int timerType) {
     ExpiryTimer *timer;
     auto pos = expiredTimerList.find(key);
@@ -158,14 +170,10 @@ Agent::ExpiryTimer *Agent::getExpiryTimer(TimerKey& key, int timerType) {
             UpdateAckTimer *uat = (UpdateAckTimer *) pos->second;
             cancelAndDelete(uat->timer);
             timer = uat;
-//        } else if(dynamic_cast<OutgoingUdpMessageTimer *>(pos->second)) {
-//            OutgoingUdpMessageTimer *oum = (OutgoingUdpMessageTimer *) pos->second;
-//            cancelEvent(oum->timer); // message is only canceled, but not deleted
-//            timer = oum;
-//        } else if(dynamic_cast<OutgoingTcpMessageTimer *>(pos->second)) {
-//            OutgoingTcpMessageTimer *otm = (OutgoingTcpMessageTimer *) pos->second;
-//            cancelEvent(otm->timer); // message is only canceled, but not deleted
-//            timer = otm;
+        } else if(dynamic_cast<SequenceUpdateAckTimer *> (pos->second)) {
+            SequenceUpdateAckTimer *suat = (SequenceUpdateAckTimer *) pos->second;
+            cancelAndDelete(suat->timer);
+            timer = suat;
         } else if(dynamic_cast<UpdateNotifierTimer *>(pos->second)) {
             UpdateNotifierTimer *unt = (UpdateNotifierTimer *) pos->second;
 //            cancelAndDelete(unt->timer); // is explicitly removed by createSeqUpdate functions.
@@ -213,6 +221,9 @@ Agent::ExpiryTimer *Agent::getExpiryTimer(TimerKey& key, int timerType) {
                 break;
             case TIMERTYPE_UPDATE_ACK:
                 timer = new UpdateAckTimer();
+                break;
+            case TIMERTYPE_SEQ_UPDATE_ACK:
+                timer = new SequenceUpdateAckTimer();
                 break;
             default:
                 throw cRuntimeError("Timer is not known. Type of key is wrong, check that.");
@@ -329,13 +340,13 @@ void Agent::insertAddress(uint64 id, int iface, IPv6Address addr)
         std::vector<AddressTuple>::iterator it = std::find(addressMap[id].addressTable[addressMap[id].seqNo].begin(), addressMap[id].addressTable[addressMap[id].seqNo].end(), tuple);
         if(it != addressMap[id].addressTable[addressMap[id].seqNo].end()) {
             EV_WARN << "AM_insertAddress: Inserting IP address=" << it->address << " with if=" << it->interface << " again. This should not happen." << endl;
-            return;
-        } else { // interface is not assigned with an ip address
-            AddressList list(addressMap[id].addressTable[addressMap[id].seqNo]); // copying old list
-            list.push_back(tuple); // inserting new addr with interface id
-            addressMap[id].seqNo = (addressMap[id].seqNo + 1) % SEQ_FIELD_LENGTH; // incrementing seqno
-            addressMap[id].addressTable[addressMap[id].seqNo] = list; // appending list to table
+//            return;
+//        } else { // interface is not assigned with an ip address
         }
+        AddressList list(addressMap[id].addressTable[addressMap[id].seqNo]); // copying old list
+        list.push_back(tuple); // inserting new addr with interface id
+        addressMap[id].seqNo = (addressMap[id].seqNo + 1) % SEQ_FIELD_LENGTH; // incrementing seqno
+        addressMap[id].addressTable[addressMap[id].seqNo] = list; // appending list to table
     } else {
         throw cRuntimeError("AM_insertAddress: ID is not found in AddressMap. Create entry for ID.");
     }
@@ -353,7 +364,8 @@ void Agent::deleteAddress(uint64 id, int iface, IPv6Address addr) {
             addressMap[id].seqNo = (addressMap[id].seqNo + 1) % SEQ_FIELD_LENGTH; // incrementing seqno
             addressMap[id].addressTable[addressMap[id].seqNo] = list;
         } else { // interface is not assigned with an ip address
-            throw cRuntimeError("AM_deleteAddress: Interface/Address has not been assigned. So nothing to remove.");
+            std::string a = addr.str();
+            throw cRuntimeError("AM_deleteAddress: Interface/Address has not been assigned. Id: %d Addr: %s Iface: %d .", id, a.c_str(), iface);
         }
     } else {
         throw cRuntimeError("AM_deleteAddress: is not found in AddressMap. Create entry for ID.");
@@ -493,6 +505,18 @@ bool Agent::isSeqNoAcknowledged(uint64 id) {
 bool Agent::isIdInitialized(uint64 id) {
     return addressMap.count(id);
 }
+
+bool Agent::isSeqNoInitialized(uint64 id) {
+    if(addressMap.count(id))
+        if(!addressMap[id].addressTable.count(addressMap[id].seqNo))
+            return true;
+        else
+            return false;
+    else
+        return false;
+//        throw cRuntimeError("AM_getSeqNo: ID is not found in AddressMap. Create entry for ID.");
+}
+
 uint Agent::getSeqNo(uint64 id) {
     if(addressMap.count(id)) // check if id exists in map
         return addressMap[id].seqNo;

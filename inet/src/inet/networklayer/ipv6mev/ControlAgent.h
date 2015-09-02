@@ -66,7 +66,8 @@ public:
     void createAgentUpdate(uint64 mobileId, uint seq); // used by CA to update all its specific data agents
     void sendAgentUpdate(cMessage *msg);
 
-    void sendSequenceUpdateAck(uint64 mobileId); // confirm to MA its new
+    void createSequenceUpdateAck(uint64 mobileId);
+    void sendSequenceUpdateAck(cMessage *msg); // confirm to MA its new
     void sendSessionInitResponse(IPv6Address dest);
     void sendSequenceInitResponse(IPv6Address dest, uint64 mobileId, uint seq);
     void sendSequenceUpdateResponse(IPv6Address destAddr, uint64 mobileId, uint seq);

@@ -23,6 +23,7 @@ simple MobileAgent
     parameters:
         @display("i=block/join");
         bool isIdLayerEnabled = default(true);
+		bool enableNodeRequesting = default(false);
 //        double startTime @unit(s) = default(5s);
         string controlAgent = default("");  // server address (may be symbolic)
         string interfaceTableModule;

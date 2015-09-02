@@ -66,6 +66,7 @@ void DataAgent::initialize(int stage)
         WATCH(incomingTrafficPktAgentStat);
         WATCH(outgoingTrafficPktAgentStat);
         WATCH(*this);
+        WATCH_MAP(flowTable);
         if(hasPar("enableNodeRequesting"))
             enableNodeRequesting = par("enableNodeRequesting").boolValue();
     }
@@ -347,6 +348,112 @@ void DataAgent::performSeqUpdate(IdentificationHeader *agentHeader)
         throw cRuntimeError("DA: Received message from MA but it's not in the id list");
 }
 
+void DataAgent::processOutgoingIcmpPacket(cMessage *msg)
+{
+    cGate *outgate = gate("icmpOut");
+    send(msg, outgate);
+}
+
+void DataAgent::processIncomingIcmpPacket(ICMPv6Message *icmp, IPv6ControlInfo *controlInfo)
+{// only ICMP messages are forwarded
+    incomingTrafficPktNodeStat++;
+    emit(incomingTrafficPktNode, incomingTrafficPktNodeStat);
+    incomingTrafficSizeNodeStat = icmp->getByteLength();
+    emit(incomingTrafficSizeNode, incomingTrafficSizeNodeStat);
+    FlowTuple tuple;
+    tuple.protocol = IP_PROT_IPv6_ICMP;
+    tuple.destPort = 0;
+    tuple.sourcePort = 0;
+    tuple.destAddress = controlInfo->getSourceAddress().toIPv6();
+    tuple.interfaceId = controlInfo->getSourceAddress().toIPv6().getInterfaceId();
+    FlowUnit *funit = getFlowUnit(tuple);
+    if((icmp->getType() == ICMPv6_ECHO_REPLY || icmp->getType() == ICMPv6_ECHO_REQUEST) && funit->state == REGISTERED) {
+        IdentificationHeader *ih = getAgentHeader(3, IP_PROT_IPv6_ICMP, getSeqNo(funit->id), 0, tuple.interfaceId);
+        ih->setIsIdInitialized(true);
+        ih->setIsIdAcked(true);
+        ih->setIsSeqValid(true);
+        ih->setIsWithReturnAddr(true);
+        ih->setIsReturnAddrCached(funit->isAddressCached);
+        ih->encapsulate(icmp);
+        if(isIdInitialized(funit->id)) {
+            if(isAddressInserted(funit->id, getSeqNo(funit->id), funit->mobileAgent)) {
+                sendToLowerLayer(ih,funit->mobileAgent);
+            } else {
+                sendToLowerLayer(ih,getValidAddress(funit->id));
+            }
+            outgoingTrafficPktAgentStat++;
+            emit(outgoingTrafficPktAgent, outgoingTrafficPktAgentStat);
+            outgoingTrafficSizeAgentStat = ih->getByteLength();
+            emit(outgoingTrafficSizeAgent, outgoingTrafficSizeAgentStat);
+        } else {
+            EV_WARN << "DA_processTcpFromNode: Incoming message is dropped. No matching Mobile Agent is found." << endl;
+        }
+    } else {
+//        EV << "DA: Forwarding message to ICMP module. Type=" << icmp->getType() << endl;
+        icmp->setControlInfo(controlInfo);
+        cGate *outgate = gate("toICMP");
+        send(icmp, outgate);
+    }
+}
+
+void DataAgent::processIcmpFromAgent(IdentificationHeader *agentHeader, IPv6Address destAddr)
+{ // all ICMP packets are forwarded.
+    if(std::find(mobileIdList.begin(), mobileIdList.end(), agentHeader->getId()) != mobileIdList.end()) {
+        incomingTrafficPktAgentStat++;
+        emit(incomingTrafficPktAgent, incomingTrafficPktAgentStat);
+        incomingTrafficSizeAgentStat = agentHeader->getByteLength();
+        emit(incomingTrafficSizeAgent, incomingTrafficSizeAgentStat);
+        if(agentHeader->getIPaddressesArraySize() < 1)
+            throw cRuntimeError("DA: ArraySize = 0. Check message processing unit from MA. At least one IP address of target must be contained.");
+        IPv6Address nodeAddress = agentHeader->getIPaddresses(0);
+        cPacket *packet = agentHeader->decapsulate(); // decapsulate(remove) agent header
+        if (dynamic_cast<ICMPv6Message *>(packet) != nullptr) {
+            ICMPv6Message *icmp =  (ICMPv6Message *) packet;
+            FlowTuple tuple;
+            tuple.protocol = IP_PROT_IPv6_ICMP;
+            tuple.destPort = 0;
+            tuple.sourcePort = 0;
+            tuple.destAddress = nodeAddress;
+            tuple.interfaceId = nodeAddress.getInterfaceId();
+//            EV << "DA: Creating UDP FlowTuple ADDR:" << tuple.destAddress << " DP:" << tuple.destPort << " SP:"<< tuple.sourcePort << endl;
+            FlowUnit *funit = getFlowUnit(tuple);
+            if(funit->state == UNREGISTERED) {
+                EV_DEBUG << "DA_processIcmpFromAgent: Initialize FlowUnit from Mobile Agent(" << agentHeader->getId() << ") with address: "<< destAddr.str() << endl;
+                funit->state = REGISTERED;
+                funit->isFlowActive = true;
+                funit->isAddressCached = false;
+                funit->id = agentHeader->getId();
+                funit->mobileAgent = destAddr;
+                funit->nodeAddress = nodeAddress;
+                // other fields are not initialized.
+            }
+            if (funit->state == REGISTERED) {
+//                EV << "DA: flow unit exists. Preparing transmission: "<< destAddr.str() << endl;
+                funit->mobileAgent = destAddr; // just update return address
+                InterfaceEntry *ie = getInterface();
+                IPv6ControlInfo *ipControlInfo = new IPv6ControlInfo();
+                ipControlInfo->setProtocol(IP_PROT_IPv6_ICMP);
+                ipControlInfo->setSrcAddr(ie->ipv6Data()->getPreferredAddress());
+                ipControlInfo->setDestAddr(funit->nodeAddress);
+                ipControlInfo->setInterfaceId(ie->getInterfaceId());
+                ipControlInfo->setHopLimit(255);
+                icmp->setControlInfo(ipControlInfo);
+                outgoingTrafficPktNodeStat++;
+                emit(outgoingTrafficPktNode, outgoingTrafficPktNodeStat);
+                outgoingTrafficSizeNodeStat = icmp->getByteLength();
+                emit(outgoingTrafficSizeNode, outgoingTrafficSizeNodeStat);
+                cGate *outgate = gate("toLowerLayer");
+                send(icmp, outgate);
+//                EV << "DA: Forwarding icmp msg(MA) to CorresNode: Dest=" << ipControlInfo->getDestAddr() << " Src=" << ipControlInfo->getSrcAddr() << " If=" << ipControlInfo->getInterfaceId() << endl;
+            } else
+                throw cRuntimeError("DA:procMAmsg: icmp packet could not processed. FlowUnit unknown.");
+        } else {
+            throw cRuntimeError("DA: icmp function failed because received ICMPv6Message could not be cast.");
+        }
+    } else
+        throw cRuntimeError("DA: Received Ping packet from MA but its id not in the list");
+}
+
 void DataAgent::processUdpFromAgent(IdentificationHeader *agentHeader, IPv6Address destAddr)
 {
     if(std::find(mobileIdList.begin(), mobileIdList.end(), agentHeader->getId()) != mobileIdList.end()) {
@@ -407,6 +514,57 @@ void DataAgent::processUdpFromAgent(IdentificationHeader *agentHeader, IPv6Addre
             throw cRuntimeError("DA:procMAmsg: UDP packet could not be cast.");
     } else
         throw cRuntimeError("DA: Received udp packet from MA but its id not in the list");
+}
+
+
+void DataAgent::processUdpFromNode(cMessage *msg)
+{
+    IPv6ControlInfo *controlInfo = check_and_cast<IPv6ControlInfo *>(msg->removeControlInfo());
+    FlowTuple tuple;
+    if(dynamic_cast<UDPPacket *>(msg) != nullptr) {
+        UDPPacket *udpPacket =  (UDPPacket *) msg;
+        incomingTrafficPktNodeStat++;
+        emit(incomingTrafficPktNode, incomingTrafficPktNodeStat);
+        incomingTrafficSizeNodeStat = udpPacket->getByteLength();
+        emit(incomingTrafficSizeNode, incomingTrafficSizeNodeStat);
+        tuple.protocol = IP_PROT_UDP;
+        if(enableNodeRequesting) {
+            tuple.destPort = 0;
+            tuple.sourcePort = 0;
+        } else {
+            tuple.destPort = udpPacket->getSourcePort();
+            tuple.sourcePort = udpPacket->getDestinationPort();
+        }
+        tuple.destAddress = controlInfo->getSourceAddress().toIPv6();
+        tuple.interfaceId = controlInfo->getSourceAddress().toIPv6().getInterfaceId();
+        FlowUnit *funit = getFlowUnit(tuple);
+        if((funit->state == REGISTERED && funit->isFlowActive) || enableNodeRequesting) {
+            IdentificationHeader *ih = getAgentHeader(3, IP_PROT_UDP, getSeqNo(funit->id), 0, tuple.interfaceId);
+            ih->setIsIdInitialized(true);
+            ih->setIsIdAcked(true);
+            ih->setIsSeqValid(true);
+            ih->setIsWithReturnAddr(true);
+            ih->setIsReturnAddrCached(funit->isAddressCached);
+//            EV << "DA: Forwarding regular UDP packet: "<< funit->mobileAgent << " agent: "<< funit->dataAgent << " node:"<< funit->nodeAddress <<" Id2: " << funit->id  <<endl;
+            ih->encapsulate(udpPacket);
+            outgoingTrafficPktAgentStat++;
+            emit(outgoingTrafficPktAgent, outgoingTrafficPktAgentStat);
+            outgoingTrafficSizeAgentStat = ih->getByteLength();
+            emit(outgoingTrafficSizeAgent, outgoingTrafficSizeAgentStat);
+            if(isIdInitialized(funit->id)) {
+                if(isAddressInserted(funit->id, getSeqNo(funit->id), funit->mobileAgent)) {
+                    sendToLowerLayer(ih,funit->mobileAgent);
+                } else {
+                    sendToLowerLayer(ih,getValidAddress(funit->id));
+                }
+            } else {
+                EV_WARN << "DA_processTcpFromNode: Incoming message is dropped. No matching Mobile Agent is found." << endl;
+            }
+        } else
+            throw cRuntimeError("DA_processUdpFromNode: No flow tuple exists. Mobile Agent needs to initiate the connection.");
+    } else
+        throw cRuntimeError("DA_processUdpFromNode: Incoming packet could not cast to TCPPacket.");
+    delete controlInfo;
 }
 
 void DataAgent::processTcpFromAgent(IdentificationHeader *agentHeader, IPv6Address destAddr)
@@ -470,150 +628,6 @@ void DataAgent::processTcpFromAgent(IdentificationHeader *agentHeader, IPv6Addre
         throw cRuntimeError("DA: Received tcp packet from MA but its id not in the list");
 }
 
-void DataAgent::processIcmpFromAgent(IdentificationHeader *agentHeader, IPv6Address destAddr)
-{ // all ICMP packets are forwarded.
-    if(std::find(mobileIdList.begin(), mobileIdList.end(), agentHeader->getId()) != mobileIdList.end()) {
-        incomingTrafficPktAgentStat++;
-        emit(incomingTrafficPktAgent, incomingTrafficPktAgentStat);
-        incomingTrafficSizeAgentStat = agentHeader->getByteLength();
-        emit(incomingTrafficSizeAgent, incomingTrafficSizeAgentStat);
-        if(agentHeader->getIPaddressesArraySize() < 1)
-            throw cRuntimeError("DA: ArraySize = 0. Check message processing unit from MA. At least one IP address of target must be contained.");
-        IPv6Address nodeAddress = agentHeader->getIPaddresses(0);
-        cPacket *packet = agentHeader->decapsulate(); // decapsulate(remove) agent header
-        if (dynamic_cast<ICMPv6Message *>(packet) != nullptr) {
-            ICMPv6Message *icmp =  (ICMPv6Message *) packet;
-            FlowTuple tuple;
-            tuple.protocol = IP_PROT_IPv6_ICMP;
-            tuple.destPort = 0;
-            tuple.sourcePort = 0;
-            tuple.destAddress = nodeAddress;
-            tuple.interfaceId = nodeAddress.getInterfaceId();
-//            EV << "DA: Creating UDP FlowTuple ADDR:" << tuple.destAddress << " DP:" << tuple.destPort << " SP:"<< tuple.sourcePort << endl;
-            FlowUnit *funit = getFlowUnit(tuple);
-            if(funit->state == UNREGISTERED) {
-                EV << "DA: Init flow unit with first packet from: "<< destAddr.str() << endl;
-                funit->state = REGISTERED;
-                funit->isFlowActive = true;
-                funit->isAddressCached = false;
-                funit->id = agentHeader->getId();
-                funit->mobileAgent = destAddr;
-                funit->nodeAddress = nodeAddress;
-                // other fields are not initialized.
-            }
-            if (funit->state == REGISTERED) {
-//                EV << "DA: flow unit exists. Preparing transmission: "<< destAddr.str() << endl;
-                funit->mobileAgent = destAddr; // just update return address
-                InterfaceEntry *ie = getInterface();
-                IPv6ControlInfo *ipControlInfo = new IPv6ControlInfo();
-                ipControlInfo->setProtocol(IP_PROT_IPv6_ICMP);
-                ipControlInfo->setSrcAddr(ie->ipv6Data()->getPreferredAddress());
-                ipControlInfo->setDestAddr(funit->nodeAddress);
-                ipControlInfo->setInterfaceId(ie->getInterfaceId());
-                ipControlInfo->setHopLimit(255);
-                icmp->setControlInfo(ipControlInfo);
-                outgoingTrafficPktNodeStat++;
-                emit(outgoingTrafficPktNode, outgoingTrafficPktNodeStat);
-                outgoingTrafficSizeNodeStat = icmp->getByteLength();
-                emit(outgoingTrafficSizeNode, outgoingTrafficSizeNodeStat);
-                cGate *outgate = gate("toLowerLayer");
-                send(icmp, outgate);
-//                EV << "DA: Forwarding icmp msg(MA) to CorresNode: Dest=" << ipControlInfo->getDestAddr() << " Src=" << ipControlInfo->getSrcAddr() << " If=" << ipControlInfo->getInterfaceId() << endl;
-            } else
-                throw cRuntimeError("DA:procMAmsg: icmp packet could not processed. FlowUnit unknown.");
-        } else {
-            throw cRuntimeError("DA: icmp function failed because received ICMPv6Message could not be cast.");
-        }
-    } else
-        throw cRuntimeError("DA: Received Ping packet from MA but its id not in the list");
-}
-
-void DataAgent::processIncomingIcmpPacket(ICMPv6Message *icmp, IPv6ControlInfo *controlInfo)
-{
-    FlowTuple tuple;
-    tuple.protocol = IP_PROT_IPv6_ICMP;
-    tuple.destPort = 0;
-    tuple.sourcePort = 0;
-    tuple.destAddress = controlInfo->getSourceAddress().toIPv6();
-    tuple.interfaceId = controlInfo->getSourceAddress().toIPv6().getInterfaceId();
-    FlowUnit *funit = getFlowUnit(tuple);
-    if (funit->state == REGISTERED && icmp->getType() == ICMPv6_ECHO_REPLY) {
-        incomingTrafficPktNodeStat++;
-        emit(incomingTrafficPktNode, incomingTrafficPktNodeStat);
-        incomingTrafficSizeNodeStat = icmp->getByteLength();
-        emit(incomingTrafficSizeNode, incomingTrafficSizeNodeStat);
-        IdentificationHeader *ih = getAgentHeader(3, IP_PROT_IPv6_ICMP, getSeqNo(funit->id), 0, tuple.interfaceId);
-        ih->setIsIdInitialized(true);
-        ih->setIsIdAcked(true);
-        ih->setIsSeqValid(true);
-        ih->setIsWithReturnAddr(true);
-        ih->setIsReturnAddrCached(funit->isAddressCached);
-        ih->encapsulate(icmp);
-        outgoingTrafficPktAgentStat++;
-        emit(outgoingTrafficPktAgent, outgoingTrafficPktAgentStat);
-        outgoingTrafficSizeAgentStat = ih->getByteLength();
-        emit(outgoingTrafficSizeAgent, outgoingTrafficSizeAgentStat);
-        sendToLowerLayer(ih,funit->mobileAgent);
-//        EV << "DA: Forwarding imcp echo packet to: "<< funit->mobileAgent << " from node:"<< funit->nodeAddress <<" via Id2: " << funit->id  << endl;
-    } else {
-//        EV << "DA: Forwarding message to ICMP module. Type=" << icmp->getType() << endl;
-        icmp->setControlInfo(controlInfo);
-        cGate *outgate = gate("toICMP");
-        send(icmp, outgate);
-    }
-}
-
-void DataAgent::processUdpFromNode(cMessage *msg)
-{
-    IPv6ControlInfo *controlInfo = check_and_cast<IPv6ControlInfo *>(msg->removeControlInfo());
-    FlowTuple tuple;
-    if(dynamic_cast<UDPPacket *>(msg) != nullptr) {
-        UDPPacket *udpPacket =  (UDPPacket *) msg;
-        incomingTrafficPktNodeStat++;
-        emit(incomingTrafficPktNode, incomingTrafficPktNodeStat);
-        incomingTrafficSizeNodeStat = udpPacket->getByteLength();
-        emit(incomingTrafficSizeNode, incomingTrafficSizeNodeStat);
-        tuple.protocol = IP_PROT_UDP;
-        if(enableNodeRequesting) {
-            tuple.destPort = 0;
-            tuple.sourcePort = 0;
-        } else {
-            tuple.destPort = udpPacket->getSourcePort();
-            tuple.sourcePort = udpPacket->getDestinationPort();
-        }
-        tuple.destAddress = controlInfo->getSourceAddress().toIPv6();
-        tuple.interfaceId = controlInfo->getSourceAddress().toIPv6().getInterfaceId();
-        FlowUnit *funit = getFlowUnit(tuple);
-        if((funit->state == REGISTERED && funit->isFlowActive) || enableNodeRequesting) {
-            IdentificationHeader *ih = getAgentHeader(3, IP_PROT_UDP, getSeqNo(funit->id), 0, tuple.interfaceId);
-            ih->setIsIdInitialized(true);
-            ih->setIsIdAcked(true);
-            ih->setIsSeqValid(true);
-            ih->setIsWithReturnAddr(true);
-            ih->setIsReturnAddrCached(funit->isAddressCached);
-//            EV << "DA: Forwarding regular UDP packet: "<< funit->mobileAgent << " agent: "<< funit->dataAgent << " node:"<< funit->nodeAddress <<" Id2: " << funit->id  <<endl;
-            ih->encapsulate(udpPacket);
-            outgoingTrafficPktAgentStat++;
-            emit(outgoingTrafficPktAgent, outgoingTrafficPktAgentStat);
-            outgoingTrafficSizeAgentStat = ih->getByteLength();
-            emit(outgoingTrafficSizeAgent, outgoingTrafficSizeAgentStat);
-            if(isIdInitialized(funit->id)) {
-                if(isAddressInserted(funit->id, getSeqNo(funit->id), funit->mobileAgent)) {
-                    sendToLowerLayer(ih,funit->mobileAgent);
-                } else {
-                    sendToLowerLayer(ih,getValidAddress(funit->id));
-                }
-            } else {
-                EV_WARN << "DA_processTcpFromNode: Incoming message is dropped. No matching Mobile Agent is found." << endl;
-            }
-        } else
-            throw cRuntimeError("DA_processUdpFromNode: No flow tuple exists. Mobile Agent needs to initiate the connection.");
-    } else
-        throw cRuntimeError("DA_processUdpFromNode: Incoming packet could not cast to TCPPacket.");
-    delete controlInfo;
-}
-
-
 void DataAgent::processTcpFromNode(cMessage *msg)
 {
     IPv6ControlInfo *controlInfo = check_and_cast<IPv6ControlInfo *>(msg->removeControlInfo());
@@ -665,12 +679,6 @@ void DataAgent::processTcpFromNode(cMessage *msg)
     delete controlInfo;
 }
 
-void DataAgent::processOutgoingIcmpPacket(cMessage *msg)
-{
-    cGate *outgate = gate("icmpOut");
-    send(msg, outgate);
-}
-
 // returns any valid interface of node
 InterfaceEntry *DataAgent::getInterface() { // const IPv6Address &destAddr,
     InterfaceEntry *ie = nullptr;
@@ -694,7 +702,6 @@ IPv6Address DataAgent::getValidAddress(uint64 id)
         throw cRuntimeError("DA_getValidAddress: Address list of Mobile Agent is empty.");
 
 }
-
 
 void DataAgent::sendToLowerLayer(cMessage *msg, const IPv6Address& destAddr, simtime_t delayTime) {
     IPv6ControlInfo *ctrlInfo = new IPv6ControlInfo();

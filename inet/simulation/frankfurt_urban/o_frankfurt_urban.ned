@@ -16,7 +16,7 @@
 package frankfurt_urban;
 
 import inet.linklayer.ethernet.EtherHub;
-import inet.physicallayer.ieee80211.packetlevel.Ieee80211ScalarRadioMedium;
+import inet.physicallayer.ieee80211.packetlevel.*;
 import inet.environment.common.PhysicalEnvironment;
 import inet.networklayer.configurator.ipv6.FlatNetworkConfigurator6;
 import inet.node.ipv6.*;
@@ -53,6 +53,7 @@ network frankfurt_urban
             parameters:
                 @display("p=200,100;is=vs");
         }
+//        radioMedium: Ieee80211DimensionalRadioMedium {
         radioMedium: Ieee80211ScalarRadioMedium {
             parameters:
                 @display("p=200,250;is=vs");
@@ -87,7 +88,7 @@ network frankfurt_urban
         }
         AP_3: AccessPoint {
             parameters:
-                @display("p=1766,496;is=s");
+                @display("p=1763.5469,339.9015;is=s");
         }
         AP_4: AccessPoint {
             parameters:
@@ -107,11 +108,11 @@ network frankfurt_urban
         }
         AP_8: AccessPoint {
             parameters:
-                @display("p=5221.675,1118.2267;is=s");
+                @display("p=5226.601,1270.936;is=s");
         }
         AP_9: AccessPoint {
             parameters:
-                @display("p=5742,709;is=s");
+                @display("p=5896.552,733.9902;is=s");
         }
         CN[total_cn]: StandardHost6 {
             parameters:
