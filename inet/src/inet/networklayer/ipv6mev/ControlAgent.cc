@@ -263,7 +263,7 @@ void ControlAgent::sendSequenceUpdateAck(cMessage *msg)
     AddressDiff ad = getAddressList(mobileId);
     AddressList list = ad.insertedList;
     for (AddressTuple tuple : list ) {
-        EV_DEBUG << "CA_sendSequenceUpdateAck: Sending sequence update acknowledgment to Mobile Agent(" << mobileId<< ")." << endl;
+        EV_DEBUG << "CA_sendSequenceUpdateAck: Sending sequence update acknowledgment to Mobile Agent(" << mobileId << ")." << endl;
         IPv6Address destAddr = tuple.address; // address to be responsed
         IdentificationHeader *ih = getAgentHeader(2, IP_PROT_NONE, getSeqNo(mobileId), 0, agentId);
         ih->setIsIdInitialized(true);
@@ -370,10 +370,11 @@ void ControlAgent::initializeSession(IdentificationHeader *agentHeader, IPv6Addr
 void ControlAgent::initializeSequence(IdentificationHeader *agentHeader, IPv6Address destAddr)
 {
     if(std::find(mobileIdList.begin(), mobileIdList.end(), agentHeader->getId()) != mobileIdList.end()) {
-        EV_INFO << "CA_initializeSequence: Received sequence initialization message from Mobile Agent(" << agentHeader->getId() << "). Registering sequence number " << agentHeader->getIpSequenceNumber() << " for IP: " << agentHeader->getIPaddresses(0) << endl;
         if(isSeqNoInitialized(agentHeader->getId())) { // check if seqNo is initialized
+            EV_INFO << "CA_initializeSequence: Sequence number from Mobile Agent(" << agentHeader->getId() << ") already initialized message . Resending sequence number " << getSeqNo(agentHeader->getId()) << " for IP: " << agentHeader->getIPaddresses(0) << endl;
             sendSequenceInitResponse(destAddr, agentHeader->getId(), getSeqNo(agentHeader->getId())); // resend message
         } else {
+            EV_INFO << "CA_initializeSequence: Received sequence initialization message from Mobile Agent(" << agentHeader->getId() << "). Registering sequence number " << agentHeader->getIpSequenceNumber() << " for IP: " << agentHeader->getIPaddresses(0) << endl;
             bool addrMgmtEntry = initAddressMap(agentHeader->getId(), agentHeader->getIpSequenceNumber(), agentHeader->getIPaddresses(0)); //first number
             if(addrMgmtEntry) { // check if seq and id is inserted
                 sendSequenceInitResponse(destAddr, agentHeader->getId(), getSeqNo(agentHeader->getId()));

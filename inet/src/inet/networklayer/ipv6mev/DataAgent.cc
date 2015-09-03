@@ -538,7 +538,7 @@ void DataAgent::processUdpFromNode(cMessage *msg)
         tuple.destAddress = controlInfo->getSourceAddress().toIPv6();
         tuple.interfaceId = controlInfo->getSourceAddress().toIPv6().getInterfaceId();
         FlowUnit *funit = getFlowUnit(tuple);
-        if((funit->state == REGISTERED && funit->isFlowActive) || enableNodeRequesting) {
+        if(funit->state == REGISTERED) {
             IdentificationHeader *ih = getAgentHeader(3, IP_PROT_UDP, getSeqNo(funit->id), 0, tuple.interfaceId);
             ih->setIsIdInitialized(true);
             ih->setIsIdAcked(true);
@@ -561,9 +561,9 @@ void DataAgent::processUdpFromNode(cMessage *msg)
                 EV_WARN << "DA_processTcpFromNode: Incoming message is dropped. No matching Mobile Agent is found." << endl;
             }
         } else
-            throw cRuntimeError("DA_processUdpFromNode: No flow tuple exists. Mobile Agent needs to initiate the connection.");
+            EV_WARN << "DA_processUdpFromNode: No flow tuple exists. Mobile Agent needs to initiate the connection." << endl;
     } else
-        throw cRuntimeError("DA_processUdpFromNode: Incoming packet could not cast to TCPPacket.");
+        EV_WARN << "DA_processUdpFromNode: Incoming packet could not be cast to UDPPacket. Kind is " << msg->getKind() << ". Name is '" << msg->getName() << "'." << endl;
     delete controlInfo;
 }
 
@@ -650,7 +650,7 @@ void DataAgent::processTcpFromNode(cMessage *msg)
         tuple.interfaceId = controlInfo->getSourceAddress().toIPv6().getInterfaceId();
 //        EV << "DA: Received regular message from Node, ADDR:" << tuple.destAddress << " DP:" << tuple.destPort << " SP:"<< tuple.sourcePort << endl;
         FlowUnit *funit = getFlowUnit(tuple);
-        if((funit->state == REGISTERED && funit->isFlowActive) || enableNodeRequesting) {
+        if(funit->state == REGISTERED ) {
             IdentificationHeader *ih = getAgentHeader(3, IP_PROT_TCP, getSeqNo(funit->id), 0, tuple.interfaceId);
             ih->setIsIdInitialized(true);
             ih->setIsIdAcked(true);
@@ -673,9 +673,9 @@ void DataAgent::processTcpFromNode(cMessage *msg)
                 EV_WARN << "DA_processTcpFromNode: Incoming message is dropped. No matching Mobile Agent is found." << endl;
             }
         } else
-            throw cRuntimeError("DA_processTcpFromNode: No flow tuple exists. Mobile Agent needs to initiate the connection.");
+            EV_WARN << "DA_processTcpFromNode: No flow tuple exists. Mobile Agent needs to initiate the connection." << endl;
     } else
-        throw cRuntimeError("DA_processTcpFromNode: Incoming packet could not cast to TCPPacket.");
+        EV_WARN << "DA_processTcpFromNode: Incoming packet could not be cast to TCPPacket. Kind is " << msg->getKind() << ". Name is '" << msg->getName() << "'." << endl;
     delete controlInfo;
 }
 

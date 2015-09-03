@@ -113,6 +113,7 @@ class MobileAgent : public cListener, public Agent
     long sequenceUpdateCaStat = 0;
     long sequenceUpdateDaStat = 0;
     long flowRequestStat = 0;
+    long flowResponseStat = 0;
     double interfaceSnirStat = 0;
     long interfaceIdStat = 0;
 
