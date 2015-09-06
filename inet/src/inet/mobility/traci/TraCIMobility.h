@@ -124,6 +124,7 @@ class INET_API TraCIMobilityAccess
 {
 	public:
 		TraCIMobility* get(cModule* host) {
+		    // TODO Replace TraCIModuleFinder by FindModule.h
 			TraCIMobility* traci = TraCIModuleFinder<TraCIMobility*>::findSubModule(host);
 			ASSERT(traci);
 			return traci;

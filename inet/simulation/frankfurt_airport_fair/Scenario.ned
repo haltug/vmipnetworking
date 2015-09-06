@@ -37,7 +37,7 @@ network frankfurt_airport_fair
     parameters:
         double total_mn;
         double total_cn;
-        @display("bgb=6565,9602;bgi=background/frankfurtAirportFair,s");
+        @display("bgb=6565,9602;bgi=background/frankfurtAirportFair,s;bgs=0.06,km");
 
     submodules:
         environment: PhysicalEnvironment {
@@ -58,27 +58,27 @@ network frankfurt_airport_fair
         }
         R_1: Router6 {
             parameters:
-                @display("p=140,230");
+                @display("p=140,230;is=vs");
         }
         R_2: Router6 {
             parameters:
-                @display("p=700,230");
+                @display("p=700,230;is=vs");
         }
         R_3: Router6 {
             parameters:
-                @display("p=230,570");
+                @display("p=230,570;is=vs");
         }
         R_4: Router6 {
             parameters:
-                @display("p=757,570");
+                @display("p=757,570;is=vs");
         }
         R_5: Router6 {
             parameters:
-                @display("p=430,30");
+                @display("p=430,30;is=vs");
         }
         AP_1: AccessPoint {
             parameters:
-                @display("p=3816,1960;i=device/accesspoint_s;is=vl");
+                @display("p=3816,1960;i=device/accesspoint_s;");
         }
         //        AP_2: AccessPoint {
         //            parameters:
@@ -86,23 +86,23 @@ network frankfurt_airport_fair
         //        }
         AP_3: AccessPoint {
             parameters:
-                @display("p=3504,1170;i=device/accesspoint_s;is=vl");
+                @display("p=3504,1170;i=device/accesspoint_s;");
         }
         AP_4: AccessPoint {
             parameters:
-                @display("p=4494,1062;i=device/accesspoint_s;is=vl");
+                @display("p=4494,1062;i=device/accesspoint_s;");
         }
         CN[total_cn]: StandardHost6 {
             parameters:
-                @display("p=1030,30");
+                @display("p=1030,30;is=vs");
         }
         CA: ControlAgent {
             parameters:
-                @display("p=140,30");
+                @display("p=140,30;is=vs");
         }
         DA: DataAgent {
             parameters:
-                @display("p=700,30");
+                @display("p=700,30;is=vs");
         }
     connections allowunconnected:
         R_1.ethg$o++ --> ethernetline --> R_5.ethg$i++;

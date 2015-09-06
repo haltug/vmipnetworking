@@ -98,17 +98,25 @@ network test_field
         //            parameters:
         //                @display("p=730,30;i=device/hub_s");
         //        }
-        CN[total_cn]: StandardHost6 {
+        CN1[total_cn]: StandardHost6 {
             parameters:
                 @display("p=1030,30");
+        }
+        CN2[total_cn]: StandardHost6 {
+            parameters:
+                @display("p=1030,226");
         }
         CA: ControlAgent {
             parameters:
                 @display("p=140,30");
         }
-        DA: DataAgent {
+        DA1: DataAgent {
             parameters:
                 @display("p=700,30");
+        }
+        DA2: DataAgent {
+            parameters:
+                @display("p=1030,400");
         }
         MA[total_mn]: MobileAgent {
             parameters:
@@ -126,8 +134,10 @@ network test_field
         R_4.ethg$i++ <-- ethernetline <-- R_5.ethg$o++;
         CA.ethg$o++ --> ethernetline --> R_5.ethg$i++;
         CA.ethg$i++ <-- ethernetline <-- R_5.ethg$o++;
-        DA.ethg$o++ --> ethernetline --> R_2.ethg$i++;
-        DA.ethg$i++ <-- ethernetline <-- R_2.ethg$o++;
+        DA1.ethg$o++ --> ethernetline --> R_2.ethg$i++;
+        DA1.ethg$i++ <-- ethernetline <-- R_2.ethg$o++;
+        DA2.ethg$o++ --> ethernetline --> R_2.ethg$i++;
+        DA2.ethg$i++ <-- ethernetline <-- R_2.ethg$o++;        
         AP_1.ethg$o++ --> ethernetline --> R_1.ethg$i++;
         AP_1.ethg$i++ <-- ethernetline <-- R_1.ethg$o++;
         //        AP_2.ethg$o++ --> ethernetline --> R_2.ethg$i++;
@@ -137,7 +147,11 @@ network test_field
         AP_4.ethg$o++ --> ethernetline --> R_4.ethg$i++;
         AP_4.ethg$i++ <-- ethernetline <-- R_4.ethg$o++;
         for i=0..total_cn-1 {
-            CN[i].ethg$o++ --> ethernetline --> R_2.ethg$i++;
-            CN[i].ethg$i++ <-- ethernetline <-- R_2.ethg$o++;
+            CN1[i].ethg$o++ --> ethernetline --> R_2.ethg$i++;
+            CN1[i].ethg$i++ <-- ethernetline <-- R_2.ethg$o++;
         }
+        for i=0..total_cn-1 {
+            CN2[i].ethg$o++ --> ethernetline --> R_2.ethg$i++;
+            CN2[i].ethg$i++ <-- ethernetline <-- R_2.ethg$o++;
+        }        
 }

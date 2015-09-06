@@ -28,7 +28,7 @@ import inet.mobility.traci.TraCIScenarioManagerLaunchd;
 channel ethernetline extends ned.DatarateChannel
 {
     parameters:
-        delay = 0.1us;
+        delay = 1us;
         datarate = 1000Mbps;
 }
 
@@ -53,7 +53,6 @@ network frankfurt_urban
             parameters:
                 @display("p=200,100;is=vs");
         }
-//        radioMedium: Ieee80211DimensionalRadioMedium {
         radioMedium: Ieee80211ScalarRadioMedium {
             parameters:
                 @display("p=200,250;is=vs");
@@ -64,19 +63,27 @@ network frankfurt_urban
         }
         R_2: Router6 {
             parameters:
-                @display("p=2960,295;is=s");
+                @display("p=3073.8916,98.52217;is=s");
         }
         R_3: Router6 {
             parameters:
-                @display("p=4963,346;is=s");
+                @display("p=4960.5913,98.52217;is=s");
         }
         R_5: Router6 {
             parameters:
-                @display("p=1258,101;is=s");
+                @display("p=2128.0789,1822.6602;is=s");
+        }
+        R_6: Router6 {
+            parameters:
+                @display("p=2133.005,98.52217;is=s");
+        }
+        R_7: Router6 {
+            parameters:
+                @display("p=4073.8918,98.52217;is=s");
         }
         R_10: Router6 {
             parameters:
-                @display("p=2192.1184,98.52217;is=s");
+                @display("p=4073.8918,1822.6602;is=s");
         }
         AP_1: AccessPoint {
             parameters:
@@ -100,7 +107,7 @@ network frankfurt_urban
         }
         AP_6: AccessPoint {
             parameters:
-                @display("p=4192.118,665.02466;is=s");
+                @display("p=4128.079,665.02466;is=s");
         }
         AP_7: AccessPoint {
             parameters:
@@ -114,17 +121,17 @@ network frankfurt_urban
             parameters:
                 @display("p=5896.552,733.9902;is=s");
         }
-        CN[total_cn]: StandardHost6 {
+        CN1[total_cn]: StandardHost6 {
             parameters:
-                @display("p=3541.872,98.52217;is=s");
+                @display("p=5226.601,1822.6602;is=s");
         }
         CA: ControlAgent {
             parameters:
-                @display("p=546.79803,98.52217;is=s");
+                @display("p=418.71924,1822.6602;is=s");
         }
-        DA[total_da]: DataAgent {
+        DA1[total_da]: DataAgent {
             parameters:
-                @display("p=2192.1184,344.8276;is=s");
+                @display("p=4073.8918,1374.3843;is=s");
         }
     //        MA[total_mn]: MobileAgent {
     //            parameters:
@@ -134,10 +141,14 @@ network frankfurt_urban
     connections allowunconnected:
         R_1.ethg$o++ --> ethernetline --> R_5.ethg$i++;
         R_1.ethg$i++ <-- ethernetline <-- R_5.ethg$o++;
-        R_2.ethg$o++ --> ethernetline --> R_5.ethg$i++;
-        R_2.ethg$i++ <-- ethernetline <-- R_5.ethg$o++;
-        R_3.ethg$o++ --> ethernetline --> R_5.ethg$i++;
-        R_3.ethg$i++ <-- ethernetline <-- R_5.ethg$o++;
+        R_2.ethg$o++ --> ethernetline --> R_6.ethg$i++;
+        R_2.ethg$i++ <-- ethernetline <-- R_6.ethg$o++;
+        R_7.ethg$o++ --> ethernetline --> R_6.ethg$i++;
+        R_7.ethg$i++ <-- ethernetline <-- R_6.ethg$o++;
+        R_3.ethg$o++ --> ethernetline --> R_7.ethg$i++;
+        R_3.ethg$i++ <-- ethernetline <-- R_7.ethg$o++;
+        R_6.ethg$o++ --> ethernetline --> R_5.ethg$i++;
+        R_6.ethg$i++ <-- ethernetline <-- R_5.ethg$o++;
         CA.ethg$o++ --> ethernetline --> R_5.ethg$i++;
         CA.ethg$i++ <-- ethernetline <-- R_5.ethg$o++;
         R_10.ethg$o++ --> ethernetline --> R_5.ethg$i++;
@@ -161,11 +172,11 @@ network frankfurt_urban
         AP_9.ethg$o++ --> ethernetline --> R_3.ethg$i++;
         AP_9.ethg$i++ <-- ethernetline <-- R_3.ethg$o++;
         for i=0..total_cn-1 {
-            CN[i].ethg$o++ --> ethernetline --> R_10.ethg$i++;
-            CN[i].ethg$i++ <-- ethernetline <-- R_10.ethg$o++;
+            CN1[i].ethg$o++ --> ethernetline --> R_10.ethg$i++;
+            CN1[i].ethg$i++ <-- ethernetline <-- R_10.ethg$o++;
         }
         for i=0..total_da-1 {
-            DA[i].ethg$o++ --> ethernetline --> R_10.ethg$i++;
-            DA[i].ethg$i++ <-- ethernetline <-- R_10.ethg$o++;
+            DA1[i].ethg$o++ --> ethernetline --> R_10.ethg$i++;
+            DA1[i].ethg$i++ <-- ethernetline <-- R_10.ethg$o++;
         }
 }

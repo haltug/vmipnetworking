@@ -17,6 +17,7 @@
 
 #include <algorithm>
 #include <stdlib.h>
+#include <regex.h>
 #include "inet/common/ModuleAccess.h"
 #include "inet/networklayer/common/InterfaceEntry.h"
 #include "inet/networklayer/common/IPSocket.h"
@@ -110,7 +111,7 @@ void ControlAgent::handleMessage(cMessage *msg)
 
 void ControlAgent::createAgentInit(uint64 mobileId)
 {
-    const char *dataAgentAddr = par("dataAgentAddress");
+    const char *dataAgentAddr = par("dataAgents");
     cStringTokenizer tokenizer(dataAgentAddr);
     while (tokenizer.hasMoreTokens()) {
         L3Address daAddr;
@@ -144,11 +145,11 @@ void ControlAgent::sendAgentInit(cMessage *msg)
     MobileInitTimer *mit = (MobileInitTimer *) msg->getContextPointer();
     InterfaceEntry *ie = getInterface();
     if(!ie) throw cRuntimeError("CA: no interface provided.");
-    const IPv6Address &dest = mit->dest;
+    IPv6Address dest = mit->dest;
     mit->nextScheduledTime = simTime() + mit->ackTimeout;
     mit->ackTimeout = (mit->ackTimeout)*2;
     for(auto &item : getAddressMap()) {
-        EV_DEBUG << "CA: Send initialization message to any DataAgent." << endl;
+        EV_DEBUG << "CA: Send initialization message to DataAgent " << dest << endl;
         IdentificationHeader *ih = getAgentHeader(2, IP_PROT_NONE, getSeqNo(item.first), 0, item.first);
         ih->setIsIdInitialized(true);
         ih->setIsSeqValid(true);
@@ -242,7 +243,7 @@ void ControlAgent::sendSequenceInitResponse(IPv6Address destAddr, uint64 mobileI
 }
 
 void ControlAgent::createSequenceUpdateAck(uint64 mobileId) { // does not support interface check
-    cMessage *msg = new cMessage("creatingSeqUpdAck", MSG_SEQ_UPDATE_ACK);
+    cMessage *msg = new cMessage("periodicSeqUpdateAckCAtoMA", MSG_SEQ_UPDATE_ACK);
     TimerKey key(IPv6Address::UNSPECIFIED_ADDRESS,-1,TIMERKEY_SEQ_UPDATE_ACK);
     SequenceUpdateAckTimer *suat = (SequenceUpdateAckTimer *) getExpiryTimer(key, TIMERTYPE_SEQ_UPDATE_ACK);
     suat->timer = msg;
@@ -326,9 +327,9 @@ void ControlAgent::processAgentMessage(IdentificationHeader* agentHeader, IPv6Co
         if(agentHeader->getIsIdInitialized() && !agentHeader->getIsIdAcked() && agentHeader->getIsSeqValid() && !agentHeader->getIsAckValid() && !agentHeader->getIsIpModified())
             performAgentInitResponse(agentHeader, destAddr); // we need here the source address to remove the timers
         else if(agentHeader->getIsIdInitialized() && agentHeader->getIsIdAcked() && agentHeader->getIsSeqValid() && !agentHeader->getIsAckValid() && !agentHeader->getIsIpModified())
-            performAgentUpdateResponse(agentHeader, destAddr); // this function is called when a dataAgents requests a update acknowledgment
+            performAgentUpdateResponse(agentHeader, destAddr); // this function is called when a data agent requests an update acknowledgment
         else if(agentHeader->getIsIdInitialized() && agentHeader->getIsIdAcked() && agentHeader->getIsSeqValid() && !agentHeader->getIsAckValid() && agentHeader->getIsIpModified())
-            performSeqUpdate(agentHeader, destAddr); // this functions is called when any dataAgent sends a update message.
+            performSeqUpdate(agentHeader, destAddr); // this functions is called when any data agent sends an update message.
         else
             throw cRuntimeError("CA: DA msg not known.");
     } else
@@ -412,7 +413,7 @@ void ControlAgent::performSeqUpdate(IdentificationHeader *agentHeader, IPv6Addre
                             }
                         }
                         int s = agentHeader->getIpSequenceNumber(); int a = getAckNo(agentHeader->getId()); int in = agentHeader->getIpAddingField(); int out =  agentHeader->getIpRemovingField();
-                        EV_INFO << "CA_performSeqUpdate: Received sequence update message from Mobile Agent(" << agentHeader->getId() << ").\nUpdating table to SeqNo " << s << "and AckNo " << a << "(+" << in << ", -" << out << ")." << endl;
+                        EV_INFO << "CA_performSeqUpdate: Received sequence update message from Mobile Agent(" << agentHeader->getId() << ").\nUpdating table to SeqNo " << s << " and AckNo " << a << " (+" << in << ", -" << out << ")." << endl;
                         // first all DA's are updated. after update confirmation, CA's ack is incremented and subsequently MA is confirmed.
                         if(agentAddressList.size() > 0) {
                             createAgentUpdate(agentHeader->getId(), getSeqNo(agentHeader->getId()));
@@ -466,26 +467,64 @@ void ControlAgent::performSeqUpdate(IdentificationHeader *agentHeader, IPv6Addre
     } else {throw cRuntimeError("CA_performSeqUpdate: Id is not found in list."); }
 }
 
+// Processes Data Agent requests and calls response operation. Matching operation is based on leading index
+// of Correspondent Node and Data Agent. The query returns the association resulting from the modulo operation.
 void ControlAgent::performFlowRequest(IdentificationHeader *agentHeader, IPv6Address destAddr)
 {
     // you would here lookup for the best data agent, returning for simplicity just one address
     // check createAgentInit function and check array size of ipaddresses()
+    int indexOperator = 0;
+    if(hasPar("indexOperator"))
+        indexOperator = par("indexOperator").longValue();
     IPv6Address nodeAddress = agentHeader->getIPaddresses(0);
-    L3Address daAddr;
-    const char *dataAgentAddr;
-    dataAgentAddr = par("dataAgentAddress");
-    L3AddressResolver().tryResolve(dataAgentAddr, daAddr); // TODO make it flexible
-    EV_INFO << "CA_performFlowRequest: Received flow request from Mobile Agent(" << agentHeader->getId() << ").\nRequesting Correspondent Node " << nodeAddress << " \nFound best matching Data Agent " << daAddr.toIPv6() << endl;
-    sendFlowRequestResponse(destAddr, agentHeader->getId(), getSeqNo(agentHeader->getId()), daAddr.toIPv6(), nodeAddress);
+    int nodeIndex = getIndexFromModule(nodeAddress);
+
+    const char *dataAgentAddr = par("dataAgents");
+    cStringTokenizer tokenizer(dataAgentAddr);
+    while (tokenizer.hasMoreTokens()) {
+        L3Address daAddr;
+        L3AddressResolver().tryResolve(tokenizer.nextToken(), daAddr);
+        if(daAddr.toIPv6().isGlobal()) {
+            int dataAgentIndex = getIndexFromModule(daAddr.toIPv6());
+            int mod1 = nodeIndex % indexOperator;
+            int mod2 = dataAgentIndex % indexOperator;
+//            EV_DEBUG << "CA_performFlowRequest: Correspondent Node: " << nodeAddress << endl;
+//            EV_DEBUG << "CA_performFlowRequest: \nindexOperator: "<< indexOperator << " \nnodeIndex: " << nodeIndex << " \nmod 1: " << mod1 << " \nagentIndex: " << dataAgentIndex << " \nmod 2: " << mod2 << endl;
+            if(indexOperator < 1) {
+                EV_INFO << "CA_performFlowRequest: Received flow request from Mobile Agent(" << agentHeader->getId() << "). Index is set to 0.\nRequesting Correspondent Node " << nodeAddress << " \nFound best matching Data Agent " << daAddr.toIPv6() << endl;
+                sendFlowRequestResponse(destAddr, agentHeader->getId(), getSeqNo(agentHeader->getId()), daAddr.toIPv6(), nodeAddress);
+                return;
+            } else
+                if(mod1 == mod2) {
+                    EV_INFO << "CA_performFlowRequest: Received flow request from Mobile Agent(" << agentHeader->getId() << ").\nRequesting Correspondent Node " << nodeAddress << " Index " << dataAgentIndex << " \nFound best matching Data Agent " << daAddr.toIPv6() << " Index " << nodeIndex << endl;
+                    sendFlowRequestResponse(destAddr, agentHeader->getId(), getSeqNo(agentHeader->getId()), daAddr.toIPv6(), nodeAddress);
+                    return;
+                }
+        } else {
+            EV_DEBUG << "CA_performFlowRequest: Data Agent has not acquired a global address." << endl;
+        }
+    }
+    throw cRuntimeError("CA_performFlowRequest: Cannot find any Data Agent.");
+}
+
+int ControlAgent::getIndexFromModule(IPv6Address addr)
+{
+    L3Address nodeAddr(addr);
+    cModule *node = L3AddressResolver().findHostWithAddress(nodeAddr);
+    if(!node)
+        throw cRuntimeError("Could not find node from address.");
+    std::string node_str (node->getName());
+    std::string num_str = node_str.substr(2);
+    return std::stoi(num_str);
 }
 
 void ControlAgent::performAgentInitResponse(IdentificationHeader *agentHeader, IPv6Address sourceAddr)
 {
     if(cancelAndDeleteExpiryTimer(sourceAddr,-1, TIMERKEY_MA_INIT, agentHeader->getId())) {
-        EV_DEBUG << "CA_performAgentInitResponse: Received Data Agent initialization acknowledgment. A timer existed and has been removed." << endl;
+        EV_DEBUG << "CA_performAgentInitResponse: Data Agent " << sourceAddr << " acknowledged initialization of Mobile Agent (" << agentHeader->getId() << ")." << endl;
         // TODO sendFlowRequest should be executed from here
     } else {
-//        EV << "CA: No TIMER for DA init exists. So no initialization can be done." << endl;
+        EV_WARN << "CA_performAgentInitResponse: Acknowledgment was received earlier or no timer was setup for Data Agent " << sourceAddr << endl;
     }
 }
 
@@ -507,7 +546,7 @@ void ControlAgent::performAgentUpdateResponse(IdentificationHeader *agentHeader,
         createSequenceUpdateAck(agentHeader->getId());
         EV_DEBUG << "CA_performAgentUpdateResponse: All acknowledgments of sequence update messages from Data Agents are received." << endl;
     } else {
-        EV_DEBUG << "CA_performAgentUpdateResponse: Received acknowledgment of sequence update message (" << agentHeader->getIpSequenceNumber() << ") from Data Agent " << sourceAddr << endl;
+        EV_DEBUG << "CA_performAgentUpdateResponse: Received acknowledgment of sequence update message (" << agentHeader->getIpSequenceNumber() << ") from Data Agent " << sourceAddr << ". Waiting for further acknowledgement messages." << endl;
     }
 }
 

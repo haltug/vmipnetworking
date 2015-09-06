@@ -22,7 +22,8 @@ simple ControlAgent
 {
     parameters:
         @display("i=block/join");
-        string dataAgentAddress = default("");
+        string dataAgents = default("");
+        int indexOperator = default(0);
         string interfaceTableModule;
         *.interfaceTableModule = default(absPath(interfaceTableModule));
 		@statistic[numDataAgents](title="numDataAgents"; record=last,vector; interpolationmode=none);

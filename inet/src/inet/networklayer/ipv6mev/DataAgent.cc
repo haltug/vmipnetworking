@@ -65,8 +65,8 @@ void DataAgent::initialize(int stage)
         WATCH(outgoingTrafficPktNodeStat);
         WATCH(incomingTrafficPktAgentStat);
         WATCH(outgoingTrafficPktAgentStat);
-        WATCH(*this);
         WATCH_MAP(flowTable);
+        WATCH(*this);
         if(hasPar("enableNodeRequesting"))
             enableNodeRequesting = par("enableNodeRequesting").boolValue();
     }
@@ -122,45 +122,44 @@ void DataAgent::handleMessage(cMessage *msg)
         throw cRuntimeError("handleMessage: Unknown message received.");
 }
 
-void DataAgent::createSequenceUpdateNotificaiton(uint64 mobileId, uint seq)
+// Creating notification message to Control Agent for updating sequence number of Mobile Agent
+// and setting up a new timer for periodical retransmission until.
+void DataAgent::createSequenceUpdateNotification(uint64 mobileId, uint seq)
 {
     if(!ControlAgentAddress.isGlobal())
-        throw cRuntimeError("DA_createSequenceUpdateNotificaiton: Address od Control Agent is not set. Cannot send an update message without an address.");
-    TimerKey key(ControlAgentAddress,-1,TIMERKEY_SEQ_UPDATE_NOT, mobileId, getSeqNo(mobileId));
-    UpdateNotifierTimer *unt = (UpdateNotifierTimer *) getExpiryTimer(key,TIMERTYPE_SEQ_UPDATE_NOT); // this timer must explicitly deleted
-    if(!unt->active) { // a timer has not been created earlier
-        cMessage *msg = new cMessage("sendingCAseqUpd", MSG_SEQ_UPDATE_NOTIFY);
+        throw cRuntimeError("DA_createSequenceUpdateNotificaiton: Address of Control Agent is not set. Cannot send an update message without an address.");
+//    if(pendingExpiryTimer(const IPv6Address& dest, int interfaceId, int timerType, uint64 id, uint seq))
+    if(pendingExpiryTimer(ControlAgentAddress, -1, TIMERKEY_SEQ_UPDATE_NOT, mobileId, seq)) {
+        // skip
+        EV_DEBUG << "DA_createSequenceUpdateNotificaiton: Skipping notification since timer is set up." << endl;
+    } else {
+        TimerKey key(ControlAgentAddress,-1,TIMERKEY_SEQ_UPDATE_NOT, mobileId, seq);
+        UpdateNotifierTimer *unt = (UpdateNotifierTimer *) getExpiryTimer(key,TIMERTYPE_SEQ_UPDATE_NOT); // this timer must explicitly deleted
+        cMessage *msg = new cMessage("sendingSeqUpdateToCA", MSG_SEQ_UPDATE_NOTIFY);
         unt->dest = ControlAgentAddress;
         unt->timer = msg;
         unt->ackTimeout = TIMEOUT_SEQ_UPDATE;
         unt->nextScheduledTime = simTime();
         unt->id = mobileId;
-//        unt->ack = am.getAckNo(mobileId);
         unt->ack = getAckNo(mobileId);
         unt->seq = seq;
-        unt->liftime = simTime();
-        unt->active = true;
         msg->setContextPointer(unt);
         scheduleAt(unt->nextScheduledTime,msg);
-        EV_DEBUG << "DA_createSequenceUpdateNotificaiton: Sending sequence update acknowledgment to Control Agent for Mobile Agent ("<< mobileId << ")" << endl;
-    } else {
-        if((simTime() - unt->liftime) >= TIMEOUT_SEQ_UPDATE) {
-            // if a certain time past, delete the message in queue (next schedule time could be to high) and send the message again.
-            unt->active = false;
-            cancelAndDelete(unt->timer);
-            createSequenceUpdateNotificaiton(unt->id, unt->seq);
-        } else {
-            // Just wait
-        }
     }
 }
 
 void DataAgent::sendSequenceUpdateNotification(cMessage *msg)
 {
     UpdateNotifierTimer *unt = (UpdateNotifierTimer *) msg->getContextPointer();
-    const IPv6Address &dest =  unt->dest;
+    IPv6Address dest =  unt->dest;
     unt->nextScheduledTime = simTime() + unt->ackTimeout;
-    unt->ackTimeout = (unt->ackTimeout)*1.5;
+    unt->ackTimeout = (unt->ackTimeout)*1;
+    if(unt->seq < getSeqNo(unt->id) || unt->seq <= getAckNo(unt->id)) {
+        cancelAndDeleteExpiryTimer(dest, -1, TIMERTYPE_SEQ_UPDATE_NOT, unt->id, unt->seq, unt->ack);
+        msg = nullptr;
+        return;
+    }
+//    EV_DEBUG << "DA_sendSequenceUpdateNotification: Sending sequence update acknowledgment to Control Agent for Mobile Agent ("<< unt->id << ")." << endl;
     IdentificationHeader *ih = getAgentHeader(3, IP_PROT_NONE, getSeqNo(unt->id), 0, unt->id);
     ih->setIsIdInitialized(true);
     ih->setIsIdAcked(true);
@@ -191,7 +190,7 @@ void DataAgent::createAgentUpdateResponse(IPv6Address destAddr, uint64 mobileId,
 {
     TimerKey key(ControlAgentAddress,-1,TIMERKEY_UPDATE_ACK, mobileId, seq);
     UpdateAckTimer *uat = (UpdateAckTimer *) getExpiryTimer(key,TIMERTYPE_UPDATE_ACK); // this timer must explicitly deleted
-    cMessage *msg = new cMessage("sendingCAseqUpdAck", MSG_UPDATE_ACK);
+    cMessage *msg = new cMessage("sendingSeqUpdAckToCA", MSG_UPDATE_ACK);
     uat->dest = ControlAgentAddress;
     uat->timer = msg;
     uat->nextScheduledTime = simTime();
@@ -201,7 +200,7 @@ void DataAgent::createAgentUpdateResponse(IPv6Address destAddr, uint64 mobileId,
     uat->nextScheduledTime = simTime();
     msg->setContextPointer(uat);
     scheduleAt(uat->nextScheduledTime,msg);
-    EV_DEBUG << "DA_createAgentUpdateResponse: Sending sequence update message (" << seq << ") for Mobile Agent(" << mobileId << ") to Control Agent." << endl;
+    EV_DEBUG << "DA_createAgentUpdateResponse: Sending sequence update acknowledgment (" << seq << ") to Control Agent of  Mobile Agent(" << mobileId << ")" << endl;
 }
 
 void DataAgent::sendAgentUpdateResponse(cMessage *msg)
@@ -228,13 +227,13 @@ void DataAgent::processAgentMessage(IdentificationHeader* agentHeader, IPv6Contr
             if(ControlAgentAddress.isUnspecified()) ControlAgentAddress = destAddr;
         }
         if(agentHeader->getIsIdInitialized() && !agentHeader->getIsIdAcked() && agentHeader->getIsSeqValid() && !agentHeader->getIsAckValid()  && agentHeader->getIsIpModified())
-            performAgentInit(agentHeader, destAddr);
+            performAgentInit(agentHeader, destAddr); // init a mobile agent + acks to control agent
         else if(agentHeader->getIsIdInitialized() && agentHeader->getIsIdAcked() && agentHeader->getIsSeqValid() && !agentHeader->getIsAckValid()  && agentHeader->getIsIpModified())
             performAgentUpdate(agentHeader, destAddr);
         else if(agentHeader->getIsIdInitialized() && agentHeader->getIsIdAcked() && agentHeader->getIsSeqValid() && !agentHeader->getIsAckValid()  && !agentHeader->getIsIpModified())
             performSequenceUpdateResponse(agentHeader, destAddr);
         else
-            throw cRuntimeError("DA: Header of CA msg is not known");
+            throw cRuntimeError("DA_processAgentMessage: Header of CA msg is not known");
     } else if(agentHeader->getIsMobileAgent() && agentHeader->getIsIdInitialized() && agentHeader->getIsIdAcked() && agentHeader->getIsSeqValid() && agentHeader->getIsAckValid()) {
         if(agentHeader->getIsIpModified())
             performSeqUpdate(agentHeader);
@@ -252,6 +251,7 @@ void DataAgent::processAgentMessage(IdentificationHeader* agentHeader, IPv6Contr
     delete controlInfo;
 }
 
+// Initializes a Mobile Agent and acknowledges to Control Agent
 void DataAgent::performAgentInit(IdentificationHeader *agentHeader, IPv6Address destAddr)
 {
     if(std::find(mobileIdList.begin(), mobileIdList.end(), agentHeader->getId()) == mobileIdList.end())
@@ -275,16 +275,16 @@ void DataAgent::performAgentInit(IdentificationHeader *agentHeader, IPv6Address 
         } else
             throw cRuntimeError("DA_performAgentInit: Initialization message must contain the start message of Mobile Agent.");
         setAckNo(agentHeader->getId(), agentHeader->getIpSequenceNumber());
+        numMobileAgentStat++;
+        emit(numMobileAgents,numMobileAgentStat);
     }
-    numMobileAgentStat++;
-    emit(numMobileAgents,numMobileAgentStat);
     sendAgentInitResponse(destAddr, agentHeader->getId(), getSeqNo(agentHeader->getId()));
 }
 
 void DataAgent::performAgentUpdate(IdentificationHeader *agentHeader, IPv6Address destAddr)
 {
     if(ControlAgentAddress.isUnspecified())
-        throw cRuntimeError("DA:procMA: CA address must be known at this stage. Stage= seq update.");
+        throw cRuntimeError("DA_performAgentUpdate: CA address must be known at this stage. Stage= seq update.");
     if(std::find(mobileIdList.begin(), mobileIdList.end(), agentHeader->getId()) != mobileIdList.end()) {
         AddressList list;
         if(agentHeader->getIpAddingField() > 0) { // check size of field
@@ -295,7 +295,8 @@ void DataAgent::performAgentUpdate(IdentificationHeader *agentHeader, IPv6Addres
             }
         }
         insertTable(agentHeader->getId(),agentHeader->getIpSequenceNumber(), list);
-        cancelAndDeleteExpiryTimer(ControlAgentAddress, -1, TIMERKEY_SEQ_UPDATE_NOT, agentHeader->getId(), agentHeader->getIpSequenceNumber(), getAckNo(agentHeader->getId()));
+        bool t = cancelAndDeleteExpiryTimer(ControlAgentAddress, -1, TIMERKEY_SEQ_UPDATE_NOT, agentHeader->getId(), agentHeader->getIpSequenceNumber(), getAckNo(agentHeader->getId()));
+        EV_DEBUG << "DA_performAgentUpdate: Control Agent acknowledged sequence update of Mobile Agent(" << agentHeader->getId() << "). SeqNo " << std::to_string(agentHeader->getIpSequenceNumber()) << " AckNo " << getAckNo(agentHeader->getId()) << " Timer state: " << t << endl;
         setAckNo(agentHeader->getId(),agentHeader->getIpSequenceNumber()); //
         createAgentUpdateResponse(ControlAgentAddress, agentHeader->getId(),agentHeader->getIpSequenceNumber());
     } else
@@ -310,6 +311,7 @@ void DataAgent::performSequenceUpdateResponse(IdentificationHeader *agentHeader,
        throw cRuntimeError("DA_performSequenceUpdateResponse: Map contains no matching ID.");
 }
 
+// Is called when IpModified field is set. Updates address table and notifies Control Agent by calling createSequenceUpdateNotificaiton().
 void DataAgent::performSeqUpdate(IdentificationHeader *agentHeader)
 {
     if(std::find(mobileIdList.begin(), mobileIdList.end(), agentHeader->getId()) != mobileIdList.end()) {
@@ -317,9 +319,11 @@ void DataAgent::performSeqUpdate(IdentificationHeader *agentHeader)
            throw cRuntimeError("DA_performSeqUpdate: AckNo in header of Mobile Agent is lower than the registered AckNo.");
         } else {
             if(agentHeader->getIpSequenceNumber() > getAckNo(agentHeader->getId())) {
+                // check if SeqNo of Mobile Agent is ahead of current AckNo in address table. If not, address table is up to date.
                 if(agentHeader->getIpSequenceNumber() > getSeqNo(agentHeader->getId())) {
-                    if(agentHeader->getIsIpModified()) { // indicate a sequence update
-                        // when ackNo of update message is behind current ackNo, sequence number is decremented for starting the update process at ackNo.
+                    // check if SeqNo of Mobile Agent is ahead of current SeqNo in address table. If so, Mobile Agent obtained new IP address
+                    if(agentHeader->getIsIpModified()) { // redundancy check
+                        // when AckNo of update message is behind current ackNo, sequence number is decremented for starting the update process at ackNo.
                         // Otherwise update process starts at seqNo, but header only declares difference from ackNo to seqNo ( and not from current seqNo to the pointed seqNo);
                         if(agentHeader->getIpAcknowledgementNumber() < getAckNo(agentHeader->getId()))
                             setSeqNo(agentHeader->getId(),agentHeader->getIpAcknowledgementNumber());
@@ -334,14 +338,17 @@ void DataAgent::performSeqUpdate(IdentificationHeader *agentHeader)
                             }
                         }
                         int s = agentHeader->getIpSequenceNumber(); int a = getAckNo(agentHeader->getId()); int in = agentHeader->getIpAddingField(); int out =  agentHeader->getIpRemovingField();
-                        EV_INFO << "DA_performSeqUpdate: Extracted higher sequence number from Mobile Agent(" << agentHeader->getId() << ").\nUpdating table to SeqNo " << s << "and AckNo " << a << "(+" << in << ", -" << out << ")." << endl;
-                        createSequenceUpdateNotificaiton(agentHeader->getId(), getSeqNo(agentHeader->getId()));
+                        EV_INFO << "DA_performSeqUpdate: Extracted higher sequence number from Mobile Agent(" << agentHeader->getId() << ").\nUpdating table to SeqNo " << s << " and AckNo " << a << " (+" << in << ", -" << out << ")." << endl;
+                        createSequenceUpdateNotification(agentHeader->getId(), getSeqNo(agentHeader->getId()));
                     } else
                         throw cRuntimeError("DA_performSeqUpdate: Received msg from MA with different Seq/Ack number but no changed IP Addresses are provided");
-                } else if (agentHeader->getIpSequenceNumber() > getSeqNo(agentHeader->getId())) {
-                    createSequenceUpdateNotificaiton(agentHeader->getId(), getSeqNo(agentHeader->getId()));
-                } else
-                    throw cRuntimeError("DA_performSeqUpdate: Seq number of DA is greater than seq number of MA. Not possible. MA is incrementing");
+                } else if (agentHeader->getIpSequenceNumber() == getSeqNo(agentHeader->getId())) {
+                    // Indicates that Mobile Agents new IP configuration has been taken over but Mobile Agent has not got acknowledgment from Control Agent. We notify Control Agent of current sequence state.
+                    EV_DEBUG << "DA_performSeqUpdate: Preparing sequence update to Control Agent for Mobile Agent(" << agentHeader->getId() << ")." << endl;
+                    createSequenceUpdateNotification(agentHeader->getId(), getSeqNo(agentHeader->getId()));
+                } else {
+                    // An older sequence number received.
+                }
             }
         }
     } else

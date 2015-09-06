@@ -63,7 +63,7 @@ class DataAgent : public Agent
     virtual void initialize(int stage) override;
     virtual void handleMessage(cMessage *msg) override;
   public:
-    void createSequenceUpdateNotificaiton(uint64 mobileId, uint seq);
+    void createSequenceUpdateNotification(uint64 mobileId, uint seq);
     void sendSequenceUpdateNotification(cMessage *msg); // used by DA to notify CA of changes
 
     void sendAgentInitResponse(IPv6Address destAddr, uint64 mobileId, uint seq);

@@ -29,7 +29,7 @@ import inet.mobility.traci.TraCIScenarioManagerLaunchd;
 channel ethernetline extends ned.DatarateChannel
 {
     parameters:
-        delay = 0.1us;
+        delay = 1us;
         datarate = 1000Mbps;
 }
 
@@ -38,7 +38,6 @@ network frankfurt_urban_mipv6
     parameters:
         int total_cn;
         int total_mn;
-        int total_da;
         @display("bgb=6231,2104;bgi=background/frankfurtUrban,s;bgs=0.203,km");
 
     submodules:
@@ -60,23 +59,31 @@ network frankfurt_urban_mipv6
         }
         R_1: Router6 {
             parameters:
-                @display("p=1482.7587,837.4385;is=s");
+                @display("p=1554,1086;is=s");
         }
         R_2: Router6 {
             parameters:
-                @display("p=2960,295;is=s");
+                @display("p=3073.8916,98.52217;is=s");
         }
         R_3: Router6 {
             parameters:
-                @display("p=4963,346;is=s");
+                @display("p=4960.5913,98.52217;is=s");
         }
         R_5: Router6 {
             parameters:
-                @display("p=1258,101;is=s");
+                @display("p=2128.0789,1822.6602;is=s");
+        }
+        R_6: Router6 {
+            parameters:
+                @display("p=2133.005,98.52217;is=s");
+        }
+        R_7: Router6 {
+            parameters:
+                @display("p=4073.8918,98.52217;is=s");
         }
         R_10: Router6 {
             parameters:
-                @display("p=2192.1184,98.52217;is=s");
+                @display("p=4073.8918,1822.6602;is=s");
         }
         AP_1: AccessPoint {
             parameters:
@@ -88,7 +95,7 @@ network frankfurt_urban_mipv6
         }
         AP_3: AccessPoint {
             parameters:
-                @display("p=1766,496;is=s");
+                @display("p=1763.5469,339.9015;is=s");
         }
         AP_4: AccessPoint {
             parameters:
@@ -108,27 +115,31 @@ network frankfurt_urban_mipv6
         }
         AP_8: AccessPoint {
             parameters:
-                @display("p=5221.675,1118.2267;is=s");
+                @display("p=5201,995;is=s");
         }
         AP_9: AccessPoint {
             parameters:
-                @display("p=5742,709;is=s");
+                @display("p=5896.552,733.9902;is=s");
         }
-        CN[total_cn]: CorrespondentNode6 {
+        CN1[total_cn]: StandardHost6 {
             parameters:
-                @display("p=3541.872,98.52217;is=s");
+                @display("p=5226.601,1822.6602;is=s");
         }
         Home_Agent: HomeAgent6 {
             parameters:
-                @display("p=2192.1184,290.6404;is=s");
+                @display("p=453.202,1822.6602;is=s");
         }
     connections allowunconnected:
         R_1.ethg$o++ --> ethernetline --> R_5.ethg$i++;
         R_1.ethg$i++ <-- ethernetline <-- R_5.ethg$o++;
-        R_2.ethg$o++ --> ethernetline --> R_5.ethg$i++;
-        R_2.ethg$i++ <-- ethernetline <-- R_5.ethg$o++;
-        R_3.ethg$o++ --> ethernetline --> R_5.ethg$i++;
-        R_3.ethg$i++ <-- ethernetline <-- R_5.ethg$o++;
+        R_2.ethg$o++ --> ethernetline --> R_6.ethg$i++;
+        R_2.ethg$i++ <-- ethernetline <-- R_6.ethg$o++;
+        R_7.ethg$o++ --> ethernetline --> R_6.ethg$i++;
+        R_7.ethg$i++ <-- ethernetline <-- R_6.ethg$o++;
+        R_3.ethg$o++ --> ethernetline --> R_7.ethg$i++;
+        R_3.ethg$i++ <-- ethernetline <-- R_7.ethg$o++;
+        R_6.ethg$o++ --> ethernetline --> R_5.ethg$i++;
+        R_6.ethg$i++ <-- ethernetline <-- R_5.ethg$o++;
         R_10.ethg$o++ --> ethernetline --> R_5.ethg$i++;
         R_10.ethg$i++ <-- ethernetline <-- R_5.ethg$o++;
         AP_1.ethg$o++ --> ethernetline --> Home_Agent.ethg$i++;
@@ -150,9 +161,9 @@ network frankfurt_urban_mipv6
         AP_9.ethg$o++ --> ethernetline --> R_3.ethg$i++;
         AP_9.ethg$i++ <-- ethernetline <-- R_3.ethg$o++;
         for i=0..total_cn-1 {
-            CN[i].ethg$o++ --> ethernetline --> R_10.ethg$i++;
-            CN[i].ethg$i++ <-- ethernetline <-- R_10.ethg$o++;
+            CN1[i].ethg$o++ --> ethernetline --> R_10.ethg$i++;
+            CN1[i].ethg$i++ <-- ethernetline <-- R_10.ethg$o++;
         }
-        Home_Agent.ethg$o++ --> ethernetline --> R_10.ethg$i++;
-        Home_Agent.ethg$i++ <-- ethernetline <-- R_10.ethg$o++;
+        Home_Agent.ethg$o++ --> ethernetline --> R_5.ethg$i++;
+        Home_Agent.ethg$i++ <-- ethernetline <-- R_5.ethg$o++;
 }

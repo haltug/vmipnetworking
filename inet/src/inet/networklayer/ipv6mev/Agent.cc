@@ -176,7 +176,7 @@ Agent::ExpiryTimer *Agent::getExpiryTimer(TimerKey& key, int timerType) {
             timer = suat;
         } else if(dynamic_cast<UpdateNotifierTimer *>(pos->second)) {
             UpdateNotifierTimer *unt = (UpdateNotifierTimer *) pos->second;
-//            cancelAndDelete(unt->timer); // is explicitly removed by createSeqUpdate functions.
+            cancelAndDelete(unt->timer);
             timer = unt;
         } else if(dynamic_cast<InterfaceDownTimer *>(pos->second)) {
             throw cRuntimeError("ERROR Invoked InterfaceDownTimer timer creation although one in map exists. There shouldn't be an entry in the list");
@@ -237,7 +237,8 @@ Agent::ExpiryTimer *Agent::getExpiryTimer(TimerKey& key, int timerType) {
 
 bool Agent::cancelExpiryTimer(const IPv6Address &dest, int interfaceId, int timerType, uint64 id, uint seq, uint ack)
 {   // remove based on seq and ack numbering
-    if(ack > seq) throw cRuntimeError("CancelAndDeleteTimer: Ack cannot be greater as seq.");
+    if(ack > seq) //throw cRuntimeError("CancelAndDeleteTimer: Ack cannot be greater as seq.");
+        ack = seq;
     if(ack == seq) {
         TimerKey key(dest, interfaceId, timerType, id, seq);
         auto pos = expiredTimerList.find(key);
@@ -265,7 +266,8 @@ bool Agent::cancelExpiryTimer(const IPv6Address &dest, int interfaceId, int time
 
 bool Agent::cancelAndDeleteExpiryTimer(const IPv6Address &dest, int interfaceId, int timerType, uint64 id, uint seq, uint ack)
 {   // remove based on seq and ack numbering
-    if(ack > seq) throw cRuntimeError("CancelAndDeleteTimer: Ack cannot be greater as seq.");
+    if(ack > seq) //throw cRuntimeError("CancelAndDeleteTimer: Ack cannot be greater as seq.");
+        ack = seq;
     if(ack == seq) {
         TimerKey key(dest, interfaceId, timerType, id, seq);
         auto pos = expiredTimerList.find(key);
@@ -294,7 +296,7 @@ bool Agent::cancelAndDeleteExpiryTimer(const IPv6Address &dest, int interfaceId,
         return timerExists;
     }
 }
-// if a timer exists, returns true
+// checks if a given timer configuration exists and returns true
 bool Agent::pendingExpiryTimer(const IPv6Address& dest, int interfaceId, int timerType, uint64 id, uint seq) {
     TimerKey key(dest,interfaceId, timerType, id, seq);
     auto pos = expiredTimerList.find(key);
@@ -521,25 +523,25 @@ uint Agent::getSeqNo(uint64 id) {
     if(addressMap.count(id)) // check if id exists in map
         return addressMap[id].seqNo;
     else
-        throw cRuntimeError("AM_getSeqNo: ID is not found in AddressMap. Create entry for ID.");
+        throw cRuntimeError("AM_getSeqNo: ID is not found in AddressMap. Create entry for ID %d", id);
 }
 void Agent::setSeqNo(uint64 id, uint seqno) {
     if(addressMap.count(id)) // check if id exists in map
         addressMap[id].seqNo = seqno;
     else
-        throw cRuntimeError("AM_setSeqNo: ID is not found in AddressMap. Create entry for ID.");
+        throw cRuntimeError("AM_setSeqNo: ID is not found in AddressMap. Create entry for ID %d", id);
 }
 uint Agent::getAckNo(uint64 id) {
     if(addressMap.count(id)) // check if id exists in map
         return addressMap[id].ackNo;
     else
-        throw cRuntimeError("AM_getAckNo: ID is not found in AddressMap. Create entry for ID.");
+        throw cRuntimeError("AM_getAckNo: ID is not found in AddressMap. Create entry for ID %d", id);
 }
 void Agent::setAckNo(uint64 id, uint ackno) {
     if(addressMap.count(id)) // check if id exists in map
         addressMap[id].ackNo = ackno;
     else
-        throw cRuntimeError("AM_getSeqNo: ID is not found in AddressMap. Create entry for ID.");
+        throw cRuntimeError("AM_getSeqNo: ID is not found in AddressMap. Create entry for ID %d", id);
 }
 
 // Prints a given addressMap

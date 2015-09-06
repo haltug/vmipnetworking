@@ -34,7 +34,7 @@ import inet.transportlayer.contract.IUDP;
 module MobileAgent extends NodeBaseIdModification
 {
     parameters:
-        @display("i=device/adam;is=vl");
+        @display("i=device/adam;"); // is=vl
         int numTcpApps = default(0);  // no of TCP apps. Specify the app types in INI file with tcpApp[0..1].typename="TCPEchoApp" syntax
         int numUdpApps = default(0);  // no of UDP apps. Specify the app types in INI file with udpApp[0..1].typename="UDPVideoStreamCli" syntax
         int numSctpApps = default(0); // no of SCTP apps. Specify the app types in INI file with sctpApp[0..1].typename="SCTPServer" syntax

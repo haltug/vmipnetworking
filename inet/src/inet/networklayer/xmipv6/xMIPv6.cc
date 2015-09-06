@@ -546,7 +546,8 @@ void xMIPv6::createAndSendBUMessage(const IPv6Address& dest, InterfaceEntry *ie,
          a Home Address destination option, unless the Source Address is
          the home address.*/
     IPv6Address HoA = ie->ipv6Data()->getGlobalAddress(IPv6InterfaceData::HoA);
-    ASSERT(!HoA.isUnspecified());
+    if(!HoA.isUnspecified())
+        return;
 
     // As every IPv6 Datagram sending the BU has to have the Home Address Option, I have
     // made this field a part of BU message to ease my task of simulation...

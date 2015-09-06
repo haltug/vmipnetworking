@@ -37,8 +37,8 @@ public:
     virtual ~ControlAgent();
   protected:
     IInterfaceTable *ift = nullptr; // for recognizing changes etc
-    std::vector<uint64>  mobileIdList; // lists all id of mobile nodes
-    std::vector<IPv6Address> agentAddressList; // lists all data agents
+//    std::vector<uint64>  mobileIdList; // lists all id of mobile nodes
+//    std::vector<IPv6Address> agentAddressList; // lists all data agents
     virtual int numInitStages() const override { return NUM_INIT_STAGES; }
     virtual void initialize(int stage) override;
     virtual void handleMessage(cMessage *msg) override;
@@ -85,6 +85,8 @@ public:
     InterfaceEntry *getInterface(); //const ,
     void sendToLowerLayer(cMessage *msg, const IPv6Address& destAddr, simtime_t sendTime = 0);
 
+    // UTIL
+    int getIndexFromModule(IPv6Address addr);
 };
 
 } //namespace

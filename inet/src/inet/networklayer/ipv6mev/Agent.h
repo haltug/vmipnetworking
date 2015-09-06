@@ -40,8 +40,6 @@ namespace inet {
 #define TIMERKEY_UPDATE_ACK      9
 #define TIMERKEY_IF_CHANGE       10
 #define TIMERKEY_SEQ_UPDATE_ACK  11
-//#define TIMERKEY_UDP_OUT_MSG     10
-//#define TIMERKEY_TCP_OUT_MSG     11
 
 //========== Timer type
 #define TIMERTYPE_SESSION_INIT  50
@@ -56,8 +54,6 @@ namespace inet {
 #define TIMERTYPE_UPDATE_ACK    59
 #define TIMERTYPE_IF_CHANGE     60
 #define TIMERTYPE_SEQ_UPDATE_ACK 61
-//#define TIMERTYPE_UDP_OUT_MSG   60
-//#define TIMERTYPE_TCP_OUT_MSG   61
 
 //========== Message type in handleMessage() ==========
 #define MSG_START_TIME          100
@@ -85,7 +81,7 @@ namespace inet {
 //========== Retransmission time of messages ==========
 #define TIMEOUT_SESSION_INIT    0.25 // retransmission time of ca init in sec
 #define TIMEOUT_SEQNO_INIT      0.25
-#define TIMEOUT_SEQ_UPDATE      0.5
+#define TIMEOUT_SEQ_UPDATE      0.05
 #define TIMEOUT_LOC_UPDATE      1
 #define TIMEDELAY_IF_DOWN       3   // delay of ip msg handler
 #define TIMEDELAY_IF_UP         0
@@ -128,7 +124,7 @@ class INET_API Agent : public cSimpleModule
 //    AddressManagement am;
 
     std::vector<uint64>  mobileIdList; // lists all id of mobile nodes
-    std::vector<IPv6Address> nodeAddressList; // lists all data agents
+    std::vector<IPv6Address> agentAddressList; // lists all data agents
 
     enum FlowState {
         UNREGISTERED = 0,
@@ -308,8 +304,8 @@ class INET_API Agent : public cSimpleModule
         uint64 id;
         uint seq;
         uint ack;
-        simtime_t liftime;
-        bool active = false;
+//        simtime_t liftime;
+//        bool active = false;
     };
     class UpdateAckTimer : public ExpiryTimer {
     public:
