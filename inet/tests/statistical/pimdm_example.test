@@ -6,7 +6,7 @@ Testing the number of received multicast datagrams in examples/pim/dm/ simulatio
 %inifile: omnetpp.ini
 
 [General]
-ned-path = .;../../../../src;../../../../examples
+ned-path = .;../../src;../../examples
 sim-time-limit = 500s
 output-scalar-file = test.sca
 **.udpApp[*].sentPk*.scalar-recording = true
