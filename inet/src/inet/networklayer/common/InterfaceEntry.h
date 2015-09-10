@@ -106,6 +106,7 @@ class INET_API InterfaceEntry : public cNamedObject
     IInterfaceTable *ownerp = nullptr;    ///< IInterfaceTable that contains this interface, or nullptr
     cModule *interfaceModule = nullptr;    ///< interface module, or nullptr
     int interfaceId = -1;    ///< identifies the interface in the IInterfaceTable
+    int priority = 1;
     int nwLayerGateIndex = -1;    ///< index of ifIn[],ifOut[] gates to that interface (or -1 if virtual interface)
     int nodeOutputGateId = -1;    ///< id of the output gate of this host/router (or -1 if this is a virtual interface)
     int nodeInputGateId = -1;    ///< id of the input gate of this host/router (or -1 if this is a virtual interface)
@@ -147,6 +148,7 @@ class INET_API InterfaceEntry : public cNamedObject
     // change notifications
     virtual void configChanged(int fieldId) { changed(NF_INTERFACE_CONFIG_CHANGED, fieldId); }
     virtual void stateChanged(int fieldId) { changed(NF_INTERFACE_STATE_CHANGED, fieldId); }
+    virtual void priorityChanged(int fieldId) { changed(NF_INTERFACE_PRIORITY_CHANGED, fieldId); }
     virtual void changed(simsignal_t signalID, int fieldId);
 
   public:
@@ -246,6 +248,10 @@ class INET_API InterfaceEntry : public cNamedObject
     virtual bool setEstimateCostProcess(int, MacEstimateCostProcess *p);
     virtual MacEstimateCostProcess *getEstimateCostProcess(int);
     //@}
+
+    // priority concept to implement multihoming
+    int getPriority() const { return priority; }
+    void setPriority(int priority = 1) { this->priority = priority; }
 };
 
 } // namespace inet

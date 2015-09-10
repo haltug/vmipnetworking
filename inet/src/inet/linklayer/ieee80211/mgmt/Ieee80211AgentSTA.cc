@@ -32,6 +32,7 @@ Define_Module(Ieee80211AgentSTA);
 simsignal_t Ieee80211AgentSTA::sentRequestSignal = registerSignal("sentRequest");
 simsignal_t Ieee80211AgentSTA::acceptConfirmSignal = registerSignal("acceptConfirm");
 simsignal_t Ieee80211AgentSTA::dropConfirmSignal = registerSignal("dropConfirm");
+simsignal_t Ieee80211AgentSTA::disassociationStateSignal = registerSignal("disassociationState");
 
 void Ieee80211AgentSTA::initialize(int stage)
 {
@@ -63,6 +64,7 @@ void Ieee80211AgentSTA::initialize(int stage)
         scheduleAt(simTime() + startingTime, new cMessage("startUp", MK_STARTUP));
 
         myIface = nullptr;
+        disassociationStateCounter = 0;
     }
     else if (stage == INITSTAGE_LINK_LAYER_2) {
         IInterfaceTable *ift = findModuleFromPar<IInterfaceTable>(par("interfaceTableModule"), this);
@@ -127,6 +129,7 @@ void Ieee80211AgentSTA::receiveSignal(cComponent *source, simsignal_t signalID, 
             //sendDisassociateRequest();
             sendScanRequest();
             emit(NF_L2_DISASSOCIATED, myIface);
+            emit(disassociationStateSignal, ++disassociationStateCounter);
         }
     }
 }

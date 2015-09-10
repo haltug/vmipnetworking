@@ -27,6 +27,7 @@ void QueueBase::initialize()
 
 void QueueBase::arrival(cPacket *msg)
 {
+    EV_DEBUG << "AbstractQueue: Inserting message in queue;" << endl;
     queue.insert(msg);
 }
 

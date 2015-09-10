@@ -382,6 +382,7 @@ void DataAgent::processIncomingIcmpPacket(ICMPv6Message *icmp, IPv6ControlInfo *
         ih->setIsWithReturnAddr(true);
         ih->setIsReturnAddrCached(funit->isAddressCached);
         ih->encapsulate(icmp);
+        ih->setName(icmp->getName());
         if(isIdInitialized(funit->id)) {
             if(isAddressInserted(funit->id, getSeqNo(funit->id), funit->mobileAgent)) {
                 sendToLowerLayer(ih,funit->mobileAgent);
@@ -443,7 +444,7 @@ void DataAgent::processIcmpFromAgent(IdentificationHeader *agentHeader, IPv6Addr
                 ipControlInfo->setSrcAddr(ie->ipv6Data()->getPreferredAddress());
                 ipControlInfo->setDestAddr(funit->nodeAddress);
                 ipControlInfo->setInterfaceId(ie->getInterfaceId());
-                ipControlInfo->setHopLimit(255);
+                ipControlInfo->setHopLimit(30);
                 icmp->setControlInfo(ipControlInfo);
                 outgoingTrafficPktNodeStat++;
                 emit(outgoingTrafficPktNode, outgoingTrafficPktNodeStat);
@@ -507,7 +508,7 @@ void DataAgent::processUdpFromAgent(IdentificationHeader *agentHeader, IPv6Addre
                 ipControlInfo->setSrcAddr(ie->ipv6Data()->getPreferredAddress());
                 ipControlInfo->setDestAddr(funit->nodeAddress);
                 ipControlInfo->setInterfaceId(ie->getInterfaceId());
-                ipControlInfo->setHopLimit(255);
+                ipControlInfo->setHopLimit(30);
                 udpPacket->setControlInfo(ipControlInfo);
                 outgoingTrafficPktNodeStat++;
                 emit(outgoingTrafficPktNode, outgoingTrafficPktNodeStat);
@@ -554,6 +555,7 @@ void DataAgent::processUdpFromNode(cMessage *msg)
             ih->setIsReturnAddrCached(funit->isAddressCached);
 //            EV << "DA: Forwarding regular UDP packet: "<< funit->mobileAgent << " agent: "<< funit->dataAgent << " node:"<< funit->nodeAddress <<" Id2: " << funit->id  <<endl;
             ih->encapsulate(udpPacket);
+            ih->setName(msg->getName());
             outgoingTrafficPktAgentStat++;
             emit(outgoingTrafficPktAgent, outgoingTrafficPktAgentStat);
             outgoingTrafficSizeAgentStat = ih->getByteLength();
@@ -618,7 +620,7 @@ void DataAgent::processTcpFromAgent(IdentificationHeader *agentHeader, IPv6Addre
                 ipControlInfo->setSrcAddr(ie->ipv6Data()->getPreferredAddress());
                 ipControlInfo->setDestAddr(funit->nodeAddress);
                 ipControlInfo->setInterfaceId(ie->getInterfaceId());
-                ipControlInfo->setHopLimit(255);
+                ipControlInfo->setHopLimit(30);
                 tcpseg->setControlInfo(ipControlInfo);
                 outgoingTrafficPktNodeStat++;
                 emit(outgoingTrafficPktNode, outgoingTrafficPktNodeStat);
@@ -665,6 +667,7 @@ void DataAgent::processTcpFromNode(cMessage *msg)
             ih->setIsWithReturnAddr(true);
             ih->setIsReturnAddrCached(funit->isAddressCached);
             ih->encapsulate(tcpseg);
+            ih->setName(msg->getName());
             outgoingTrafficPktAgentStat++;
             emit(outgoingTrafficPktAgent, outgoingTrafficPktAgentStat);
             outgoingTrafficSizeAgentStat = ih->getByteLength();
@@ -705,16 +708,20 @@ IPv6Address DataAgent::getValidAddress(uint64 id)
     if(ad.insertedList.size() > 0) {
         for(int idx=0; idx < ad.insertedList.size(); idx++)
             return ad.insertedList.at(idx).address;
+    }
+    ad = getAddressList(id, getAckNo(id));
+    if(ad.insertedList.size() > 0) {
+        for(int idx=0; idx < ad.insertedList.size(); idx++)
+            return ad.insertedList.at(idx).address;
     } else
         throw cRuntimeError("DA_getValidAddress: Address list of Mobile Agent is empty.");
-
 }
 
 void DataAgent::sendToLowerLayer(cMessage *msg, const IPv6Address& destAddr, simtime_t delayTime) {
     IPv6ControlInfo *ctrlInfo = new IPv6ControlInfo();
     ctrlInfo->setProtocol(IP_PROT_IPv6EXT_ID);
     ctrlInfo->setDestAddr(destAddr);
-    ctrlInfo->setHopLimit(255); // FIX this
+    ctrlInfo->setHopLimit(30);
     InterfaceEntry *ie = getInterface();
     if(ie) {
         ctrlInfo->setInterfaceId(ie->getInterfaceId());

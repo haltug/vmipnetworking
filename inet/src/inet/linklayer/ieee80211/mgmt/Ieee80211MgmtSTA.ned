@@ -43,6 +43,7 @@ simple Ieee80211MgmtSTA like IIeee80211Mgmt
         @signal[NF_L2_BEACON_LOST](type=inet::InterfaceEntry);
         @statistic[dataQueueLen](title="data queue length"; record=max,timeavg,vector; interpolationmode=sample-hold);
         @statistic[dropPkByQueue](title="packets dropped by queue"; source=dropPkByQueue; record=count,"sum(packetBytes)","vector(packetBytes)"; interpolationmode=none);
+        @statistic[associationState](title="associated to access point"; record=count,vector);
     gates:
         input upperLayerIn;
         output upperLayerOut;

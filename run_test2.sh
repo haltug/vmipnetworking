@@ -11,6 +11,10 @@ echo '##########################################################################
 cd frankfurt_urban
 echo '================================== UDP MA-to-CN ========================================='
 opp_runall -j1 opp_run -u Cmdenv -c UDP_MA_to_CN -r 0..9
+echo '================================== UDP MA-to-CN 2 ======================================='
+opp_runall -j1 opp_run -u Cmdenv -c UDP_MA_to_CN2 -r 0..9
+echo '================================== UDP MA-to-CN 3 ======================================='
+opp_runall -j1 opp_run -u Cmdenv -c UDP_MA_to_CN3 -r 0..9
 echo '================================== UDP CN-to-MA ========================================='
 opp_runall -j1 opp_run -u Cmdenv -c UDP_CN_to_MA -r 0..9
 echo '================================== TCP CN-to-MA ========================================='
@@ -27,6 +31,10 @@ cd ..
 cd frankfurt_urban_mipv6
 echo '================================== UDP MA-to-CN ========================================='
 opp_runall -j1 opp_run -u Cmdenv -c UDP_MA_to_CN -r 0..9
+echo '================================== UDP MA-to-CN 2 ======================================='
+opp_runall -j1 opp_run -u Cmdenv -c UDP_MA_to_CN2 -r 0..9
+echo '================================== UDP MA-to-CN 3 ======================================='
+opp_runall -j1 opp_run -u Cmdenv -c UDP_MA_to_CN3 -r 0..9
 echo '================================== UDP CN-to-MA ========================================='
 opp_runall -j1 opp_run -u Cmdenv -c UDP_CN_to_MA -r 0..9
 echo '================================== TCP CN-to-MA ========================================='
@@ -45,6 +53,10 @@ cd ..
 cd frankfurt_urban_n_nodes
 echo '================================== UDP MA-to-CN ========================================='
 opp_runall -j1 opp_run -u Cmdenv -c UDP_MA_to_CN -r 0..9
+echo '================================== UDP MA-to-CN 2 ======================================='
+opp_runall -j1 opp_run -u Cmdenv -c UDP_MA_to_CN2 -r 0..9
+echo '================================== UDP MA-to-CN 3 ======================================='
+opp_runall -j1 opp_run -u Cmdenv -c UDP_MA_to_CN3 -r 0..9
 echo '================================== UDP CN-to-MA ========================================='
 opp_runall -j1 opp_run -u Cmdenv -c UDP_CN_to_MA -r 0..9
 # echo '================================== TCP CN-to-MA ========================================='
@@ -65,6 +77,10 @@ cd frankfurt_urban_n_nodes_mipv6
 # opp_runall -j1 opp_run -u Cmdenv -c UDP_MA_to_CN -r 0..9
 echo '================================== UDP CN-to-MA ========================================='
 opp_runall -j1 opp_run -u Cmdenv -c UDP_CN_to_MA -r 0..9
+echo '================================== UDP MA-to-CN 2 ======================================='
+opp_runall -j1 opp_run -u Cmdenv -c UDP_MA_to_CN2 -r 0..9
+echo '================================== UDP MA-to-CN 3 ======================================='
+opp_runall -j1 opp_run -u Cmdenv -c UDP_MA_to_CN3 -r 0..9
 # echo '======================================================================================================================'
 # echo '================================== TCP CN-to-MA ========================================='
 # opp_runall -j1 opp_run -u Cmdenv -c TCP_CN_to_MA -r 0..9
@@ -84,6 +100,10 @@ cd frankfurt_urban_n_vehicles
 # opp_runall -j1 opp_run -u Cmdenv -c UDP_MA_to_CN -r 0..9
 echo '================================== UDP CN-to-MA ========================================='
 opp_runall -j1 opp_run -u Cmdenv -c UDP_CN_to_MA -r 0..9
+echo '================================== UDP MA-to-CN 2 ======================================='
+opp_runall -j1 opp_run -u Cmdenv -c UDP_MA_to_CN2 -r 0..9
+echo '================================== UDP MA-to-CN 3 ======================================='
+opp_runall -j1 opp_run -u Cmdenv -c UDP_MA_to_CN3 -r 0..9
 # echo '======================================================================================================================'
 # echo '================================== TCP CN-to-MA ========================================='
 # opp_runall -j1 opp_run -u Cmdenv -c TCP_CN_to_MA -r 0..9
@@ -101,6 +121,10 @@ cd ..
 cd frankfurt_urban_n_vehicles_mipv6
 echo '================================== UDP MA-to-CN ========================================='
 opp_runall -j1 opp_run -u Cmdenv -c UDP_MA_to_CN -r 0..9
+echo '================================== UDP MA-to-CN 2 ======================================='
+opp_runall -j1 opp_run -u Cmdenv -c UDP_MA_to_CN2 -r 0..9
+echo '================================== UDP MA-to-CN 3 ======================================='
+opp_runall -j1 opp_run -u Cmdenv -c UDP_MA_to_CN3 -r 0..9
 echo '================================== UDP CN-to-MA ========================================='
 opp_runall -j1 opp_run -u Cmdenv -c UDP_CN_to_MA -r 0..9
 # echo '================================== TCP CN-to-MA ========================================='

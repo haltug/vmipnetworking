@@ -538,14 +538,16 @@ void Ieee80211Mac::handleSelfMessage(cMessage *msg)
 
 void Ieee80211Mac::handleUpperPacket(cPacket *msg)
 {
+    EV_DEBUG << "Ieee80211Mac::handleUpperPacket(): received packet from mgmt module. packet " << msg->getName() << " " << msg->getFullName() << endl;
     if (queueModule && numCategories() > 1 && (int)transmissionQueueSize() < maxQueueSize) {
         // the module are continuously asking for packets, except if the queue is full
-        EV_DEBUG << "requesting another frame from queue module\n";
+        EV_DEBUG << "Ieee80211Mac::handleUpperPacket(): requesting frame from queue module. if(queueModule && numCategories() > 1 && (int)transmissionQueueSize() < maxQueueSize)" << endl;
         queueModule->requestPacket();
     }
 
     // check if it's a command from the mgmt layer
     if (msg->getBitLength() == 0 && msg->getKind() != 0) {
+        EV_DEBUG << "Ieee80211Mac::handleUpperPacket(): packet is command from mgmt module." << endl;
         handleUpperCommand(msg);
         return;
     }
@@ -555,7 +557,7 @@ void Ieee80211Mac::handleUpperPacket(cPacket *msg)
     if (frame->getByteLength() > fragmentationThreshold)
         throw cRuntimeError("message from higher layer (%s)%s is too long for 802.11b, %d bytes (fragmentation is not supported yet)",
                 msg->getClassName(), msg->getName(), (int)(msg->getByteLength()));
-    EV_DEBUG << "frame " << frame << " received from higher layer, receiver = " << frame->getReceiverAddress() << endl;
+    EV_DEBUG << "Ieee80211Mac::handleUpperPacket(): frame " << frame << " received from higher layer, receiver = " << frame->getReceiverAddress() << endl;
 
     // if you get error from this assert check if is client associated to AP
     ASSERT(!frame->getReceiverAddress().isUnspecified());
@@ -581,7 +583,7 @@ int Ieee80211Mac::mappingAccessCategory(Ieee80211DataOrMgmtFrame *frame)
 
     // check for queue overflow
     if (isDataFrame && maxQueueSize && (int)transmissionQueueSize() >= maxQueueSize) {
-        EV_WARN << "message " << frame << " received from higher layer but AC queue is full, dropping message\n";
+        EV_WARN << "Ieee80211Mac: message " << frame << " received from higher layer but AC queue is full, dropping message\n";
         numDropped()++;
         delete frame;
         return 200;
@@ -619,7 +621,7 @@ int Ieee80211Mac::mappingAccessCategory(Ieee80211DataOrMgmtFrame *frame)
             transmissionQueue()->insert(p, frame);
         }
     }
-    EV_DEBUG << "frame classified as access category " << currentAC << " (0 background, 1 best effort, 2 video, 3 voice)\n";
+    EV_DEBUG << "Ieee80211Mac: frame classified as access category " << currentAC << " (0 background, 1 best effort, 2 video, 3 voice)\n";
     return true;
 }
 

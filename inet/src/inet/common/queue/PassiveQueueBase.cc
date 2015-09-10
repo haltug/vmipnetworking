@@ -43,7 +43,6 @@ void PassiveQueueBase::initialize()
 void PassiveQueueBase::handleMessage(cMessage *msg)
 {
     numQueueReceived++;
-
     emit(rcvdPkSignal, msg);
 
     if (packetRequested > 0) {
@@ -51,6 +50,7 @@ void PassiveQueueBase::handleMessage(cMessage *msg)
         emit(enqueuePkSignal, msg);
         emit(dequeuePkSignal, msg);
         emit(queueingTimeSignal, SIMTIME_ZERO);
+        EV_DEBUG << "PassivQueueBaseMAC: packetRequested > 0" << endl;
         sendOut(msg);
     }
     else {
@@ -102,6 +102,7 @@ void PassiveQueueBase::clear()
 
 cMessage *PassiveQueueBase::pop()
 {
+    EV_DEBUG << "PassivQueue: pop packet at front of queue" << endl;
     return dequeue();
 }
 

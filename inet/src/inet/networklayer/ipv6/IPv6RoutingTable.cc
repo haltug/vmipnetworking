@@ -90,7 +90,9 @@ void IPv6RoutingTable::initialize(int stage)
         host->subscribe(NF_INTERFACE_DELETED, this);
         host->subscribe(NF_INTERFACE_STATE_CHANGED, this);
         host->subscribe(NF_INTERFACE_CONFIG_CHANGED, this);
+        host->subscribe(NF_INTERFACE_PRIORITY_CHANGED, this); // --HA
         host->subscribe(NF_INTERFACE_IPv6CONFIG_CHANGED, this);
+
     }
     else if (stage == INITSTAGE_NETWORK_LAYER) {
         // add IPv6InterfaceData to interfaces
@@ -209,6 +211,11 @@ void IPv6RoutingTable::receiveSignal(cComponent *source, simsignal_t signalID, c
     else if (signalID == NF_INTERFACE_IPv6CONFIG_CHANGED) {
         //TODO
     }
+    else if (signalID == NF_INTERFACE_PRIORITY_CHANGED) {
+        const InterfaceEntry *interfaceEntry = check_and_cast<const InterfaceEntryChangeDetails*>(obj)->getInterfaceEntry();
+        int interfaceEntryId = interfaceEntry->getInterfaceId();
+    }
+
 }
 
 void IPv6RoutingTable::routeChanged(IPv6Route *entry, int fieldCode)

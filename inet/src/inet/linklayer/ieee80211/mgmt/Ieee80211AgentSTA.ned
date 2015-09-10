@@ -49,6 +49,7 @@ simple Ieee80211AgentSTA
         @statistic[sentRequest](title="sent requests"; record=count,vector); // ENUM! ~Ieee80211PrimRequestCode
         @statistic[acceptConfirm](title="accepted confirms"; record=count,vector); // ENUM! ~Ieee80211PrimConfirmCode
         @statistic[dropConfirm](title="dropped confirms"; record=count,vector); // ENUM! ~Ieee80211PrimConfirmCode
+        @statistic[disassociationState](title="disassociated from access point"; record=count,vector); 
     gates:
         input mgmtIn;
         output mgmtOut;

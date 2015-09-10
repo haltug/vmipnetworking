@@ -50,6 +50,8 @@ Define_Module(Ieee80211MgmtSTA);
 
 #define MAX_BEACONS_MISSED        3.5  // beacon lost timeout, in beacon intervals (doesn't need to be integer)
 
+simsignal_t Ieee80211MgmtSTA::associationStateSignal = registerSignal("associationState");
+
 std::ostream& operator<<(std::ostream& os, const Ieee80211MgmtSTA::ScanningInfo& scanning)
 {
     os << "activeScan=" << scanning.activeScan
@@ -180,6 +182,8 @@ void Ieee80211MgmtSTA::handleTimer(cMessage *msg)
 
 void Ieee80211MgmtSTA::handleUpperMessage(cPacket *msg)
 {
+    EV_DEBUG << "Mgmt: Received packet from upper layer. name: " << msg->getName() << endl;
+
     if (!isAssociated || assocAP.address.isUnspecified()) {
         EV << "STA is not associated with an access point, discarding packet" << msg << "\n";
         delete msg;
@@ -213,6 +217,7 @@ void Ieee80211MgmtSTA::handleCommand(int msgkind, cObject *ctrl)
 
 Ieee80211DataFrame *Ieee80211MgmtSTA::encapsulate(cPacket *msg)
 {
+    EV_DEBUG << "Mgmt: Encapsulating packet as Ieee80211DataFrameWithSNAP. " << msg->getName() << endl;
     Ieee80211DataFrameWithSNAP *frame = new Ieee80211DataFrameWithSNAP(msg->getName());
 
     // frame goes to the AP
@@ -747,7 +752,7 @@ void Ieee80211MgmtSTA::handleAssociationResponseFrame(Ieee80211AssociationRespon
         (APInfo&)assocAP = (*ap);
 
         emit(NF_L2_ASSOCIATED, myIface);
-
+        emit(associationStateSignal, ++associationStateCounter);
         assocAP.beaconTimeoutMsg = new cMessage("beaconTimeout", MK_BEACON_TIMEOUT);
         scheduleAt(simTime() + MAX_BEACONS_MISSED * assocAP.beaconInterval, assocAP.beaconTimeoutMsg);
     }

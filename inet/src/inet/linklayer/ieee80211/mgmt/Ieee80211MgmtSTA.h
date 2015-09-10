@@ -113,6 +113,8 @@ class INET_API Ieee80211MgmtSTA : public Ieee80211MgmtBase, protected cListener
     bool isAssociated;
     cMessage *assocTimeoutMsg;    // if non-nullptr: association is in progress
     AssociatedAPInfo assocAP;
+    static simsignal_t associationStateSignal;
+    long associationStateCounter;
 
   public:
     Ieee80211MgmtSTA() : host(nullptr), interfaceTable(nullptr), myIface(nullptr), numChannels(-1), isScanning(false), isAssociated(false), assocTimeoutMsg(nullptr) {}

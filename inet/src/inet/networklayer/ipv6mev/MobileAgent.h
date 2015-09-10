@@ -25,6 +25,7 @@
 #include "inet/networklayer/icmpv6/ICMPv6Message_m.h"
 #include "inet/networklayer/ipv6mev/IdentificationHeader.h"
 #include "inet/networklayer/common/InterfaceEntry.h"
+#include "inet/networklayer/ipv6/IPv6RoutingTable.h"
 
 namespace inet {
 
@@ -35,6 +36,7 @@ class MobileAgent : public cListener, public Agent
     bool enableNodeRequesting;
   protected:
     IInterfaceTable *ift = nullptr; // for recognizing changes etc
+    IPv6RoutingTable *rt = nullptr; // for multihoming
     cModule *interfaceNotifier = nullptr; // listens for changes in interfacetable
     virtual int numInitStages() const override { return NUM_INIT_STAGES; }
     virtual void initialize(int stage) override;
@@ -116,6 +118,7 @@ class MobileAgent : public cListener, public Agent
     long flowResponseStat = 0;
     double interfaceSnirStat = 0;
     long interfaceIdStat = 0;
+    long dataSignalLoadStat = 0;
 
   public:
     //  AGENT MANAGEMENT
@@ -162,6 +165,7 @@ class MobileAgent : public cListener, public Agent
     double getMeanSnir(InterfaceEntry *ie);
     InterfaceEntry *getInterface(IPv6Address destAddr = IPv6Address::UNSPECIFIED_ADDRESS, int destPort = -1, int sourcePort = -1, short protocol = -1);
     bool isInterfaceUp();
+    bool isInterfaceAssociated();
 
 //  PACKET PROCESSING
     void sendToLowerLayer(cMessage *msg, const IPv6Address& destAddr, simtime_t sendTime = 0); // resend after timer expired

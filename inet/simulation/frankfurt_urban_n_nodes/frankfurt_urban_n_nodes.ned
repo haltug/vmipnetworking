@@ -88,7 +88,7 @@ network frankfurt_urban_n_nodes
         }
         AP_1: AccessPoint {
             parameters:
-                @display("p=1369,1487;is=s");
+                @display("p=1369.4581,1487.6848;is=s");
         }
         AP_2: AccessPoint {
             parameters:
@@ -96,19 +96,19 @@ network frankfurt_urban_n_nodes
         }
         AP_3: AccessPoint {
             parameters:
-                @display("p=1763,339;is=s");
+                @display("p=1763.5469,339.9015;is=s");
         }
         AP_4: AccessPoint {
             parameters:
-                @display("p=2530,411;is=s");
+                @display("p=2561.5764,477.83252;is=s");
         }
         AP_5: AccessPoint {
             parameters:
-                @display("p=3394,556;is=s");
+                @display("p=3315.271,620.6897;is=s");
         }
         AP_6: AccessPoint {
             parameters:
-                @display("p=4192,665;is=s");
+                @display("p=4128.079,709.3596;is=s");
         }
         AP_7: AccessPoint {
             parameters:
@@ -116,11 +116,11 @@ network frankfurt_urban_n_nodes
         }
         AP_8: AccessPoint {
             parameters:
-                @display("p=5226,1270;is=s");
+                @display("p=5226.601,940.8867;is=s");
         }
         AP_9: AccessPoint {
             parameters:
-                @display("p=5896,733;is=s");
+                @display("p=6000,620.6897;is=s");
         }
         CN1[total_cn]: StandardHost6 {
             parameters:

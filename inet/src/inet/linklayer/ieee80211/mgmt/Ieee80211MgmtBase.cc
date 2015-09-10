@@ -99,24 +99,29 @@ void Ieee80211MgmtBase::handleMessage(cMessage *msg)
 void Ieee80211MgmtBase::sendOrEnqueue(cPacket *frame)
 {
     ASSERT(isOperational);
+    EV_DEBUG << "Mgmt: Queueing packet in PassiveQueueBase within sendOrEnqueue" << endl;
     PassiveQueueBase::handleMessage(frame);
 }
 
 cMessage *Ieee80211MgmtBase::enqueue(cMessage *msg)
 {
+
     ASSERT(dynamic_cast<Ieee80211DataOrMgmtFrame *>(msg) != nullptr);
     bool isDataFrame = dynamic_cast<Ieee80211DataFrame *>(msg) != nullptr;
 
     if (!isDataFrame) {
+        EV_DEBUG << "Ieee80211MgmtBase::enqueue(): inserting management queue" << endl;
         // management frames are inserted into mgmtQueue
         mgmtQueue.insert(msg);
         return nullptr;
     }
     else if (frameCapacity && dataQueue.getLength() >= frameCapacity) {
+        EV_DEBUG << "Ieee80211MgmtBase::enqueue(): Dropping packet" << endl;
         EV << "Queue full, dropping packet.\n";
         return msg;
     }
     else {
+        EV_DEBUG << "Ieee80211MgmtBase::enqueue(): insering in data queue" << endl;
         dataQueue.insert(msg);
         emit(dataQueueLenSignal, dataQueue.getLength());
         return nullptr;
@@ -133,6 +138,7 @@ bool Ieee80211MgmtBase::isEmpty()
 
 cMessage *Ieee80211MgmtBase::dequeue()
 {
+    EV_DEBUG << "Ieee80211MgmtBase::dequeue(): called." << endl;
     // management frames have priority
     if (!mgmtQueue.isEmpty())
         return (cMessage *)mgmtQueue.pop();
@@ -142,6 +148,7 @@ cMessage *Ieee80211MgmtBase::dequeue()
         return nullptr;
 
     cMessage *pk = (cMessage *)dataQueue.pop();
+    EV_DEBUG << "Ieee80211MgmtBase::dequeue(): popping packet from queue." << endl;
 
     // statistics
     emit(dataQueueLenSignal, dataQueue.getLength());
@@ -151,6 +158,7 @@ cMessage *Ieee80211MgmtBase::dequeue()
 void Ieee80211MgmtBase::sendOut(cMessage *msg)
 {
     ASSERT(isOperational);
+    EV_DEBUG << "Ieee80211MgmtBase::sendOut(): sending packet down to mac module." << endl;
     send(msg, "macOut");
 }
 

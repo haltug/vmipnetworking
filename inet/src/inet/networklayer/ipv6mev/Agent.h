@@ -83,7 +83,7 @@ namespace inet {
 #define TIMEOUT_SEQNO_INIT      0.25
 #define TIMEOUT_SEQ_UPDATE      0.05
 #define TIMEOUT_LOC_UPDATE      1
-#define TIMEDELAY_IF_DOWN       3   // delay of ip msg handler
+#define TIMEDELAY_IF_DOWN       4   // delay of ip msg handler
 #define TIMEDELAY_IF_UP         0
 #define TIMEDELAY_IF_CHANGE     0
 #define TIMEDELAY_FLOW_REQ      0.25 // unit is [s]

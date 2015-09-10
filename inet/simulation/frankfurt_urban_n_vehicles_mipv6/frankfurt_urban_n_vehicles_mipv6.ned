@@ -99,15 +99,15 @@ network frankfurt_urban_n_vehicles_mipv6
         }
         AP_4: AccessPoint {
             parameters:
-                @display("p=2530,411;is=s");
+                @display("p=2561.5764,477.83252;is=s");
         }
         AP_5: AccessPoint {
             parameters:
-                @display("p=3394.0889,556.65027;is=s");
+                @display("p=3315.271,620.6897;is=s");
         }
         AP_6: AccessPoint {
             parameters:
-                @display("p=4192.118,665.02466;is=s");
+                @display("p=4128.079,709.3596;is=s");
         }
         AP_7: AccessPoint {
             parameters:
@@ -115,11 +115,11 @@ network frankfurt_urban_n_vehicles_mipv6
         }
         AP_8: AccessPoint {
             parameters:
-                @display("p=5226.601,1270.936;is=s");
+                @display("p=5226.601,940.8867;is=s");
         }
         AP_9: AccessPoint {
             parameters:
-                @display("p=5896.552,733.9902;is=s");
+                @display("p=6000,620.6897;is=s");
         }
         CN1[total_cn]: CorrespondentNode6 {
             parameters:

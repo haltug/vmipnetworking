@@ -27,7 +27,9 @@ simple MobileAgent
 //        double startTime @unit(s) = default(5s);
         string controlAgent = default("");  // server address (may be symbolic)
         string interfaceTableModule;
+        string routingTableModule;
         *.interfaceTableModule = default(absPath(interfaceTableModule));
+		*.routingTableModule = default(absPath(routingTableModule));
         @statistic[controlSignalLoad](title="controlSignalLoad"; unit=B; record=count,vector,histogram; interpolationmode=none);
 		@statistic[dataSignalLoad](title="dataSignalLoad"; unit=B; record=count,vector,histogram; interpolationmode=none);
         @statistic[interfaceSnir](title="interfaceSnir"; record=count,vector,histogram; interpolationmode=none);

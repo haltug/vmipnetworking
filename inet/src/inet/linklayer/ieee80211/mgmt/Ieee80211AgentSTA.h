@@ -57,6 +57,8 @@ class INET_API Ieee80211AgentSTA : public cSimpleModule, public cListener
     static simsignal_t sentRequestSignal;
     static simsignal_t acceptConfirmSignal;
     static simsignal_t dropConfirmSignal;
+    static simsignal_t disassociationStateSignal;
+    long disassociationStateCounter;
 
   public:
     Ieee80211AgentSTA() {}
