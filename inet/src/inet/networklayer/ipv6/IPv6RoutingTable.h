@@ -67,7 +67,6 @@ class INET_API IPv6RoutingTable : public cSimpleModule, public IRoutingTable, pr
     // NOTE: nextHop might be a link-local address from which interfaceId cannot be deduced
     struct DestCacheEntry
     {
-        int priority = 1;
         int interfaceId = -1;
         IPv6Address nextHopAddr;
         simtime_t expiryTime;

@@ -137,7 +137,7 @@ class INET_API InterfaceEntry : public cNamedObject
   public:
     // field ids for change notifications
     enum {
-        F_CARRIER, F_STATE,
+        F_CARRIER, F_STATE, F_PRIO_CHANGED,
         F_NAME, F_NODE_IN_GATEID, F_NODE_OUT_GATEID, F_NETW_GATEIDX,
         F_LOOPBACK, F_BROADCAST, F_MULTICAST, F_POINTTOPOINT,
         F_DATARATE, F_MTU, F_MACADDRESS, F_TOKEN,
@@ -251,7 +251,7 @@ class INET_API InterfaceEntry : public cNamedObject
 
     // priority concept to implement multihoming
     int getPriority() const { return priority; }
-    void setPriority(int priority = 1) { this->priority = priority; }
+    virtual void setPriority(int priority = 1) {if (this->priority != priority)  { this->priority = priority; priorityChanged(F_PRIO_CHANGED); } }
 };
 
 } // namespace inet

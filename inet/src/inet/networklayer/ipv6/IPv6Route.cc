@@ -29,8 +29,9 @@ std::string IPv6Route::info() const
 {
     std::stringstream out;
     out << getDestPrefix() << "/" << getPrefixLength() << " --> ";
-    out << "if:" << (_interfacePtr ? _interfacePtr->getName() : "*  ");
-    out << " next hop:" << getNextHop();
+    out << "IF: " << (_interfacePtr ? _interfacePtr->getName() : "*  ");
+    out << " [" << (_interfacePtr ? std::to_string(_interfacePtr->getPriority()) : "*") << "]";
+    out << " NEXT HOP:" << getNextHop();
     out << " " << IRoute::sourceTypeName(getSourceType());
     if (getExpiryTime() > 0)
         out << " exp:" << getExpiryTime();
