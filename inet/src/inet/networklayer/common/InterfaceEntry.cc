@@ -91,7 +91,6 @@ std::string InterfaceEntry::info() const
         out << "  on:-";
     else
         out << "  on:nwLayer.ifOut[" << getNetworkLayerGateIndex() << "]";
-    out << " PRIO: " << getPriority();
     out << "  MTU:" << getMTU();
     if (!isUp())
         out << " DOWN";

@@ -153,6 +153,8 @@ network frankfurt_urban
         CA.ethg$i++ <-- ethernetline <-- R_5.ethg$o++;
         R_10.ethg$o++ --> ethernetline --> R_5.ethg$i++;
         R_10.ethg$i++ <-- ethernetline <-- R_5.ethg$o++;
+		R_10.ethg$o++ --> ethernetline --> R_7.ethg$i++;
+        R_10.ethg$i++ <-- ethernetline <-- R_7.ethg$o++;
         AP_1.ethg$o++ --> ethernetline --> R_1.ethg$i++;
         AP_1.ethg$i++ <-- ethernetline <-- R_1.ethg$o++;
         AP_2.ethg$o++ --> ethernetline --> R_1.ethg$i++;

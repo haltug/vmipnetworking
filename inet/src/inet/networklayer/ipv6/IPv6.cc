@@ -173,7 +173,7 @@ void IPv6::endService(cPacket *msg)
         // packet from upper layers, tunnel link-layer output or ND: encapsulate and send out
         handleMessageFromHL(msg);
     } else if (msg->getArrivalGate()->isName("ndIn") && dynamic_cast<IPv6Datagram *>(msg)) {
-        EV_DEBUG << "IPv6: Message from gate 'ndIn' " << endl;
+        EV_DEBUG << "IPv6: msg->getArrivalGate()->isName(ndIn) && dynamic_cast<IPv6Datagram *>(msg)" << endl;
         IPv6Datagram *datagram = static_cast<IPv6Datagram *>(msg);
         IPv6NDControlInfo *ctrl = check_and_cast<IPv6NDControlInfo *>(msg->removeControlInfo());
         bool fromHL = ctrl->getFromHL();
@@ -182,7 +182,7 @@ void IPv6::endService(cPacket *msg)
         delete ctrl;
         resolveMACAddressAndSendPacket(datagram, interfaceId, nextHop, fromHL);
     } else {
-        EV_DEBUG << "IPv6: Message from gate 'ndIn' " << endl;
+        EV_DEBUG << "IPv6: datagram from network or from ND: localDeliver and/or route " << endl;
         // datagram from network or from ND: localDeliver and/or route
         IPv6Datagram *datagram = check_and_cast<IPv6Datagram *>(msg);
         bool fromHL = false;
@@ -253,13 +253,13 @@ void IPv6::handleMessageFromHL(cPacket *msg)
 
     EV_DEBUG << "IPv6: Original ControlInfo:" << endl;
     EV_DEBUG << "getDestAddr: " << controlInfo->getDestAddr() << "; getDestinationAddress: " << controlInfo->getDestinationAddress()
-            << "; \ngetDiffServCodePoint: " << controlInfo->getDiffServCodePoint() << "; getExplicitCongestionNotification: " << controlInfo->getExplicitCongestionNotification()
-            << "; \ngetClassName: " << controlInfo->getClassName() << "; getExtensionHeaderArraySize: " << controlInfo->getExtensionHeaderArraySize()
-            << "; \ngetFullName: " << controlInfo->getFullName() << "; getHopLimit: " << controlInfo->getHopLimit()
-            << "; \ngetInterfaceId: " << controlInfo->getInterfaceId() << "; getMulticastLoop: " << controlInfo->getMulticastLoop()
-            << "; \ngetName: " << controlInfo->getName() << "; getProtocol: " << controlInfo->getProtocol()
-            << "; \ngetSourceAddress: " << controlInfo->getSourceAddress() << "; getSrcAddr: " << controlInfo->getSrcAddr()
-            << "; \ngetTrafficClass: " << std::to_string(controlInfo->getTrafficClass()) << "; getTransportProtocol: " << controlInfo->getTransportProtocol() << endl;
+            << "; getDiffServCodePoint: " << controlInfo->getDiffServCodePoint() << "; getExplicitCongestionNotification: " << controlInfo->getExplicitCongestionNotification()
+            << "; getClassName: " << controlInfo->getClassName() << "; getExtensionHeaderArraySize: " << controlInfo->getExtensionHeaderArraySize()
+            << "; getFullName: " << controlInfo->getFullName() << "; getHopLimit: " << controlInfo->getHopLimit()
+            << "; getInterfaceId: " << controlInfo->getInterfaceId() << "; getMulticastLoop: " << controlInfo->getMulticastLoop()
+            << "; getName: " << controlInfo->getName() << "; getProtocol: " << controlInfo->getProtocol()
+            << "; getSourceAddress: " << controlInfo->getSourceAddress() << "; getSrcAddr: " << controlInfo->getSrcAddr()
+            << "; getTrafficClass: " << std::to_string(controlInfo->getTrafficClass()) << "; getTransportProtocol: " << controlInfo->getTransportProtocol() << endl;
 
     // encapsulate upper-layer packet into IPv6Datagram
     // IPV6_MULTICAST_IF option, but allow interface selection for unicast packets as well

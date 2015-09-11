@@ -134,6 +134,7 @@ void MobileAgent::handleMessage(cMessage *msg)
         if(msg->getKind() == MSG_START_TIME) {
             createSessionInit();
             delete msg;
+            return;
         }
         else if(msg->getKind() == MSG_SESSION_INIT) {
             sendSessionInit(msg);
@@ -153,14 +154,16 @@ void MobileAgent::handleMessage(cMessage *msg)
         else if(msg->getKind() == MSG_SEQ_UPDATE) { // from
             sendSequenceUpdate(msg);
         }
-        else if(msg->getKind() == MSG_SEQ_UPDATE_DELAYED) {
-            SequenceUpdateTimer *sut = (SequenceUpdateTimer *) msg->getContextPointer();
-            uint64 id = sut->id;
-            uint seq = sut->seq;
-            uint ack = sut->ack;
-            createSequenceUpdate(id, seq, ack);
-            delete msg;
-        }
+//        else if(msg->getKind() == MSG_SEQ_UPDATE_DELAYED) {
+//            SequenceUpdateTimer *sut = (SequenceUpdateTimer *) msg->getContextPointer();
+//            uint64 id = sut->id;
+//            uint seq = sut->seq;
+//            uint ack = sut->ack;
+//            createSequenceUpdate(id, seq, ack);
+//            cancelAndDeleteExpiryTimer(ControlAgentAddress,-1, TIMERKEY_SEQ_UPDATE, agentId, agentHeader->getIpSequenceNumber(), getAckNo(agentId));
+//            delete msg;
+//            return;
+//        }
         else if(msg->getKind() == MSG_FLOW_REQ) { // from MA
             sendFlowRequest(msg);
         }
@@ -222,9 +225,8 @@ void MobileAgent::handleMessage(cMessage *msg)
     else
         if(isIdLayerEnabled)
             throw cRuntimeError("MA->handleMessage: cMessage Type not known. What did you send?");
-        else {
+        else
             throw cRuntimeError("MA->handleMessage: received selfMessage while id layer is disabled.");
-        }
 }
 
 void MobileAgent::createSessionInit() {
@@ -295,10 +297,10 @@ void MobileAgent::createSequenceInit() { // does not support interface check
 void MobileAgent::sendSequenceInit(cMessage *msg) {
     SequenceInitTimer *sit = (SequenceInitTimer *) msg->getContextPointer();
     const IPv6Address &dest = sit->dest;
-    InterfaceEntry *ie = getInterface();
+//    InterfaceEntry *ie = getInterface();
     sit->nextScheduledTime = simTime() + sit->ackTimeout;
     sit->ackTimeout = (sit->ackTimeout)*1.5;
-    if(!ie) {
+    if(!isInterfaceAssociated()) {
         scheduleAt(sit->nextScheduledTime, msg);
         EV_WARN << "MA_sendSequenceInit: Currently no interface available for sending sequence initialization" << endl;
         return;
@@ -320,6 +322,7 @@ void MobileAgent::sendSequenceInit(cMessage *msg) {
             ih->setIPaddresses(idx, ad.insertedList.at(idx).address);
     }
     ih->setByteLength(SIZE_AGENT_HEADER+SIZE_ADDING_ADDR_TO_HDR);
+    ih->setName(msg->getName());
     long size = ih->getByteLength();
     emit(controlSignalLoad, size);
     sendToLowerLayer(ih, dest);
@@ -335,7 +338,8 @@ void MobileAgent::createSequenceUpdate(uint64 mobileId, uint seq, uint ack) {
         throw cRuntimeError("MA_createSequenceUpdate: Sequence initialization not completed. Sequence update not possible.");
     if(seq == ack) // nothing to update
         return;
-    InterfaceEntry *ie = getInterface(ControlAgentAddress);
+//    InterfaceEntry *ie = getInterface(ControlAgentAddress);
+    cMessage *msg = new cMessage("createSequenceUpdate", MSG_SEQ_UPDATE);
     TimerKey key(ControlAgentAddress, -1, TIMERKEY_SEQ_UPDATE, mobileId, seq);
     SequenceUpdateTimer *sut = (SequenceUpdateTimer *) getExpiryTimer(key, TIMERTYPE_SEQ_UPDATE);
     sut->dest = ControlAgentAddress;
@@ -344,19 +348,17 @@ void MobileAgent::createSequenceUpdate(uint64 mobileId, uint seq, uint ack) {
     sut->seq = seq;
     sut->ack = ack;
     sut->id = mobileId;
-    sut->ie = ie;
-    if(!ie) {
-        cMessage *msg = new cMessage("createSequenceUpdate", MSG_SEQ_UPDATE_DELAYED);
-        sut->timer = msg;
-        msg->setContextPointer(sut);
-        scheduleAt(simTime()+TIMEOUT_SEQ_UPDATE, msg);
-    } else {
-//        EV << "MA: Sending seq update." << endl;
-        cMessage *msg = new cMessage("createSequenceUpdate", MSG_SEQ_UPDATE);
-        sut->timer = msg;
-        msg->setContextPointer(sut);
-        scheduleAt(sut->nextScheduledTime, msg);
-    }
+    sut->timer = msg;
+    msg->setContextPointer(sut);
+    scheduleAt(sut->nextScheduledTime, msg);
+//    if(!isInterfaceAssociated()) {
+//        cMessage *msg = new cMessage("createSequenceUpdate", MSG_SEQ_UPDATE_DELAYED);
+//        sut->timer = msg;
+//        msg->setContextPointer(sut);
+//        scheduleAt(simTime()+TIMEOUT_SEQ_UPDATE, msg);
+//    } else {
+////        EV << "MA: Sending seq update." << endl;
+//    }
 }
 
 // Sends to Control Agent an update message of the current sequence number.
@@ -398,6 +400,10 @@ void MobileAgent::sendSequenceUpdate(cMessage* msg) {
 bool MobileAgent::createFlowRequest(FlowTuple &tuple) {
     if(sessionState != ASSOCIATED ||  seqnoState != ASSOCIATED) {
         EV_WARN << "MA_createFlowRequest: Session/Sequence initialization not completed. Flow request dropped." << endl;
+        if(sessionState != ASSOCIATED)
+            createSessionInit();
+        else
+            createSequenceInit();
         return false;
     }
     cMessage *msg = new cMessage("createFlowRequest", MSG_FLOW_REQ);
@@ -411,14 +417,14 @@ bool MobileAgent::createFlowRequest(FlowTuple &tuple) {
     frt->timer = msg;
     frt->ackTimeout = TIMEDELAY_FLOW_REQ;
     frt->nodeAddress = funit->nodeAddress;
-    InterfaceEntry *ie = getInterface(ControlAgentAddress);
+//    InterfaceEntry *ie = getInterface(ControlAgentAddress);
 //    if(!ie) {
 //        EV_INFO << "MA_createFlowRequest: Delaying flow request. No interface provided." << endl;
 //        frt->ie = nullptr;
 //        frt->nextScheduledTime = simTime()+TIMEDELAY_FLOW_REQ;
 //    } else {
 //    }
-    frt->ie = ie;
+//    frt->ie = ie;
     frt->nextScheduledTime = simTime();
     msg->setContextPointer(frt);
     scheduleAt(frt->nextScheduledTime, msg);
@@ -454,7 +460,6 @@ void MobileAgent::sendFlowRequest(cMessage *msg) {
     ih->setIPaddressesArraySize(1);
     ih->setIPaddresses(0,nodeAddress);
     ih->setByteLength(SIZE_AGENT_HEADER+SIZE_ADDING_ADDR_TO_HDR);
-
     long size = ih->getByteLength();
     emit(controlSignalLoad, size);
     sendToLowerLayer(ih, dest);
@@ -1058,15 +1063,6 @@ void MobileAgent::processOutgoingIcmpPacket(cMessage *msg)
 void MobileAgent::sendUpperLayerPacket(cPacket *packet, IPv6ControlInfo *controlInfo, IPv6Address agentAddr, short prot)
 {
     if(sessionState == ASSOCIATED && seqnoState == ASSOCIATED) {
-        EV_DEBUG << "ID: Transmitting packet of " << prot << " to Data Agent " << agentAddr.str() << endl;
-        EV_DEBUG << "ID: Original ControlInfo:" << endl;
-        EV_DEBUG << "getDestAddr: " << controlInfo->getDestAddr() << "; getDestinationAddress: " << controlInfo->getDestinationAddress()
-                << "; \ngetDiffServCodePoint: " << controlInfo->getDiffServCodePoint() << "; getExplicitCongestionNotification: " << controlInfo->getExplicitCongestionNotification()
-                << "; \ngetFullName: " << controlInfo->getFullName() << "; getHopLimit: " << controlInfo->getHopLimit()
-                << "; \ngetInterfaceId: " << controlInfo->getInterfaceId() << "; getMulticastLoop: " << controlInfo->getMulticastLoop()
-                << "; \ngetName: " << controlInfo->getName() << "; getProtocol: " << controlInfo->getProtocol()
-                << "; \ngetSourceAddress: " << controlInfo->getSourceAddress() << "; getSrcAddr: " << controlInfo->getSrcAddr()
-                << "; \ngetTrafficClass: " << std::to_string(controlInfo->getTrafficClass()) << "; getTransportProtocol: " << controlInfo->getTransportProtocol() << endl;
         IdentificationHeader *ih = getAgentHeader(1, prot, getSeqNo(agentId), getAckNo(agentId), agentId);
         ih->setIsIdInitialized(true);
         ih->setIsIdAcked(true);
@@ -1097,11 +1093,9 @@ void MobileAgent::sendUpperLayerPacket(cPacket *packet, IPv6ControlInfo *control
         controlInfo->setProtocol(IP_PROT_IPv6EXT_ID);
         controlInfo->setDestinationAddress(agentAddr);
         // Set here scheduler configuration
-//        InterfaceEntry *ie = getInterface(controlInfo->getDestinationAddress().toIPv6());
-//        controlInfo->setInterfaceId(ie->getInterfaceId()); // just override existing entries
-//        controlInfo->setSourceAddress(ie->ipv6Data()->getPreferredAddress());
         controlInfo->setInterfaceId(-1);
         controlInfo->setSrcAddr(IPv6Address::UNSPECIFIED_ADDRESS);
+        determineInterface(IPv6Address::UNSPECIFIED_ADDRESS);
         ih->setControlInfo(controlInfo); // make copy before setting param
         cGate *outgate = gate("toLowerLayer");
         dataSignalLoadStat += ih->getByteLength();
@@ -1171,19 +1165,23 @@ void MobileAgent::handleInterfaceUp(cMessage *msg)
             if(tuple.address == ie->ipv6Data()->getPreferredAddress()) {
                 EV_DEBUG << "MA_handleInterfaceUp: Rolling table entry back to previous sequence number." << endl;
                 cancelAndDeleteExpiryTimer(ControlAgentAddress, -1,TIMERKEY_SEQ_UPDATE, agentId, getSeqNo(agentId), getAckNo(agentId));
-                setSeqNo(agentId, getSeqNo(agentId) - 1);
-//                bool timer =
-//                if(timer) {
-//                    cancelAndDeleteExpiryTimer(ControlAgentAddress,-1, TIMERKEY_SEQ_UPDATE, agentId, getSeqNo(agentId) - 1, getSeqNo(agentId) - 1);
-//                } else {
-//                    throw cRuntimeError("MA_handleInterfaceUp: A SequenceUpdateTimer must exist.");
-//                }
+                if(getSeqNo(agentId) == getAckNo(agentId)) { // this is the case when we use multipe interfaces at same time
+                    if(!isInterfaceInserted(agentId, getSeqNo(agentId), ie->getInterfaceId())) {
+                        EV_DEBUG << "MA_handleInterfaceUp: Address of interface does not exist in table. Inserting Interface." << endl;
+                        insertAddress(agentId, ie->getInterfaceId(), ie->ipv6Data()->getPreferredAddress());
+                        createSequenceUpdate(agentId, getSeqNo(agentId), getAckNo(agentId)); // next address must be updated by seq update
+                    }
+                } else {
+                    setSeqNo(agentId, getSeqNo(agentId) - 1);
+                }
             } else {
                 EV_DEBUG << "MA_handleInterfaceUp: Address of interface changed. skipping operation and waiting for address configuration." << endl;
             }
         } else {
-            EV_DEBUG << "MA_handleInterfaceUp: Address of interface does not exist in table. Inserting Interface." << endl;
-            insertAddress(agentId, ie->getInterfaceId(), ie->ipv6Data()->getPreferredAddress());
+            if(!isInterfaceInserted(agentId, getSeqNo(agentId), ie->getInterfaceId())) {
+                EV_DEBUG << "MA_handleInterfaceUp: Address of interface does not exist in table. Inserting Interface." << endl;
+                insertAddress(agentId, ie->getInterfaceId(), ie->ipv6Data()->getPreferredAddress());
+            }
             if(seqnoState == ASSOCIATED) {
                 createSequenceUpdate(agentId, getSeqNo(agentId), getAckNo(agentId)); // next address must be updated by seq update
                 sendAllPacketsInQueue();
@@ -1426,12 +1424,12 @@ double MobileAgent::getMeanSnir(InterfaceEntry *ie)
 }
 
 // Returns the interface with the highest SNIR based on the mean within the last two seconds.
-InterfaceEntry *MobileAgent::getInterface(IPv6Address destAddr, int destPort, int sourcePort, short protocol)
+void *MobileAgent::determineInterface(IPv6Address destAddr, int destPort, int sourcePort, short protocol)
 { // const IPv6Address &destAddr,
     InterfaceEntry *ie = nullptr;
     double maxSnr = 0;
     for (int i=0; i<ift->getNumInterfaces(); i++) {
-        if(!(ift->getInterface(i)->isLoopback()) && ift->getInterface(i)->isUp()) {// && ift->getInterface(i)->ipv6Data()->getPreferredAddress().isGlobal()) {
+        if(!(ift->getInterface(i)->isLoopback()) && ift->getInterface(i)->isUp() && ift->getInterface(i)->ipv6Data()->getPreferredAddress().isGlobal()) {
             double snr = getMeanSnir(ift->getInterface(i));
             if(snr >= maxSnr) {
                 maxSnr = snr; // selecting highest snr interface
@@ -1440,19 +1438,11 @@ InterfaceEntry *MobileAgent::getInterface(IPv6Address destAddr, int destPort, in
         }
     }
     if(ie) {
+        // setting interface to use.
         interfaceIdStat = ie->getInterfaceId();
         emit(interfaceId, interfaceIdStat);
-        return ie;
+        emit(NF_INTERFACE_ROUTING, interfaceIdStat); // selecting interface for routing
     }
-    else {
-    // if an interface with carrier does not exist return any interface but not loopback
-        for (int i=0; i<ift->getNumInterfaces(); i++) {
-            if(!(ift->getInterface(i)->isLoopback())) {// && ift->getInterface(i)->ipv6Data()->getPreferredAddress().isGlobal()) {
-                return ift->getInterface(i);
-            }
-        }
-    }
-    return ie;
 }
 
 // Returns true if any interface is associated to any link and acquired a global address. Otherwise it returns false.

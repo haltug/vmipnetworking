@@ -117,7 +117,7 @@ void ControlAgent::createAgentInit(uint64 mobileId)
         L3Address daAddr;
         L3AddressResolver().tryResolve(tokenizer.nextToken(), daAddr);
         if(daAddr.toIPv6().isGlobal()) {
-            cMessage *msg = new cMessage("sendingDAinit", MSG_MA_INIT);
+            cMessage *msg = new cMessage("dataAgentInitialization", MSG_MA_INIT);
             TimerKey key(daAddr.toIPv6(),-1,TIMERKEY_MA_INIT, mobileId);
             if(std::find(agentAddressList.begin(), agentAddressList.end(), daAddr.toIPv6()) == agentAddressList.end())
                 agentAddressList.push_back(daAddr.toIPv6()); // should be placed at the point of response
@@ -163,6 +163,7 @@ void ControlAgent::sendAgentInit(cMessage *msg)
         }
         ih->setIpRemovingField(0);
         ih->setByteLength(SIZE_AGENT_HEADER+(SIZE_ADDING_ADDR_TO_HDR*ad.insertedList.size()));
+        ih->setName(msg->getName());
         txTrafficStat = ih->getByteLength();
         emit(txTraffic, txTrafficStat);
         numDataAgentsStat++;
@@ -176,7 +177,7 @@ void ControlAgent::createAgentUpdate(uint64 mobileId, uint seq)
 {
 //    EV << "CA: Create Agent update message to any DataAgent" << endl;
     for(IPv6Address nodeAddr : agentAddressList) {
-        cMessage *msg = new cMessage("sendingDAseqUpdate", MSG_AGENT_UPDATE);
+        cMessage *msg = new cMessage("dataAgentSequenceUpdate", MSG_AGENT_UPDATE);
         TimerKey key(nodeAddr, -1, TIMERKEY_SEQ_UPDATE, mobileId, seq);
         SequenceUpdateTimer *sut = (SequenceUpdateTimer *) getExpiryTimer(key, TIMERTYPE_SEQ_UPDATE);
         sut->dest = nodeAddr;
@@ -211,6 +212,7 @@ void ControlAgent::sendAgentUpdate(cMessage *msg)
     }
     ih->setIpRemovingField(0);
     ih->setByteLength(SIZE_AGENT_HEADER+(SIZE_ADDING_ADDR_TO_HDR*ad.insertedList.size()));
+    ih->setName(msg->getName());
     txTrafficStat = ih->getByteLength();
     emit(txTraffic, txTrafficStat);
     numSequenceUpdateStat++;
@@ -224,6 +226,7 @@ void ControlAgent::sendSessionInitResponse(IPv6Address destAddr)
     IdentificationHeader *ih = getAgentHeader(2, IP_PROT_NONE, 0, 0, agentId);
     ih->setIsIdInitialized(true);
     ih->setIsIdAcked(true);
+    ih->setName("sendSessionInitResponse");
     txTrafficStat = ih->getByteLength();
     emit(txTraffic, txTrafficStat);
     numMobileAgentsStat++;
@@ -237,13 +240,14 @@ void ControlAgent::sendSequenceInitResponse(IPv6Address destAddr, uint64 mobileI
     ih->setIsIdInitialized(true);
     ih->setIsIdAcked(true);
     ih->setIsSeqValid(true);
+    ih->setName("sendSequenceInitResponse");
     txTrafficStat = ih->getByteLength();
     emit(txTraffic, txTrafficStat);
     sendToLowerLayer(ih,destAddr);
 }
 
 void ControlAgent::createSequenceUpdateAck(uint64 mobileId) { // does not support interface check
-    cMessage *msg = new cMessage("periodicSeqUpdateAckCAtoMA", MSG_SEQ_UPDATE_ACK);
+    cMessage *msg = new cMessage("periodicSeqUpdateAck", MSG_SEQ_UPDATE_ACK);
     TimerKey key(IPv6Address::UNSPECIFIED_ADDRESS,-1,TIMERKEY_SEQ_UPDATE_ACK);
     SequenceUpdateAckTimer *suat = (SequenceUpdateAckTimer *) getExpiryTimer(key, TIMERTYPE_SEQ_UPDATE_ACK);
     suat->timer = msg;
@@ -270,6 +274,7 @@ void ControlAgent::sendSequenceUpdateAck(cMessage *msg)
         ih->setIsIdInitialized(true);
         ih->setIsIdAcked(true);
         ih->setIsSeqValid(true);
+        ih->setName(msg->getName());
         txTrafficStat = ih->getByteLength();
         emit(txTraffic, txTrafficStat);
         numSequenceResponseStat++;
@@ -287,6 +292,7 @@ void ControlAgent::sendSequenceUpdateResponse(IPv6Address destAddr, uint64 mobil
     ih->setIsIdInitialized(true);
     ih->setIsIdAcked(true);
     ih->setIsSeqValid(true);
+    ih->setName("sendSequenceUpdateResponse");
     txTrafficStat = ih->getByteLength();
     emit(txTraffic, txTrafficStat);
     numSequenceUpdateStat++;
@@ -306,6 +312,7 @@ void ControlAgent::sendFlowRequestResponse(IPv6Address destAddr, uint64 mobileId
     ih->setIPaddresses(0,nodeAddr);
     ih->setIPaddresses(1,agentAddr);
     ih->setByteLength(SIZE_AGENT_HEADER+SIZE_ADDING_ADDR_TO_HDR*2);
+    ih->setName("sendFlowRequestResponse");
     createAgentInit(mobileId);
     txTrafficStat = ih->getByteLength();
     emit(txTraffic, txTrafficStat);
@@ -375,15 +382,15 @@ void ControlAgent::initializeSequence(IdentificationHeader *agentHeader, IPv6Add
             EV_INFO << "CA_initializeSequence: Sequence number from Mobile Agent(" << agentHeader->getId() << ") already initialized message . Resending sequence number " << getSeqNo(agentHeader->getId()) << " for IP: " << agentHeader->getIPaddresses(0) << endl;
             sendSequenceInitResponse(destAddr, agentHeader->getId(), getSeqNo(agentHeader->getId())); // resend message
         } else {
-            EV_INFO << "CA_initializeSequence: Received sequence initialization message from Mobile Agent(" << agentHeader->getId() << "). Registering sequence number " << agentHeader->getIpSequenceNumber() << " for IP: " << agentHeader->getIPaddresses(0) << endl;
             bool addrMgmtEntry = initAddressMap(agentHeader->getId(), agentHeader->getIpSequenceNumber(), agentHeader->getIPaddresses(0)); //first number
             if(addrMgmtEntry) { // check if seq and id is inserted
+                EV_INFO << "CA_initializeSequence: Received sequence initialization message from Mobile Agent(" << agentHeader->getId() << "). Registering sequence number " << std::to_string(agentHeader->getIpSequenceNumber()) << " for IP: " << agentHeader->getIPaddresses(0) << endl;
                 sendSequenceInitResponse(destAddr, agentHeader->getId(), getSeqNo(agentHeader->getId()));
             }
             else
-                if(isIdInitialized(agentHeader->getId()))
+                if(isIdInitialized(agentHeader->getId())) {
                     EV_WARN << "CA_initializeSequence: Received sequence initialization message from Mobile Agent(" << agentHeader->getId() << ") but sequence number was already registered. Check Mobile Agent procedure." << endl;
-                else
+                } else
                     throw cRuntimeError("CA_initializeSequence: Initialization of sequence number failed.");
         }
     }
@@ -565,12 +572,12 @@ void ControlAgent::sendToLowerLayer(cMessage *msg, const IPv6Address& destAddr, 
     IPv6ControlInfo *ctrlInfo = new IPv6ControlInfo();
     ctrlInfo->setProtocol(IP_PROT_IPv6EXT_ID); // todo must be adjusted
     ctrlInfo->setDestAddr(destAddr);
-    ctrlInfo->setHopLimit(255);
-    InterfaceEntry *ie = getInterface();
-    if(ie) {
-        ctrlInfo->setSrcAddr(ie->ipv6Data()->getPreferredAddress());
-        ctrlInfo->setInterfaceId(ie->getInterfaceId());
-    } else { throw cRuntimeError("CA:send2LowerLayer no interface provided."); }
+    ctrlInfo->setHopLimit(32);
+//    InterfaceEntry *ie = getInterface();
+//    if(ie) {
+//        ctrlInfo->setSrcAddr(ie->ipv6Data()->getPreferredAddress());
+//        ctrlInfo->setInterfaceId(ie->getInterfaceId());
+//    } else { throw cRuntimeError("CA:send2LowerLayer no interface provided."); }
     msg->setControlInfo(ctrlInfo);
     cGate *outgate = gate("toLowerLayer");
     if (delayTime > 0)

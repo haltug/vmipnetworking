@@ -102,6 +102,7 @@ void TraCIMobility::setNextPosition(const Coord& position, std::string road_id, 
 }
 
 void TraCIMobility::move() {
+    // FIXME check statistics variables
     if(lastUpdate == simTime())
         cRuntimeError("Move function called twice in one time step.");
     if (statistics.startTime != simTime()) {
@@ -118,7 +119,7 @@ void TraCIMobility::move() {
                 double co2emission = calculateCO2emission(nextSpeed, acceleration);
                 currentAccelerationVec.record(acceleration);
                 currentCO2EmissionVec.record(co2emission);
-                statistics.totalCO2Emission+=co2emission * this->updateInterval.dbl();
+                statistics.totalCO2Emission += co2emission * this->updateInterval.dbl();
             }
         }
     }

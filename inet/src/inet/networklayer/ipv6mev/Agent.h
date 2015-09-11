@@ -60,7 +60,7 @@ namespace inet {
 #define MSG_SESSION_INIT        101 // ca init msg type for handling
 #define MSG_SEQNO_INIT          102
 #define MSG_SEQ_UPDATE          103
-#define MSG_SEQ_UPDATE_DELAYED  104
+#define MSG_SEQ_UPDATE_DELAYED  104 // not used anymore
 #define MSG_IF_DOWN             105
 #define MSG_IF_UP               106
 #define MSG_LOC_UPDATE          107
@@ -91,7 +91,7 @@ namespace inet {
 #define TIMEDELAY_MA_INIT       1 // unit is [s]
 #define MAX_PKT_LIFETIME        30 // specifies retransmission attempts until pkt is discarded for udp tcp
 #define TIMEDELAY_IFACE_INIT    1 // delaying registration of interface when MA is in init stage.
-#define INTERVAL_LINK_BUFFER    2
+#define INTERVAL_LINK_BUFFER    3 // time interval to determine mean of link from snir values
 #define TIMEDELAY_SEQ_UPDATE_ACK 1
 
 //========== Header SIZE ===========

@@ -106,7 +106,7 @@ class INET_API InterfaceEntry : public cNamedObject
     IInterfaceTable *ownerp = nullptr;    ///< IInterfaceTable that contains this interface, or nullptr
     cModule *interfaceModule = nullptr;    ///< interface module, or nullptr
     int interfaceId = -1;    ///< identifies the interface in the IInterfaceTable
-    int priority = 1;
+    int priority = 0;
     int nwLayerGateIndex = -1;    ///< index of ifIn[],ifOut[] gates to that interface (or -1 if virtual interface)
     int nodeOutputGateId = -1;    ///< id of the output gate of this host/router (or -1 if this is a virtual interface)
     int nodeInputGateId = -1;    ///< id of the input gate of this host/router (or -1 if this is a virtual interface)
@@ -137,7 +137,7 @@ class INET_API InterfaceEntry : public cNamedObject
   public:
     // field ids for change notifications
     enum {
-        F_CARRIER, F_STATE, F_PRIO_CHANGED,
+        F_CARRIER, F_STATE,
         F_NAME, F_NODE_IN_GATEID, F_NODE_OUT_GATEID, F_NETW_GATEIDX,
         F_LOOPBACK, F_BROADCAST, F_MULTICAST, F_POINTTOPOINT,
         F_DATARATE, F_MTU, F_MACADDRESS, F_TOKEN,
@@ -148,7 +148,6 @@ class INET_API InterfaceEntry : public cNamedObject
     // change notifications
     virtual void configChanged(int fieldId) { changed(NF_INTERFACE_CONFIG_CHANGED, fieldId); }
     virtual void stateChanged(int fieldId) { changed(NF_INTERFACE_STATE_CHANGED, fieldId); }
-    virtual void priorityChanged(int fieldId) { changed(NF_INTERFACE_PRIORITY_CHANGED, fieldId); }
     virtual void changed(simsignal_t signalID, int fieldId);
 
   public:
@@ -249,9 +248,6 @@ class INET_API InterfaceEntry : public cNamedObject
     virtual MacEstimateCostProcess *getEstimateCostProcess(int);
     //@}
 
-    // priority concept to implement multihoming
-    int getPriority() const { return priority; }
-    virtual void setPriority(int priority = 1) {if (this->priority != priority)  { this->priority = priority; priorityChanged(F_PRIO_CHANGED); } }
 };
 
 } // namespace inet

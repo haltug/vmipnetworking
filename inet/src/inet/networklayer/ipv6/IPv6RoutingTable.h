@@ -52,7 +52,7 @@ class INET_API IPv6RoutingTable : public cSimpleModule, public IRoutingTable, pr
 {
   protected:
     IInterfaceTable *ift = nullptr;    // cached pointer
-
+    int interfaceRouting = -1;
     bool isrouter = false;
     bool multicastForward = false;    //If node is forwarding multicast info
     bool useAdminDist = false;     // Use Cisco like administrative distances
@@ -139,7 +139,7 @@ class INET_API IPv6RoutingTable : public cSimpleModule, public IRoutingTable, pr
      * occurs to which this client has subscribed.
      */
     virtual void receiveSignal(cComponent *source, simsignal_t signalID, cObject *obj) override;
-
+    virtual void receiveSignal(cComponent *source, simsignal_t signalID, long l) override;
   public:
     /** @name Interfaces */
     //@{

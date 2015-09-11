@@ -60,6 +60,7 @@ void DataAgent::initialize(int stage)
     if (stage == INITSTAGE_NETWORK_LAYER) {
         ift = getModuleFromPar<IInterfaceTable>(par("interfaceTableModule"), this);
         WATCH(numMobileAgentStat);
+        WATCH(lastIncomingPacketAddress);
         WATCH(numFlowStat);
         WATCH(incomingTrafficPktNodeStat);
         WATCH(outgoingTrafficPktNodeStat);
@@ -165,6 +166,7 @@ void DataAgent::sendSequenceUpdateNotification(cMessage *msg)
     ih->setIsIdAcked(true);
     ih->setIsSeqValid(true);
     ih->setIsIpModified(true);
+    ih->setName(msg->getName());
     AddressDiff ad = getAddressList(unt->id,unt->seq);
     ih->setIPaddressesArraySize(ad.insertedList.size());
     ih->setIpAddingField(ad.insertedList.size());
@@ -183,6 +185,7 @@ void DataAgent::sendAgentInitResponse(IPv6Address destAddr, uint64 mobileId, uin
     IdentificationHeader *ih = getAgentHeader(3, IP_PROT_NONE, getSeqNo(mobileId), 0, mobileId);
     ih->setIsIdInitialized(true);
     ih->setIsSeqValid(true);
+    ih->setName("sendAgentInitResponse");
     sendToLowerLayer(ih,destAddr);
 }
 
@@ -213,6 +216,7 @@ void DataAgent::sendAgentUpdateResponse(cMessage *msg)
     ih->setIsIdInitialized(true);
     ih->setIsIdAcked(true);
     ih->setIsSeqValid(true);
+    ih->setName(msg->getName());
     sendToLowerLayer(ih, dest);
     scheduleAt(uat->nextScheduledTime, msg);
 }
@@ -406,6 +410,7 @@ void DataAgent::processIncomingIcmpPacket(ICMPv6Message *icmp, IPv6ControlInfo *
 
 void DataAgent::processIcmpFromAgent(IdentificationHeader *agentHeader, IPv6Address destAddr)
 { // all ICMP packets are forwarded.
+    lastIncomingPacketAddress = destAddr;
     if(std::find(mobileIdList.begin(), mobileIdList.end(), agentHeader->getId()) != mobileIdList.end()) {
         incomingTrafficPktAgentStat++;
         emit(incomingTrafficPktAgent, incomingTrafficPktAgentStat);
@@ -464,6 +469,7 @@ void DataAgent::processIcmpFromAgent(IdentificationHeader *agentHeader, IPv6Addr
 
 void DataAgent::processUdpFromAgent(IdentificationHeader *agentHeader, IPv6Address destAddr)
 {
+    lastIncomingPacketAddress = destAddr;
     if(std::find(mobileIdList.begin(), mobileIdList.end(), agentHeader->getId()) != mobileIdList.end()) {
         incomingTrafficPktAgentStat++;
         emit(incomingTrafficPktAgent, incomingTrafficPktAgentStat);
@@ -578,6 +584,7 @@ void DataAgent::processUdpFromNode(cMessage *msg)
 
 void DataAgent::processTcpFromAgent(IdentificationHeader *agentHeader, IPv6Address destAddr)
 {
+    lastIncomingPacketAddress = destAddr;
     if(std::find(mobileIdList.begin(), mobileIdList.end(), agentHeader->getId()) != mobileIdList.end()) {
         incomingTrafficPktAgentStat++;
         emit(incomingTrafficPktAgent, incomingTrafficPktAgentStat);
@@ -721,12 +728,12 @@ void DataAgent::sendToLowerLayer(cMessage *msg, const IPv6Address& destAddr, sim
     IPv6ControlInfo *ctrlInfo = new IPv6ControlInfo();
     ctrlInfo->setProtocol(IP_PROT_IPv6EXT_ID);
     ctrlInfo->setDestAddr(destAddr);
-    ctrlInfo->setHopLimit(30);
-    InterfaceEntry *ie = getInterface();
-    if(ie) {
-        ctrlInfo->setInterfaceId(ie->getInterfaceId());
-        ctrlInfo->setSrcAddr(ie->ipv6Data()->getPreferredAddress());
-    }
+    ctrlInfo->setHopLimit(32);
+//    InterfaceEntry *ie = getInterface();
+//    if(ie) {
+//        ctrlInfo->setInterfaceId(ie->getInterfaceId());
+//        ctrlInfo->setSrcAddr(ie->ipv6Data()->getPreferredAddress());
+//    }
     msg->setControlInfo(ctrlInfo);
     cGate *outgate = gate("toLowerLayer");
     if (delayTime > 0) {

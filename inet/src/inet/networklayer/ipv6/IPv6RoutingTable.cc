@@ -70,6 +70,7 @@ void IPv6RoutingTable::initialize(int stage)
         multicastForward = par("multicastForwarding");
         useAdminDist = par("useAdminDist");
         WATCH(isrouter);
+        WATCH(interfaceRouting);
 
         ift = getModuleFromPar<IInterfaceTable>(par("interfaceTableModule"), this);
 
@@ -90,8 +91,8 @@ void IPv6RoutingTable::initialize(int stage)
         host->subscribe(NF_INTERFACE_DELETED, this);
         host->subscribe(NF_INTERFACE_STATE_CHANGED, this);
         host->subscribe(NF_INTERFACE_CONFIG_CHANGED, this);
-        host->subscribe(NF_INTERFACE_PRIORITY_CHANGED, this); // --HA
         host->subscribe(NF_INTERFACE_IPv6CONFIG_CHANGED, this);
+        host->subscribe(NF_INTERFACE_ROUTING, this); // --HA
 
     }
     else if (stage == INITSTAGE_NETWORK_LAYER) {
@@ -211,14 +212,17 @@ void IPv6RoutingTable::receiveSignal(cComponent *source, simsignal_t signalID, c
     else if (signalID == NF_INTERFACE_IPv6CONFIG_CHANGED) {
         //TODO
     }
-    else if (signalID == NF_INTERFACE_PRIORITY_CHANGED) {
-        // *** is it necessary?
-        const InterfaceEntry *interfaceEntry = check_and_cast<const InterfaceEntryChangeDetails*>(obj)->getInterfaceEntry();
-        int interfaceEntryId = interfaceEntry->getInterfaceId();
-        // ***
-        purgeDestCache();
-    }
+}
 
+void IPv6RoutingTable::receiveSignal(cComponent *source, simsignal_t signalID, long l)
+{
+    if (signalID == NF_INTERFACE_ROUTING) {
+        if(interfaceRouting != l) {
+            interfaceRouting = l;
+            purgeDestCache();
+            EV_DEBUG << "IPv6RoutingTable: Obtained routing configuration. Selected INTERFACE ID " << l << endl;
+        }
+    }
 }
 
 void IPv6RoutingTable::routeChanged(IPv6Route *entry, int fieldCode)
@@ -487,41 +491,62 @@ const IPv6Route *IPv6RoutingTable::doLongestPrefixMatch(const IPv6Address& dest)
 {
     Enter_Method("doLongestPrefixMatch( %s )", dest.str().c_str());
 
-    for(const auto & elem : routeList) {
-        EV << "IPv6RoutingTable::doLongestPrefixMatch():" << endl;
-        if(dest.matches( elem->getDestPrefix(), elem->getPrefixLength())) {
-            EV << "==> ROUTABLE MATCH: " << endl;
-            EV << "==> getDestPrefix: " << elem->getDestPrefix() << endl;
-            EV << "==> getPrefixLength: " << elem->getPrefixLength() << endl;
-            EV << "==> getExpiryTime: " << elem->getExpiryTime() << endl;
-            EV << "==> getSourceType: " << elem->getSourceType() << endl;
-        } else {
-            EV << "NO MATCH" << endl;
-            EV << "getDestPrefix: " << elem->getDestPrefix() << endl;
-            EV << "getPrefixLength: " << elem->getPrefixLength() << endl;
-            EV << "getExpiryTime: " << elem->getExpiryTime() << endl;
-            EV << "getSourceType: " << elem->getSourceType() << endl;
-        }
-    }
-//    throw cRuntimeError("Stop");
-    IPv6Route *route = nullptr;
+    // first remove elements from list
     auto it = routeList.begin();
     while (it != routeList.end()) {
-        if (dest.matches( (*it)->getDestPrefix(), (*it)->getPrefixLength()) ) {
-            if (simTime() > (*it)->getExpiryTime() && (*it)->getExpiryTime() != 0) {    //since 0 represents infinity.
-                if ((*it)->getSourceType() == IRoute::ROUTER_ADVERTISEMENT) {
-                    EV_INFO << "Expired prefix detected!!" << endl;
-                    it = internalDeleteRoute(it);    // TODO update display string
-                }
-            } else {
-                route = (*it);
-                return route;
-            }
-        } else {
+        if (dest.matches((*it)->getDestPrefix(), (*it)->getPrefixLength()) && simTime() > (*it)->getExpiryTime() &&
+                (*it)->getExpiryTime() != 0 && (*it)->getSourceType() == IRoute::ROUTER_ADVERTISEMENT) {
+            EV_INFO << "Expired prefix detected!!" << endl;
+            it = internalDeleteRoute(it);
+        } else
             ++it;
+    }
+    // next return the fulfilling interface
+    EV << "IPv6RoutingTable::doLongestPrefixMatch():" << endl;
+    const IPv6Route *route = nullptr;
+    for(const auto & elem : routeList) {
+        if(elem) {
+            if(dest.matches(elem->getDestPrefix(), elem->getPrefixLength())) {
+                if(isrouter) {
+                    return elem;
+                }
+                if(interfaceRouting != -1) {
+                    route = elem;
+                    if(!elem->getInterface()) throw cRuntimeError("IPv6RoutingTable:doLongestPrefixMatch( %s ) IPv6Route does not contain an interface.", dest.str().c_str());
+                    if(elem->getInterface()->getInterfaceId() == interfaceRouting) {
+                        EV << "IPv6RoutingTable::doLongestPrefixMatch(): interface ID " << elem->getInterface()->getInterfaceId() << endl;
+                        return route; // found interface
+                    }
+                } else {
+                    route = elem;
+                    return route;
+                }
+            }
         }
     }
+    if(route) {
+        if(route->getInterface())
+            EV_DEBUG << "Determined interface of prefix match. ID: " << route->getInterface()->getInterfaceId() << endl;
+    }
     return route;
+
+//    IPv6Route *route = nullptr;
+//    auto it = routeList.begin();
+//    while (it != routeList.end()) {
+//        if (dest.matches( (*it)->getDestPrefix(), (*it)->getPrefixLength()) ) {
+//            if (simTime() > (*it)->getExpiryTime() && (*it)->getExpiryTime() != 0) {    //since 0 represents infinity.
+//                if ((*it)->getSourceType() == IRoute::ROUTER_ADVERTISEMENT) {
+//                    EV_INFO << "Expired prefix detected!!" << endl;
+//                    it = internalDeleteRoute(it);    // TODO update display string
+//                }
+//            } else {
+//                route = (*it);
+//                return route;
+//            }
+//        } else {
+//            ++it;
+//        }
+//    }
 }
 
 bool IPv6RoutingTable::isPrefixPresent(const IPv6Address& prefix) const

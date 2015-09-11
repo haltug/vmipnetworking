@@ -510,7 +510,7 @@ bool Agent::isIdInitialized(uint64 id) {
 
 bool Agent::isSeqNoInitialized(uint64 id) {
     if(addressMap.count(id))
-        if(!addressMap[id].addressTable.count(addressMap[id].seqNo))
+        if(addressMap[id].addressTable.count(addressMap[id].seqNo))
             return true;
         else
             return false;

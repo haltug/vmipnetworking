@@ -36,6 +36,7 @@ class DataAgent : public Agent
     bool enableNodeRequesting;
 
     // statistics
+    IPv6Address lastIncomingPacketAddress = IPv6Address::UNSPECIFIED_ADDRESS;
     static simsignal_t numMobileAgents;
     static simsignal_t numFlows;
     static simsignal_t incomingTrafficPktNode;

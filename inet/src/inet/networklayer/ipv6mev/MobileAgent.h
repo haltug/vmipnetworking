@@ -163,7 +163,7 @@ class MobileAgent : public cListener, public Agent
     LinkBuffer* getLinkBuffer(InterfaceEntry *ie);
     void addLinkUnit(LinkBuffer* buffer, LinkUnit *unit);
     double getMeanSnir(InterfaceEntry *ie);
-    InterfaceEntry *getInterface(IPv6Address destAddr = IPv6Address::UNSPECIFIED_ADDRESS, int destPort = -1, int sourcePort = -1, short protocol = -1);
+    void *determineInterface(IPv6Address destAddr = IPv6Address::UNSPECIFIED_ADDRESS, int destPort = -1, int sourcePort = -1, short protocol = -1);
     bool isInterfaceUp();
     bool isInterfaceAssociated();
 
