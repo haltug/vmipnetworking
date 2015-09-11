@@ -31,8 +31,8 @@ import inet.mobility.traci.TraCIScenarioManagerLaunchd;
 channel ethernetline extends ned.DatarateChannel
 {
     parameters:
-        delay = 0.1us;
-        datarate = 1000Mbps;
+        delay = 4us;
+        datarate = 10Gbps;
 }
 
 network frankfurt_urban_n_nodes_mipv6
@@ -66,27 +66,27 @@ network frankfurt_urban_n_nodes_mipv6
         }
         R_2: Router6 {
             parameters:
-                @display("p=3073.8916,98.52217;is=s");
+                @display("p=3655,98;is=s");
         }
         R_3: Router6 {
             parameters:
-                @display("p=4960.5913,98.52217;is=s");
+                @display("p=4748,98;is=s");
         }
         R_5: Router6 {
             parameters:
-                @display("p=2413.7932,98.52217;is=s");
+                @display("p=2413,98;is=s");
         }
         R_6: Router6 {
             parameters:
-                @display("p=2413.7932,1285.7144;is=s");
+                @display("p=2413,1389;is=s");
         }
         R_7: Router6 {
             parameters:
-                @display("p=852.2168,1822.6602;is=s");
+                @display("p=881,1389;is=s");
         }
         R_10: Router6 {
             parameters:
-                @display("p=4073.8918,1822.6602;is=s");
+                @display("p=3965,1389;is=s");
         }
         AP_1: AccessPoint {
             parameters:
@@ -138,7 +138,7 @@ network frankfurt_urban_n_nodes_mipv6
         }
         CN4[total_cn]: StandardHost6 {
             parameters:
-                @display("p=201,1389;is=s");
+                @display("p=256,1044;is=s");
         }
         Home_Agent: HomeAgent6 {
             parameters:
@@ -147,17 +147,21 @@ network frankfurt_urban_n_nodes_mipv6
     connections allowunconnected:
         R_1.ethg$o++ --> ethernetline --> R_5.ethg$i++;
         R_1.ethg$i++ <-- ethernetline <-- R_5.ethg$o++;
+        R_1.ethg$o++ --> ethernetline --> R_7.ethg$i++;
+        R_1.ethg$i++ <-- ethernetline <-- R_7.ethg$o++;        
         R_2.ethg$o++ --> ethernetline --> R_5.ethg$i++;
         R_2.ethg$i++ <-- ethernetline <-- R_5.ethg$o++;
         R_3.ethg$o++ --> ethernetline --> R_2.ethg$i++;
         R_3.ethg$i++ <-- ethernetline <-- R_2.ethg$o++;
         R_10.ethg$o++ --> ethernetline --> R_6.ethg$i++;
         R_10.ethg$i++ <-- ethernetline <-- R_6.ethg$o++;
+		R_10.ethg$o++ --> ethernetline --> R_3.ethg$i++;
+        R_10.ethg$i++ <-- ethernetline <-- R_3.ethg$o++;        
         R_5.ethg$o++ --> ethernetline --> R_6.ethg$i++;
         R_5.ethg$i++ <-- ethernetline <-- R_6.ethg$o++;
         R_7.ethg$o++ --> ethernetline --> R_6.ethg$i++;
         R_7.ethg$i++ <-- ethernetline <-- R_6.ethg$o++;
-		Home_Agent.ethg$o++ --> ethernetline --> R_6.ethg$i++;
+        Home_Agent.ethg$o++ --> ethernetline --> R_6.ethg$i++;
         Home_Agent.ethg$i++ <-- ethernetline <-- R_6.ethg$o++;
         AP_1.ethg$o++ --> ethernetline --> Home_Agent.ethg$i++;
         AP_1.ethg$i++ <-- ethernetline <-- Home_Agent.ethg$o++;

@@ -29,8 +29,8 @@ import inet.mobility.traci.TraCIScenarioManagerLaunchd;
 channel ethernetline extends ned.DatarateChannel
 {
     parameters:
-        delay = 0us;
-        datarate = 1000Mbps;
+        delay = 4us;
+        datarate = 10Gbps;
 }
 
 network frankfurt_urban_mipv6
@@ -142,6 +142,8 @@ network frankfurt_urban_mipv6
         R_6.ethg$i++ <-- ethernetline <-- R_5.ethg$o++;
         R_10.ethg$o++ --> ethernetline --> R_5.ethg$i++;
         R_10.ethg$i++ <-- ethernetline <-- R_5.ethg$o++;
+		R_10.ethg$o++ --> ethernetline --> R_7.ethg$i++;
+        R_10.ethg$i++ <-- ethernetline <-- R_7.ethg$o++;
         AP_1.ethg$o++ --> ethernetline --> Home_Agent.ethg$i++;
         AP_1.ethg$i++ <-- ethernetline <-- Home_Agent.ethg$o++;
         AP_2.ethg$o++ --> ethernetline --> R_1.ethg$i++;

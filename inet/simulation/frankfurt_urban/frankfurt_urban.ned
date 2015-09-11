@@ -28,7 +28,7 @@ import inet.mobility.traci.TraCIScenarioManagerLaunchd;
 channel ethernetline extends ned.DatarateChannel
 {
     parameters:
-        delay = 0.01us;
+        delay = 4us;
         datarate = 10Gbps;
 }
 
