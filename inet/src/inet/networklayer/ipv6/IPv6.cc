@@ -252,6 +252,7 @@ void IPv6::preroutingFinish(IPv6Datagram *datagram, const InterfaceEntry *fromIE
 void IPv6::handleMessageFromHL(cPacket *msg)
 {
     EV_DEBUG << "IPv6_handleMessageFromHL: handling message from higher layer" << endl;
+    ASSERT(msg);
     // if no interface exists, do not send datagram
     if (ift->getNumInterfaces() == 0) {
         EV_WARN << "No interfaces exist, dropping packet\n";
@@ -260,7 +261,7 @@ void IPv6::handleMessageFromHL(cPacket *msg)
     }
 
     IPv6ControlInfo *controlInfo = check_and_cast<IPv6ControlInfo *>(msg->removeControlInfo());
-
+    ASSERT(controlInfo);
     EV_DEBUG << "IPv6: Original ControlInfo:" << endl;
     EV_DEBUG << "getDestAddr: " << controlInfo->getDestAddr() << "; getDestinationAddress: " << controlInfo->getDestinationAddress()
             << "; getDiffServCodePoint: " << controlInfo->getDiffServCodePoint() << "; getExplicitCongestionNotification: " << controlInfo->getExplicitCongestionNotification()
@@ -279,6 +280,7 @@ void IPv6::handleMessageFromHL(cPacket *msg)
     EV_DEBUG << "IPv6: Removing controlInfo and encapsulating IPv6datagram." << endl;
 #ifdef WITH_xMIPv6
     if (datagram == nullptr) {
+        numDropped++; // --HA
         EV_WARN << "Encapsulation failed - dropping packet." << endl;
         delete msg;
         return;
@@ -746,7 +748,7 @@ IPv6Datagram *IPv6::encapsulate(cPacket *transportPacket, IPv6ControlInfo *contr
         if (rt->getInterfaceByAddress(src) == nullptr) {
             EV_DEBUG << "IPv6: Deleting packet due to missmatch of defined source address." << endl;
             delete datagram;
-            delete controlInfo;
+//            delete controlInfo; // --HA
 #ifndef WITH_xMIPv6
             throw cRuntimeError("Wrong source address %s in (%s)%s: no interface with such address",
                     src.str().c_str(), transportPacket->getClassName(), transportPacket->getFullName());

@@ -405,6 +405,8 @@ void DataAgent::processIncomingIcmpPacket(ICMPv6Message *icmp, IPv6ControlInfo *
             EV_WARN << "DA_processTcpFromNode: Incoming message is dropped. No matching Mobile Agent is found." << endl;
         }
     } else {
+        delete icmp;
+        delete controlInfo;
 //        EV << "DA: Forwarding message to ICMP module. Type=" << icmp->getType() << endl;
 //        icmp->setControlInfo(controlInfo);
 //        cGate *outgate = gate("toICMP");
