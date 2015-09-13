@@ -485,6 +485,8 @@ IPv6Address IPv6NeighbourDiscovery::determineNextHop(const IPv6Address& destAddr
 void IPv6NeighbourDiscovery::initiateNeighbourUnreachabilityDetection(Neighbour *nce)
 {
     ASSERT(nce->reachabilityState == IPv6NeighbourCache::STALE);
+    if(nce->nudTimeoutEvent != nullptr)
+        return;
     ASSERT(nce->nudTimeoutEvent == nullptr);
     const Key *nceKey = nce->nceKey;
     EV_INFO << "Initiating Neighbour Unreachability Detection";
