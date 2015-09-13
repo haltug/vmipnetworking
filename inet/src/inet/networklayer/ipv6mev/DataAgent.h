@@ -57,6 +57,7 @@ class DataAgent : public Agent
     long outgoingTrafficPktAgentStat = 0;
     long incomingTrafficSizeAgentStat = 0;
     long outgoingTrafficSizeAgentStat = 0;
+    long receivedAgentModification = 0;
 
   protected:
     IInterfaceTable *ift = nullptr; // for recognizing changes etc

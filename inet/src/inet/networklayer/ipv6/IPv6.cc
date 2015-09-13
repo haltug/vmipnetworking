@@ -88,7 +88,10 @@ void IPv6::initialize(int stage)
         queuedDatagramsForHooks.clear();
 
         numMulticast = numLocalDeliver = numDropped = numUnroutable = numForwarded = 0;
-
+        if(hasPar("isUnconfiguredAddressesDropped"))
+            isUnconfiguredAddressesDropped = par("isUnconfiguredAddressesDropped").boolValue();
+        else
+            isUnconfiguredAddressesDropped = false;
         WATCH(numMulticast);
         WATCH(numLocalDeliver);
         WATCH(numDropped);
@@ -231,7 +234,14 @@ void IPv6::preroutingFinish(IPv6Datagram *datagram, const InterfaceEntry *fromIE
     IPv6Address& destAddr = datagram->getDestAddress();
     // remove control info
     delete datagram->removeControlInfo();
-
+    if(isUnconfiguredAddressesDropped) // -- HA drop packets with wrong source address configuration
+        if(!datagram->getSrcAddress().isGlobal())
+            if(datagram->getTransportProtocol() == IP_PROT_UDP || datagram->getTransportProtocol() == IP_PROT_TCP || datagram->getTransportProtocol() == IP_PROT_IPv6EXT_ID){
+                EV_DEBUG << "Dropping packet due to unconfigured source address. Packet name: " << datagram->getFullName() << endl;
+                numDropped++;
+                delete datagram;
+                return;
+            }
     // routepacket
     if (!destAddr.isMulticast())
         routePacket(datagram, destIE, nextHopAddr, false);
@@ -859,7 +869,7 @@ void IPv6::sendDatagramToOutput(IPv6Datagram *datagram, const InterfaceEntry *de
         controlInfo->setEtherType(ETHERTYPE_IPv6);
         datagram->setControlInfo(controlInfo);
     }
-    EV_DEBUG << "IPv6: Sending over queueOut to link layer" << endl;
+    EV_DEBUG << "IPv6: Sending over queueOut to link layer with source address " << datagram->getSourceAddress().str() << endl;
     // send datagram to link layer
     send(datagram, "queueOut", destIE->getNetworkLayerGateIndex());
 }

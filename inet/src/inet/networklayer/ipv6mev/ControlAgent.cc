@@ -407,7 +407,7 @@ void ControlAgent::performSeqUpdate(IdentificationHeader *agentHeader, IPv6Addre
                     if(agentHeader->getIsIpModified()) { // indicate a sequence update
                         // when ackNo of update message is behind current ackNo, sequence number is decremented for starting the update process at ackNo.
                         // Otherwise update process starts at seqNo, but header only declares difference from ackNo to seqNo ( and not from current seqNo
-                        if(agentHeader->getIpAcknowledgementNumber() < getAckNo(agentHeader->getId()))
+                        if(agentHeader->getIpAcknowledgementNumber() <= getAckNo(agentHeader->getId()))
                             setSeqNo(agentHeader->getId(),agentHeader->getIpAcknowledgementNumber());
                         if(agentHeader->getIpAddingField() > 0) { // check size of field
                             for(int i=0; i<agentHeader->getIpAddingField(); i++){

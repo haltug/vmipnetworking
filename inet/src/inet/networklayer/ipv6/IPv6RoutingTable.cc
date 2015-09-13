@@ -216,11 +216,11 @@ void IPv6RoutingTable::receiveSignal(cComponent *source, simsignal_t signalID, c
 
 void IPv6RoutingTable::receiveSignal(cComponent *source, simsignal_t signalID, long l)
 {
-    if (signalID == NF_INTERFACE_ROUTING) {
+    if (signalID == NF_INTERFACE_ROUTING) { // --HA
         if(interfaceRouting != l) {
             interfaceRouting = l;
             purgeDestCache();
-            EV_DEBUG << "IPv6RoutingTable: Obtained routing configuration. Selected INTERFACE ID " << l << endl;
+            EV_DEBUG << "IPv6RoutingTable: Obtained routing configuration. Select INTERFACE ID " << l << endl;
         }
     }
 }
@@ -494,10 +494,14 @@ const IPv6Route *IPv6RoutingTable::doLongestPrefixMatch(const IPv6Address& dest)
     // first remove elements from list
     auto it = routeList.begin();
     while (it != routeList.end()) {
-        if (dest.matches((*it)->getDestPrefix(), (*it)->getPrefixLength()) && simTime() > (*it)->getExpiryTime() &&
-                (*it)->getExpiryTime() != 0 && (*it)->getSourceType() == IRoute::ROUTER_ADVERTISEMENT) {
-            EV_INFO << "Expired prefix detected!!" << endl;
-            it = internalDeleteRoute(it);
+        if (dest.matches((*it)->getDestPrefix(), (*it)->getPrefixLength())) {
+            if( simTime() > (*it)->getExpiryTime() && (*it)->getExpiryTime() != 0) {
+                if((*it)->getSourceType() == IRoute::ROUTER_ADVERTISEMENT) {
+                    EV_INFO << "Expired prefix detected!!" << endl;
+                    it = internalDeleteRoute(it);
+                }
+            } else
+                break;
         } else
             ++it;
     }
@@ -518,8 +522,7 @@ const IPv6Route *IPv6RoutingTable::doLongestPrefixMatch(const IPv6Address& dest)
                         return route; // found interface
                     }
                 } else {
-                    route = elem;
-                    return route;
+                    return elem;
                 }
             }
         }

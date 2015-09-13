@@ -74,6 +74,7 @@ simple IPv6
         string icmpv6Module;
         string ipv6TunnelingModule;
         double procDelay @unit("s") = default(0s);
+        bool isUnconfiguredAddressesDropped = default(true); // used in routers for discarding TCP/UDP packets without source address configuration
         @display("i=block/network2");
     gates:
         input transportIn[] @labels(IPv6ControlInfo/down,TCPSegment,UDPPacket);

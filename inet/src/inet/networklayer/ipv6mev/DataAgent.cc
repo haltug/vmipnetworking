@@ -66,6 +66,7 @@ void DataAgent::initialize(int stage)
         WATCH(outgoingTrafficPktNodeStat);
         WATCH(incomingTrafficPktAgentStat);
         WATCH(outgoingTrafficPktAgentStat);
+        WATCH(receivedAgentModification);
         WATCH_MAP(flowTable);
         WATCH(*this);
         if(hasPar("enableNodeRequesting"))
@@ -135,7 +136,7 @@ void DataAgent::createSequenceUpdateNotification(uint64 mobileId, uint seq)
         EV_DEBUG << "DA_createSequenceUpdateNotificaiton: Skipping notification since timer is set up." << endl;
     } else {
         TimerKey key(ControlAgentAddress,-1,TIMERKEY_SEQ_UPDATE_NOT, mobileId, seq);
-        UpdateNotifierTimer *unt = (UpdateNotifierTimer *) getExpiryTimer(key,TIMERTYPE_SEQ_UPDATE_NOT); // this timer must explicitly deleted
+        UpdateNotifierTimer *unt = (UpdateNotifierTimer *) getExpiryTimer(key,TIMERTYPE_SEQ_UPDATE_NOT);
         cMessage *msg = new cMessage("sendingSeqUpdateToCA", MSG_SEQ_UPDATE_NOTIFY);
         unt->dest = ControlAgentAddress;
         unt->timer = msg;
@@ -189,6 +190,7 @@ void DataAgent::sendAgentInitResponse(IPv6Address destAddr, uint64 mobileId, uin
     sendToLowerLayer(ih,destAddr);
 }
 
+// Commit the sequence update of Control Agent
 void DataAgent::createAgentUpdateResponse(IPv6Address destAddr, uint64 mobileId, uint seq)
 {
     TimerKey key(ControlAgentAddress,-1,TIMERKEY_UPDATE_ACK, mobileId, seq);
@@ -323,13 +325,14 @@ void DataAgent::performSeqUpdate(IdentificationHeader *agentHeader)
            throw cRuntimeError("DA_performSeqUpdate: AckNo in header of Mobile Agent is lower than the registered AckNo.");
         } else {
             if(agentHeader->getIpSequenceNumber() > getAckNo(agentHeader->getId())) {
+                ++receivedAgentModification;
                 // check if SeqNo of Mobile Agent is ahead of current AckNo in address table. If not, address table is up to date.
                 if(agentHeader->getIpSequenceNumber() > getSeqNo(agentHeader->getId())) {
                     // check if SeqNo of Mobile Agent is ahead of current SeqNo in address table. If so, Mobile Agent obtained new IP address
                     if(agentHeader->getIsIpModified()) { // redundancy check
                         // when AckNo of update message is behind current ackNo, sequence number is decremented for starting the update process at ackNo.
                         // Otherwise update process starts at seqNo, but header only declares difference from ackNo to seqNo ( and not from current seqNo to the pointed seqNo);
-                        if(agentHeader->getIpAcknowledgementNumber() < getAckNo(agentHeader->getId()))
+                        if(agentHeader->getIpAcknowledgementNumber() <= getAckNo(agentHeader->getId()))
                             setSeqNo(agentHeader->getId(),agentHeader->getIpAcknowledgementNumber());
                         if(agentHeader->getIpAddingField() > 0) { // check size of field
                             for(int i=0; i<agentHeader->getIpAddingField(); i++){
@@ -378,7 +381,8 @@ void DataAgent::processIncomingIcmpPacket(ICMPv6Message *icmp, IPv6ControlInfo *
     tuple.destAddress = controlInfo->getSourceAddress().toIPv6();
     tuple.interfaceId = controlInfo->getSourceAddress().toIPv6().getInterfaceId();
     FlowUnit *funit = getFlowUnit(tuple);
-    if((icmp->getType() == ICMPv6_ECHO_REPLY || icmp->getType() == ICMPv6_ECHO_REQUEST) && funit->state == REGISTERED) {
+//    if((icmp->getType() == ICMPv6_ECHO_REPLY || icmp->getType() == ICMPv6_ECHO_REQUEST) && funit->state == REGISTERED) {
+    if(funit->state == REGISTERED) {
         IdentificationHeader *ih = getAgentHeader(3, IP_PROT_IPv6_ICMP, getSeqNo(funit->id), 0, tuple.interfaceId);
         ih->setIsIdInitialized(true);
         ih->setIsIdAcked(true);
@@ -402,9 +406,9 @@ void DataAgent::processIncomingIcmpPacket(ICMPv6Message *icmp, IPv6ControlInfo *
         }
     } else {
 //        EV << "DA: Forwarding message to ICMP module. Type=" << icmp->getType() << endl;
-        icmp->setControlInfo(controlInfo);
-        cGate *outgate = gate("toICMP");
-        send(icmp, outgate);
+//        icmp->setControlInfo(controlInfo);
+//        cGate *outgate = gate("toICMP");
+//        send(icmp, outgate);
     }
 }
 
@@ -443,13 +447,13 @@ void DataAgent::processIcmpFromAgent(IdentificationHeader *agentHeader, IPv6Addr
             if (funit->state == REGISTERED) {
 //                EV << "DA: flow unit exists. Preparing transmission: "<< destAddr.str() << endl;
                 funit->mobileAgent = destAddr; // just update return address
-                InterfaceEntry *ie = getInterface();
+//                InterfaceEntry *ie = getInterface();
                 IPv6ControlInfo *ipControlInfo = new IPv6ControlInfo();
                 ipControlInfo->setProtocol(IP_PROT_IPv6_ICMP);
-                ipControlInfo->setSrcAddr(ie->ipv6Data()->getPreferredAddress());
+//                ipControlInfo->setSrcAddr(ie->ipv6Data()->getPreferredAddress());
                 ipControlInfo->setDestAddr(funit->nodeAddress);
-                ipControlInfo->setInterfaceId(ie->getInterfaceId());
-                ipControlInfo->setHopLimit(30);
+//                ipControlInfo->setInterfaceId(ie->getInterfaceId());
+//                ipControlInfo->setHopLimit(30);
                 icmp->setControlInfo(ipControlInfo);
                 outgoingTrafficPktNodeStat++;
                 emit(outgoingTrafficPktNode, outgoingTrafficPktNodeStat);
@@ -508,13 +512,13 @@ void DataAgent::processUdpFromAgent(IdentificationHeader *agentHeader, IPv6Addre
             }
             if (funit->state == REGISTERED) {
                 funit->mobileAgent = destAddr; // just update return address
-                InterfaceEntry *ie = getInterface();
+//                InterfaceEntry *ie = getInterface();
                 IPv6ControlInfo *ipControlInfo = new IPv6ControlInfo();
                 ipControlInfo->setProtocol(IP_PROT_UDP);
-                ipControlInfo->setSrcAddr(ie->ipv6Data()->getPreferredAddress());
+//                ipControlInfo->setSrcAddr(ie->ipv6Data()->getPreferredAddress());
                 ipControlInfo->setDestAddr(funit->nodeAddress);
-                ipControlInfo->setInterfaceId(ie->getInterfaceId());
-                ipControlInfo->setHopLimit(30);
+//                ipControlInfo->setInterfaceId(ie->getInterfaceId());
+//                ipControlInfo->setHopLimit(30);
                 udpPacket->setControlInfo(ipControlInfo);
                 outgoingTrafficPktNodeStat++;
                 emit(outgoingTrafficPktNode, outgoingTrafficPktNodeStat);
@@ -577,6 +581,8 @@ void DataAgent::processUdpFromNode(cMessage *msg)
             }
         } else
             EV_WARN << "DA_processUdpFromNode: No flow tuple exists. Mobile Agent needs to initiate the connection." << endl;
+    } else if (dynamic_cast<ICMPv6Message *>(msg) != nullptr) {
+        processIncomingIcmpPacket((ICMPv6Message*) msg ,controlInfo);
     } else
         EV_WARN << "DA_processUdpFromNode: Incoming packet could not be cast to UDPPacket. Kind is " << msg->getKind() << ". Name is '" << msg->getName() << "'." << endl;
     delete controlInfo;
@@ -621,13 +627,13 @@ void DataAgent::processTcpFromAgent(IdentificationHeader *agentHeader, IPv6Addre
             if (funit->state == REGISTERED) {
 //                EV << "DA: flow unit exists. Preparing TCP packet transmission: "<< destAddr << " to " << nodeAddress << endl;
                 funit->mobileAgent = destAddr; // just update return address
-                InterfaceEntry *ie = getInterface();
+//                InterfaceEntry *ie = getInterface();
                 IPv6ControlInfo *ipControlInfo = new IPv6ControlInfo();
                 ipControlInfo->setProtocol(IP_PROT_TCP);
-                ipControlInfo->setSrcAddr(ie->ipv6Data()->getPreferredAddress());
+//                ipControlInfo->setSrcAddr(ie->ipv6Data()->getPreferredAddress());
                 ipControlInfo->setDestAddr(funit->nodeAddress);
-                ipControlInfo->setInterfaceId(ie->getInterfaceId());
-                ipControlInfo->setHopLimit(30);
+//                ipControlInfo->setInterfaceId(ie->getInterfaceId());
+//                ipControlInfo->setHopLimit(30);
                 tcpseg->setControlInfo(ipControlInfo);
                 outgoingTrafficPktNodeStat++;
                 emit(outgoingTrafficPktNode, outgoingTrafficPktNodeStat);
@@ -691,6 +697,8 @@ void DataAgent::processTcpFromNode(cMessage *msg)
             }
         } else
             EV_WARN << "DA_processTcpFromNode: No flow tuple exists. Mobile Agent needs to initiate the connection." << endl;
+    } else if (dynamic_cast<ICMPv6Message *>(msg) != nullptr) {
+        processIncomingIcmpPacket((ICMPv6Message*) msg ,controlInfo);
     } else
         EV_WARN << "DA_processTcpFromNode: Incoming packet could not be cast to TCPPacket. Kind is " << msg->getKind() << ". Name is '" << msg->getName() << "'." << endl;
     delete controlInfo;

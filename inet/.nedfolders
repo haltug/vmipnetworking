@@ -2,9 +2,9 @@ examples
 simulation
 src
 tutorials
+-inet.transportlayer.tcp_lwip
+-inet.transportlayer.tcp_nsc
 -inet.applications.voipstream
 -inet.examples.emulation
 -inet.examples.voipstream
 -inet.linklayer.ext
--inet.transportlayer.tcp_lwip
--inet.transportlayer.tcp_nsc

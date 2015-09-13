@@ -68,6 +68,7 @@ class INET_API IPv6 : public QueueBase, public ILifecycle, public INetfilter, pu
     IPv6Tunneling *tunneling = nullptr;
 
     // working vars
+    bool isUnconfiguredAddressesDropped;
     unsigned int curFragmentId = -1;    // counter, used to assign unique fragmentIds to datagrams
     IPv6FragBuf fragbuf;    // fragmentation reassembly buffer
     simtime_t lastCheckTime;    // when fragbuf was last checked for state fragments

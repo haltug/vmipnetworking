@@ -126,7 +126,7 @@ class MobileAgent : public cListener, public Agent
     void sendSessionInit(cMessage *msg); // send initialization message to CA
     void createSequenceInit();
     void sendSequenceInit(cMessage *msg); // for sending sequence msg to CA
-    void createSequenceUpdate(uint64 mobileId, uint seq, uint ack);
+    void createSequenceUpdate(uint seq, uint ack);
     void sendSequenceUpdate(cMessage *msg);
     bool createFlowRequest(FlowTuple &tuple);
     void sendFlowRequest(cMessage *msg);
@@ -163,7 +163,7 @@ class MobileAgent : public cListener, public Agent
     LinkBuffer* getLinkBuffer(InterfaceEntry *ie);
     void addLinkUnit(LinkBuffer* buffer, LinkUnit *unit);
     double getMeanSnir(InterfaceEntry *ie);
-    void *determineInterface(IPv6Address destAddr = IPv6Address::UNSPECIFIED_ADDRESS, int destPort = -1, int sourcePort = -1, short protocol = -1);
+    void determineInterface(IPv6Address destAddr = IPv6Address::UNSPECIFIED_ADDRESS, int destPort = -1, int sourcePort = -1, short protocol = -1);
     bool isInterfaceUp();
     bool isInterfaceAssociated();
 
