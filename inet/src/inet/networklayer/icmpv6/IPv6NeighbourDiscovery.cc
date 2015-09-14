@@ -348,16 +348,13 @@ const MACAddress& IPv6NeighbourDiscovery::resolveNeighbour(const IPv6Address& ne
     if (nce->reachabilityState == IPv6NeighbourCache::STALE) {
         initiateNeighbourUnreachabilityDetection(nce);
     }
-    else if (nce->reachabilityState == IPv6NeighbourCache::REACHABLE &&
-             simTime() > nce->reachabilityExpires)
-    {
+    else if (nce->reachabilityState == IPv6NeighbourCache::REACHABLE && simTime() > nce->reachabilityExpires) {
         nce->reachabilityState = IPv6NeighbourCache::STALE;
         initiateNeighbourUnreachabilityDetection(nce);
     }
     else if (nce->reachabilityState != IPv6NeighbourCache::REACHABLE) {
         //reachability state must be either in DELAY or PROBE
-        ASSERT(nce->reachabilityState == IPv6NeighbourCache::DELAY ||
-                nce->reachabilityState == IPv6NeighbourCache::PROBE);
+        ASSERT(nce->reachabilityState == IPv6NeighbourCache::DELAY || nce->reachabilityState == IPv6NeighbourCache::PROBE);
         EV_INFO << "NUD in progress.\n";
     }
 
@@ -485,8 +482,8 @@ IPv6Address IPv6NeighbourDiscovery::determineNextHop(const IPv6Address& destAddr
 void IPv6NeighbourDiscovery::initiateNeighbourUnreachabilityDetection(Neighbour *nce)
 {
     ASSERT(nce->reachabilityState == IPv6NeighbourCache::STALE);
-    if(nce->nudTimeoutEvent != nullptr)
-        return;
+//    if(nce->nudTimeoutEvent != nullptr)
+//        return;
     ASSERT(nce->nudTimeoutEvent == nullptr);
     const Key *nceKey = nce->nceKey;
     EV_INFO << "Initiating Neighbour Unreachability Detection";

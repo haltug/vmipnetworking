@@ -583,11 +583,13 @@ void DataAgent::processUdpFromNode(cMessage *msg)
             }
         } else
             EV_WARN << "DA_processUdpFromNode: No flow tuple exists. Mobile Agent needs to initiate the connection." << endl;
+        delete controlInfo;
     } else if (dynamic_cast<ICMPv6Message *>(msg) != nullptr) {
         processIncomingIcmpPacket((ICMPv6Message*) msg ,controlInfo);
-    } else
+    } else {
         EV_WARN << "DA_processUdpFromNode: Incoming packet could not be cast to UDPPacket. Kind is " << msg->getKind() << ". Name is '" << msg->getName() << "'." << endl;
-    delete controlInfo;
+        delete controlInfo;
+    }
 }
 
 void DataAgent::processTcpFromAgent(IdentificationHeader *agentHeader, IPv6Address destAddr)
@@ -699,11 +701,13 @@ void DataAgent::processTcpFromNode(cMessage *msg)
             }
         } else
             EV_WARN << "DA_processTcpFromNode: No flow tuple exists. Mobile Agent needs to initiate the connection." << endl;
+        delete controlInfo;
     } else if (dynamic_cast<ICMPv6Message *>(msg) != nullptr) {
         processIncomingIcmpPacket((ICMPv6Message*) msg ,controlInfo);
-    } else
+    } else {
         EV_WARN << "DA_processTcpFromNode: Incoming packet could not be cast to TCPPacket. Kind is " << msg->getKind() << ". Name is '" << msg->getName() << "'." << endl;
-    delete controlInfo;
+        delete controlInfo;
+    }
 }
 
 // returns any valid interface of node

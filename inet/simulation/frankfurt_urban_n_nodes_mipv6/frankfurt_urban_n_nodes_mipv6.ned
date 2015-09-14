@@ -21,26 +21,34 @@ import inet.environment.common.PhysicalEnvironment;
 import inet.networklayer.configurator.ipv6.FlatNetworkConfigurator6;
 import inet.node.ipv6.*;
 import inet.node.ipv6mev.*;
-import inet.node.xmipv6.CorrespondentNode6;
-import inet.node.xmipv6.HomeAgent6;
-import inet.node.xmipv6.WirelessHost6;
+import inet.node.xmipv6.*;
 import inet.node.wireless.AccessPoint;
 
 import inet.mobility.traci.TraCIScenarioManagerLaunchd;
 
-channel ethernetline extends ned.DatarateChannel
+channel E1 extends ned.DatarateChannel
 {
     parameters:
-        delay = 4us;
+        delay = 75us;
+        datarate = 1Gbps;
+}
+
+channel E2 extends ned.DatarateChannel
+{
+    parameters:
+        delay = 250us;
         datarate = 10Gbps;
 }
+
+
 
 network frankfurt_urban_n_nodes_mipv6
 {
     parameters:
         int total_cn;
         int total_mn;
-        @display("bgb=6231,2104;bgi=background/frankfurtUrban,s;bgs=0.203,km");
+        int total_da;
+        @display("bgb=6231,2104;bgi=background/frankfurtUrban,s;bgs=0.203,m");
 
     submodules:
         environment: PhysicalEnvironment {
@@ -55,142 +63,154 @@ network frankfurt_urban_n_nodes_mipv6
             parameters:
                 @display("p=200,100;is=vs");
         }
-        //        radioMedium: Ieee80211DimensionalRadioMedium {
         radioMedium: Ieee80211ScalarRadioMedium {
             parameters:
                 @display("p=200,250;is=vs");
         }
         R_1: Router6 {
             parameters:
-                @display("p=1554,1086;is=s");
+                @display("p=1403,98;is=s");
         }
         R_2: Router6 {
             parameters:
-                @display("p=3655,98;is=s");
+                @display("p=2133,98;is=s");
         }
         R_3: Router6 {
             parameters:
-                @display("p=4748,98;is=s");
+                @display("p=3073,98;is=s");
+        }
+        R_4: Router6 {
+            parameters:
+                @display("p=4073,98;is=s");
         }
         R_5: Router6 {
             parameters:
-                @display("p=2413,98;is=s");
+                @display("p=4960,98;is=s");
         }
         R_6: Router6 {
             parameters:
-                @display("p=2413,1389;is=s");
+                @display("p=2128,1211;is=n;i=,black");
         }
         R_7: Router6 {
             parameters:
-                @display("p=881,1389;is=s");
+                @display("p=2128,1655;is=n;i=,black");
         }
-        R_10: Router6 {
+        R_8: Router6 {
             parameters:
-                @display("p=3965,1389;is=s");
+                @display("p=4073,1211;is=n;i=,black");
+        }
+        R_9: Router6 {
+            parameters:
+                @display("p=4073,1655;is=n;i=,black");
         }
         AP_1: AccessPoint {
             parameters:
-                @display("p=1369.4581,1487.6848;is=s");
+                @display("p=1369,1487;is=s");
         }
         AP_2: AccessPoint {
             parameters:
-                @display("p=967,666;is=s");
+                @display("p=1137,733;is=s");
         }
         AP_3: AccessPoint {
             parameters:
-                @display("p=1763.5469,339.9015;is=s");
+                @display("p=1665,532;is=s");
         }
         AP_4: AccessPoint {
             parameters:
-                @display("p=2561.5764,477.83252;is=s");
+                @display("p=2472,532;is=s");
         }
         AP_5: AccessPoint {
             parameters:
-                @display("p=3315.271,620.6897;is=s");
+                @display("p=3315,620;is=s");
         }
         AP_6: AccessPoint {
             parameters:
-                @display("p=4128.079,709.3596;is=s");
+                @display("p=4128,709;is=s");
         }
         AP_7: AccessPoint {
             parameters:
-                @display("p=4752,648;is=s");
+                @display("p=4753,556;is=s");
         }
         AP_8: AccessPoint {
             parameters:
-                @display("p=5226.601,940.8867;is=s");
+                @display("p=5226,940;is=s");
         }
         AP_9: AccessPoint {
             parameters:
-                @display("p=6000,620.6897;is=s");
+                @display("p=6000,620;is=s");
         }
         CN1[total_cn]: StandardHost6 {
             parameters:
-                @display("p=4960,1812;is=s");
+                @display("p=5068,1206;is=s");
         }
         CN2[total_cn]: StandardHost6 {
             parameters:
-                @display("p=197,1812;is=s");
+                @display("p=886,1206;is=s");
         }
         CN3[total_cn]: StandardHost6 {
             parameters:
-                @display("p=4645,1275;is=s");
+                @display("p=5068,1650;is=s");
         }
         CN4[total_cn]: StandardHost6 {
             parameters:
-                @display("p=256,1044;is=s");
+                @display("p=886,1650;is=s");
         }
-        Home_Agent: HomeAgent6 {
+        HA: HomeAgent6 {
             parameters:
-                @display("p=2413.7932,1822.6602;is=s");
+                @display("p=1802,832;is=s");
         }
-    connections allowunconnected:
-        R_1.ethg$o++ --> ethernetline --> R_5.ethg$i++;
-        R_1.ethg$i++ <-- ethernetline <-- R_5.ethg$o++;
-        R_1.ethg$o++ --> ethernetline --> R_7.ethg$i++;
-        R_1.ethg$i++ <-- ethernetline <-- R_7.ethg$o++;        
-        R_2.ethg$o++ --> ethernetline --> R_5.ethg$i++;
-        R_2.ethg$i++ <-- ethernetline <-- R_5.ethg$o++;
-        R_3.ethg$o++ --> ethernetline --> R_2.ethg$i++;
-        R_3.ethg$i++ <-- ethernetline <-- R_2.ethg$o++;
-        R_10.ethg$o++ --> ethernetline --> R_6.ethg$i++;
-        R_10.ethg$i++ <-- ethernetline <-- R_6.ethg$o++;
-		R_10.ethg$o++ --> ethernetline --> R_3.ethg$i++;
-        R_10.ethg$i++ <-- ethernetline <-- R_3.ethg$o++;        
-        R_5.ethg$o++ --> ethernetline --> R_6.ethg$i++;
-        R_5.ethg$i++ <-- ethernetline <-- R_6.ethg$o++;
-        R_7.ethg$o++ --> ethernetline --> R_6.ethg$i++;
-        R_7.ethg$i++ <-- ethernetline <-- R_6.ethg$o++;
-        Home_Agent.ethg$o++ --> ethernetline --> R_6.ethg$i++;
-        Home_Agent.ethg$i++ <-- ethernetline <-- R_6.ethg$o++;
-        AP_1.ethg$o++ --> ethernetline --> Home_Agent.ethg$i++;
-        AP_1.ethg$i++ <-- ethernetline <-- Home_Agent.ethg$o++;
-        AP_2.ethg$o++ --> ethernetline --> R_1.ethg$i++;
-        AP_2.ethg$i++ <-- ethernetline <-- R_1.ethg$o++;
-        AP_3.ethg$o++ --> ethernetline --> R_1.ethg$i++;
-        AP_3.ethg$i++ <-- ethernetline <-- R_1.ethg$o++;
-        AP_4.ethg$o++ --> ethernetline --> R_2.ethg$i++;
-        AP_4.ethg$i++ <-- ethernetline <-- R_2.ethg$o++;
-        AP_5.ethg$o++ --> ethernetline --> R_2.ethg$i++;
-        AP_5.ethg$i++ <-- ethernetline <-- R_2.ethg$o++;
-        AP_6.ethg$o++ --> ethernetline --> R_2.ethg$i++;
-        AP_6.ethg$i++ <-- ethernetline <-- R_2.ethg$o++;
-        AP_7.ethg$o++ --> ethernetline --> R_3.ethg$i++;
-        AP_7.ethg$i++ <-- ethernetline <-- R_3.ethg$o++;
-        AP_8.ethg$o++ --> ethernetline --> R_3.ethg$i++;
-        AP_8.ethg$i++ <-- ethernetline <-- R_3.ethg$o++;
-        AP_9.ethg$o++ --> ethernetline --> R_3.ethg$i++;
-        AP_9.ethg$i++ <-- ethernetline <-- R_3.ethg$o++;
 
+    connections allowunconnected:
+        R_1.ethg$o++ --> E1 --> R_2.ethg$i++;
+        R_1.ethg$i++ <-- E1 <-- R_2.ethg$o++;
+        R_2.ethg$o++ --> E1 --> R_3.ethg$i++;
+        R_2.ethg$i++ <-- E1 <-- R_3.ethg$o++;
+        R_3.ethg$o++ --> E1 --> R_4.ethg$i++;
+        R_3.ethg$i++ <-- E1 <-- R_4.ethg$o++;
+        R_4.ethg$o++ --> E1 --> R_5.ethg$i++;
+        R_4.ethg$i++ <-- E1 <-- R_5.ethg$o++;
+        R_6.ethg$o++ --> E2 --> R_7.ethg$i++;
+        R_6.ethg$i++ <-- E2 <-- R_7.ethg$o++;
+        R_6.ethg$o++ --> E2 --> R_2.ethg$i++;
+        R_6.ethg$i++ <-- E2 <-- R_2.ethg$o++;
+        R_7.ethg$o++ --> E2 --> R_9.ethg$i++;
+        R_7.ethg$i++ <-- E2 <-- R_9.ethg$o++;
+        R_8.ethg$o++ --> E2 --> R_9.ethg$i++;
+        R_8.ethg$i++ <-- E2 <-- R_9.ethg$o++;
+        R_8.ethg$o++ --> E2 --> R_6.ethg$i++;
+        R_8.ethg$i++ <-- E2 <-- R_6.ethg$o++;
+        R_8.ethg$o++ --> E2 --> R_4.ethg$i++;
+        R_8.ethg$i++ <-- E2 <-- R_4.ethg$o++;
+        AP_2.ethg$o++ --> E1 --> R_1.ethg$i++;
+        AP_2.ethg$i++ <-- E1 <-- R_1.ethg$o++;
+        AP_3.ethg$o++ --> E1 --> R_1.ethg$i++;
+        AP_3.ethg$i++ <-- E1 <-- R_1.ethg$o++;
+        AP_4.ethg$o++ --> E1 --> R_3.ethg$i++;
+        AP_4.ethg$i++ <-- E1 <-- R_3.ethg$o++;
+        AP_5.ethg$o++ --> E1 --> R_3.ethg$i++;
+        AP_5.ethg$i++ <-- E1 <-- R_3.ethg$o++;
+        AP_6.ethg$o++ --> E1 --> R_3.ethg$i++;
+        AP_6.ethg$i++ <-- E1 <-- R_3.ethg$o++;
+        AP_7.ethg$o++ --> E1 --> R_5.ethg$i++;
+        AP_7.ethg$i++ <-- E1 <-- R_5.ethg$o++;
+        AP_8.ethg$o++ --> E1 --> R_5.ethg$i++;
+        AP_8.ethg$i++ <-- E1 <-- R_5.ethg$o++;
+        AP_9.ethg$o++ --> E1 --> R_5.ethg$i++;
+        AP_9.ethg$i++ <-- E1 <-- R_5.ethg$o++;
+
+        AP_1.ethg$o++ --> E2 --> HA.ethg$i++;
+        AP_1.ethg$i++ <-- E2 <-- HA.ethg$o++;
+        HA.ethg$o++ --> E2 --> R_6.ethg$i++;
+        HA.ethg$i++ <-- E2 <-- R_6.ethg$o++;
         for i=0..total_cn-1 {
-            CN1[i].ethg$o++ --> ethernetline --> R_10.ethg$i++;
-            CN1[i].ethg$i++ <-- ethernetline <-- R_10.ethg$o++;
-            CN3[i].ethg$o++ --> ethernetline --> R_10.ethg$i++;
-            CN3[i].ethg$i++ <-- ethernetline <-- R_10.ethg$o++;
-            CN2[i].ethg$o++ --> ethernetline --> R_7.ethg$i++;
-            CN2[i].ethg$i++ <-- ethernetline <-- R_7.ethg$o++;
-            CN4[i].ethg$o++ --> ethernetline --> R_7.ethg$i++;
-            CN4[i].ethg$i++ <-- ethernetline <-- R_7.ethg$o++;
+            CN1[i].ethg$o++ --> E2 --> R_8.ethg$i++;
+            CN1[i].ethg$i++ <-- E2 <-- R_8.ethg$o++;
+            CN2[i].ethg$o++ --> E2 --> R_6.ethg$i++;
+            CN2[i].ethg$i++ <-- E2 <-- R_6.ethg$o++;
+            CN3[i].ethg$o++ --> E2 --> R_9.ethg$i++;
+            CN3[i].ethg$i++ <-- E2 <-- R_9.ethg$o++;
+            CN4[i].ethg$o++ --> E2 --> R_7.ethg$i++;
+            CN4[i].ethg$i++ <-- E2 <-- R_7.ethg$o++;
         }
 
 }
