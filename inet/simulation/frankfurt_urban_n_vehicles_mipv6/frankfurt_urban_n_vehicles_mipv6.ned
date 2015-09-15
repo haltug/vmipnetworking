@@ -144,7 +144,11 @@ network frankfurt_urban_n_vehicles_mipv6
             parameters:
                 @display("p=793,1206;is=s");
         }
-    connections allowunconnected:        
+        HA2: HomeAgent6 {
+            parameters:
+                @display("p=5689,98;is=s");
+        }
+    connections allowunconnected:
         R_1.ethg$o++ --> E1 --> R_2.ethg$i++;
         R_1.ethg$i++ <-- E1 <-- R_2.ethg$o++;
         R_2.ethg$o++ --> E1 --> R_3.ethg$i++;
@@ -165,8 +169,6 @@ network frankfurt_urban_n_vehicles_mipv6
         R_8.ethg$i++ <-- E2 <-- R_6.ethg$o++;
         R_8.ethg$o++ --> E2 --> R_4.ethg$i++;
         R_8.ethg$i++ <-- E2 <-- R_4.ethg$o++;
-        AP_1.ethg$o++ --> E1 --> HA.ethg$i++;
-        AP_1.ethg$i++ <-- E1 <-- HA.ethg$o++;
         AP_2.ethg$o++ --> E1 --> R_1.ethg$i++;
         AP_2.ethg$i++ <-- E1 <-- R_1.ethg$o++;
         AP_3.ethg$o++ --> E1 --> R_1.ethg$i++;
@@ -181,12 +183,17 @@ network frankfurt_urban_n_vehicles_mipv6
         AP_7.ethg$i++ <-- E1 <-- R_5.ethg$o++;
         AP_8.ethg$o++ --> E1 --> R_5.ethg$i++;
         AP_8.ethg$i++ <-- E1 <-- R_5.ethg$o++;
-        AP_9.ethg$o++ --> E1 --> R_5.ethg$i++;
-        AP_9.ethg$i++ <-- E1 <-- R_5.ethg$o++;
+
+        AP_1.ethg$o++ --> E1 --> HA.ethg$i++;
+        AP_1.ethg$i++ <-- E1 <-- HA.ethg$o++;
+        AP_9.ethg$o++ --> E1 --> HA2.ethg$i++;
+        AP_9.ethg$i++ <-- E1 <-- HA2.ethg$o++;
         for i=0..total_cn-1 {
             CN1[i].ethg$o++ --> E2 --> R_9.ethg$i++;
             CN1[i].ethg$i++ <-- E2 <-- R_9.ethg$o++;
         }
         HA.ethg$o++ --> E2 --> R_6.ethg$i++;
         HA.ethg$i++ <-- E2 <-- R_6.ethg$o++;
+        HA2.ethg$o++ --> E2 --> R_5.ethg$i++;
+        HA2.ethg$i++ <-- E2 <-- R_5.ethg$o++;
 }
