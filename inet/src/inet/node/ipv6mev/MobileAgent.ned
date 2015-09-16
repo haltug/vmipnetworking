@@ -34,7 +34,7 @@ import inet.transportlayer.contract.IUDP;
 module MobileAgent extends NodeBaseIdModification
 {
     parameters:
-        @display("i=device/adam;"); // is=vl
+        //        @display("i=device/"); // 
         int numTcpApps = default(0);  // no of TCP apps. Specify the app types in INI file with tcpApp[0..1].typename="TCPEchoApp" syntax
         int numUdpApps = default(0);  // no of UDP apps. Specify the app types in INI file with udpApp[0..1].typename="UDPVideoStreamCli" syntax
         int numSctpApps = default(0); // no of SCTP apps. Specify the app types in INI file with sctpApp[0..1].typename="SCTPServer" syntax
@@ -53,6 +53,7 @@ module MobileAgent extends NodeBaseIdModification
         routingTable.routes = routes;
         networkLayer.proxyARP = default(false);
         *.icmpv6Module = default(absPath(".icmpv6"));
+        @display("i=old/penguin;bgb=,-");
     submodules:
         tunApp[numTunInterfaces]: <> like ITunApp {
             parameters:
@@ -100,14 +101,14 @@ module MobileAgent extends NodeBaseIdModification
     connections allowunconnected:
         idLayer.fromLowerLayer <-- networkLayer.transportOut++ if idLayer.isIdLayerEnabled;
         idLayer.toLowerLayer --> networkLayer.transportIn++ if idLayer.isIdLayerEnabled;
-		
+
         idLayer.icmpIpIn <-- networkLayer.transportOut++;
-		idLayer.icmpIpOut --> networkLayer.transportIn++;
-		idLayer.tcpIpIn <-- networkLayer.transportOut++ if !idLayer.isIdLayerEnabled;
-		idLayer.tcpIpOut --> networkLayer.transportIn++ if !idLayer.isIdLayerEnabled;
-		idLayer.udpIpIn <-- networkLayer.transportOut++ if !idLayer.isIdLayerEnabled;
-		idLayer.udpIpOut --> networkLayer.transportIn++ if !idLayer.isIdLayerEnabled;
-		
+        idLayer.icmpIpOut --> networkLayer.transportIn++;
+        idLayer.tcpIpIn <-- networkLayer.transportOut++ if !idLayer.isIdLayerEnabled;
+        idLayer.tcpIpOut --> networkLayer.transportIn++ if !idLayer.isIdLayerEnabled;
+        idLayer.udpIpIn <-- networkLayer.transportOut++ if !idLayer.isIdLayerEnabled;
+        idLayer.udpIpOut --> networkLayer.transportIn++ if !idLayer.isIdLayerEnabled;
+
         for i=0..numTcpApps-1 {
             tcpApp[i].tcpOut --> tcp.appIn++;
             tcpApp[i].tcpIn <-- tcp.appOut++;
@@ -123,8 +124,8 @@ module MobileAgent extends NodeBaseIdModification
 
         udp.ipOut --> idLayer.fromUDP if hasUdp;
         udp.ipIn <-- idLayer.toUDP if hasUdp;
-        
-		icmpv6.ipv6Out --> idLayer.fromICMP;
+
+        icmpv6.ipv6Out --> idLayer.fromICMP;
         icmpv6.ipv6In <-- idLayer.toICMP;
 
         for i=0..numSctpApps-1 {
@@ -138,7 +139,7 @@ module MobileAgent extends NodeBaseIdModification
             tunApp[i].tunOut --> tun[i].appIn if hasTun;
             tunApp[i].tunIn <-- tun[i].appOut if hasTun;
         }
-		
+
         // ICMPv6 to IPv6ErrorHandling
         icmpv6.errorOut --> ipv6ErrorHandling.in;
 
