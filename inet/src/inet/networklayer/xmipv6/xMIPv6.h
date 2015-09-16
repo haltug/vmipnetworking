@@ -82,16 +82,16 @@ class INET_API xMIPv6 : public cSimpleModule
     IPv6NeighbourDiscovery *ipv6nd;
 
     // statistic collection
-    cOutVector statVectorBUtoHA, statVectorBUtoCN, statVectorBUtoMN;
+    static simsignal_t  statVectorBUtoHA, statVectorBUtoCN, statVectorBUtoMN;
     // 1 means BA from HA, 2 means BA from CN
-    cOutVector statVectorBAtoMN;
+    static simsignal_t  statVectorBAtoMN;
     // 1 means BA to register BU, 2 means BA to deregister BU message
     // 3 means invalid BA
-    cOutVector statVectorBAfromHA, statVectorBAfromCN;
+    static simsignal_t  statVectorBAfromHA, statVectorBAfromCN;
 
-    cOutVector statVectorHoTItoCN, statVectorCoTItoCN;
-    cOutVector statVectorHoTtoMN, statVectorCoTtoMN;
-    cOutVector statVectorHoTfromCN, statVectorCoTfromCN;
+    static simsignal_t  statVectorHoTItoCN, statVectorCoTItoCN;
+    static simsignal_t  statVectorHoTtoMN, statVectorCoTtoMN;
+    static simsignal_t  statVectorHoTfromCN, statVectorCoTfromCN;
 
     /**
      * The base class for all other timers that are used for retransmissions.

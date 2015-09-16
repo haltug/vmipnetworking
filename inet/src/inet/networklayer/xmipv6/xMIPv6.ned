@@ -37,6 +37,18 @@ simple xMIPv6
         bool isHomeAgent;
         bool isMobileNode;
         @display("i=block/classifier2");
+        @statistic[statVectorBUtoHA](title="statVectorBUtoHA"; record=count,vector; interpolationmode=none);
+        @statistic[statVectorBUtoCN](title="statVectorBUtoCN"; record=count,vector; interpolationmode=none);
+        @statistic[statVectorBUtoMN](title="statVectorBUtoMN"; record=count,vector; interpolationmode=none);
+        @statistic[statVectorBAtoMN](title="statVectorBAtoMN"; record=count,vector; interpolationmode=none);
+        @statistic[statVectorBAfromHA](title="statVectorBAfromHA"; record=count,vector; interpolationmode=none);
+        @statistic[statVectorBAfromCN](title="statVectorBAfromCN"; record=count,vector; interpolationmode=none);
+        @statistic[statVectorHoTItoCN](title="statVectorHoTItoCN"; record=count,vector; interpolationmode=none);
+        @statistic[statVectorCoTItoCN](title="statVectorCoTItoCN"; record=count,vector; interpolationmode=none);
+        @statistic[statVectorHoTtoMN](title="statVectorHoTtoMN"; record=count,vector; interpolationmode=none);
+        @statistic[statVectorCoTtoMN](title="statVectorCoTtoMN"; record=count,vector; interpolationmode=none);
+        @statistic[statVectorHoTfromCN](title="statVectorHoTfromCN"; record=count,vector; interpolationmode=none);
+        @statistic[statVectorCoTfromCN](title="statVectorCoTfromCN"; record=count,vector; interpolationmode=none);
     gates:
         input fromIPv6;
         output toIPv6;

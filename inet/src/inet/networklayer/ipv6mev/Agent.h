@@ -81,7 +81,7 @@ namespace inet {
 //========== Retransmission time of messages ==========
 #define TIMEOUT_SESSION_INIT    0.25 // retransmission time of ca init in sec
 #define TIMEOUT_SEQNO_INIT      0.25
-#define TIMEOUT_SEQ_UPDATE      0.05
+#define TIMEOUT_SEQ_UPDATE      0.25
 #define TIMEOUT_LOC_UPDATE      1
 #define TIMEDELAY_IF_DOWN       4   // delay of ip msg handler
 #define TIMEDELAY_IF_UP         0

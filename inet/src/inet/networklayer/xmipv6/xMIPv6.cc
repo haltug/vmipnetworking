@@ -66,6 +66,19 @@ namespace inet {
 
 Define_Module(xMIPv6);
 
+simsignal_t xMIPv6::statVectorBUtoHA = registerSignal("statVectorBUtoHA");
+simsignal_t xMIPv6::statVectorBUtoCN = registerSignal("statVectorBUtoCN");
+simsignal_t xMIPv6::statVectorBUtoMN = registerSignal("statVectorBUtoMN"); // not used
+simsignal_t xMIPv6::statVectorBAtoMN = registerSignal("statVectorBAtoMN");
+simsignal_t xMIPv6::statVectorBAfromHA = registerSignal("statVectorBAfromHA");
+simsignal_t xMIPv6::statVectorBAfromCN = registerSignal("statVectorBAfromCN");
+simsignal_t xMIPv6::statVectorHoTItoCN = registerSignal("statVectorHoTItoCN");
+simsignal_t xMIPv6::statVectorCoTItoCN = registerSignal("statVectorCoTItoCN");
+simsignal_t xMIPv6::statVectorHoTtoMN = registerSignal("statVectorHoTtoMN");
+simsignal_t xMIPv6::statVectorCoTtoMN = registerSignal("statVectorCoTtoMN");
+simsignal_t xMIPv6::statVectorHoTfromCN = registerSignal("statVectorHoTfromCN");
+simsignal_t xMIPv6::statVectorCoTfromCN = registerSignal("statVectorCoTfromCN");
+
 /**
  * Destructur
  *
@@ -93,20 +106,6 @@ void xMIPv6::initialize(int stage)
 
     if (stage == INITSTAGE_LOCAL) {
         EV_TRACE << "Initializing xMIPv6 module" << endl;
-
-        // statistic collection
-        /*statVectorBUtoHA.setName("BU to HA");
-           statVectorBUtoCN.setName("BU to CN");
-           statVectorBUtoMN.setName("BU to MN");
-           statVectorBAtoMN.setName("BA to MN");
-           statVectorBAfromHA.setName("BA from HA");
-           statVectorBAfromCN.setName("BA from CN");
-           statVectorHoTItoCN.setName("HoTI to CN");
-           statVectorCoTItoCN.setName("CoTI to CN");
-           statVectorHoTtoMN.setName("HoT to MN");
-           statVectorCoTtoMN.setName("CoT to MN");
-           statVectorHoTfromCN.setName("HoT from CN");
-           statVectorCoTfromCN.setName("CoT from CN");*/
 
         tunneling = getModuleFromPar<IPv6Tunneling>(par("ipv6TunnelingModule"), this);    // access to tunneling module, 21.08.07 - CB
     }
@@ -449,12 +448,14 @@ void xMIPv6::sendPeriodicBU(cMessage *msg)
 
         // statistic collection
         /*statVectorBUtoCN.record(1);*/
+        emit(statVectorBUtoCN, buIfEntry->buSequenceNumber);
     }
     else {
         createAndSendBUMessage(buDest, ie, buIfEntry->buSequenceNumber, buIfEntry->lifeTime);
 
         // statistic collection
         /*statVectorBUtoHA.record(1);*/
+        emit(statVectorBUtoHA, buIfEntry->buSequenceNumber);
     }
 
     /*if (buIfEntry->ackTimeout < ie->ipv6()->_maxBindAckTimeout()) // update comparison operator, 12.9.07 - CB
@@ -546,7 +547,7 @@ void xMIPv6::createAndSendBUMessage(const IPv6Address& dest, InterfaceEntry *ie,
          a Home Address destination option, unless the Source Address is
          the home address.*/
     IPv6Address HoA = ie->ipv6Data()->getGlobalAddress(IPv6InterfaceData::HoA);
-    if(!HoA.isUnspecified())
+    if(HoA.isUnspecified())
         return;
 
     // As every IPv6 Datagram sending the BU has to have the Home Address Option, I have
@@ -1153,6 +1154,11 @@ void xMIPv6::createAndSendBAMessage(const IPv6Address& src, const IPv6Address& d
         statVectorBAtoMN.record(1);
        else
         statVectorBAtoMN.record(2);*/
+//    if(rt6->isHomeAgent())
+//        emit(statVectorBAtoMN, 1);
+//    else
+//        emit(statVectorBAtoMN, 2);
+    emit(statVectorBAtoMN, baSeq);
 }
 
 void xMIPv6::processBAMessage(BindingAcknowledgement *ba, IPv6ControlInfo *ctrlInfo)
@@ -1165,15 +1171,19 @@ void xMIPv6::processBAMessage(BindingAcknowledgement *ba, IPv6ControlInfo *ctrlI
     if (rt6->isMobileNode()) {
         if (!validateBAck(*ba, ctrlInfo)) {
             EV_INFO << "Discarding invalid BAck...\n";
-            delete ctrlInfo;
-            delete ba;
 
             // statistic collection
             /*if (baSource == ie->ipv6()->getHomeAgentAddress())
                 statVectorBAfromHA.record(3);
                else
                 statVectorBAfromCN.record(3);*/
+            if(baSource == ie->ipv6Data()->getHomeAgentAddress())
+                emit(statVectorBAfromHA, ba->getSequenceNumber());
+            else
+                emit(statVectorBAfromCN, ba->getSequenceNumber());
 
+            delete ctrlInfo;
+            delete ba;
             return;
         }
 
@@ -1205,9 +1215,12 @@ void xMIPv6::processBAMessage(BindingAcknowledgement *ba, IPv6ControlInfo *ctrlI
 
                     // statistic collection
                     /*statVectorBAfromHA.record(2);*/
+                    emit(statVectorBAfromHA, ba->getSequenceNumber());
                 }
                 /*else
                     statVectorBAfromCN.record(2);*/
+                else
+                    emit(statVectorBAfromCN, ba->getSequenceNumber());
 
                 // delete the entry from the BUL
                 bul->removeBinding(baSource);
@@ -1246,6 +1259,7 @@ void xMIPv6::processBAMessage(BindingAcknowledgement *ba, IPv6ControlInfo *ctrlI
 
                     // statistic collection
                     /*statVectorBAfromHA.record(1);*/
+                    emit(statVectorBAfromHA, ba->getSequenceNumber());
                 }
                 else if (entry->BAck == false) {    // BA from CN
                     tunneling->destroyTunnelForExitAndTrigger(entry->homeAddress, baSource);
@@ -1581,6 +1595,7 @@ void xMIPv6::sendTestInit(cMessage *msg)
 
         // statistic collection
         /*statVectorHoTItoCN.record(1);*/
+        emit(statVectorHoTItoCN, 1);
     }
     else {    // must be of type CareOfTestInit*
               // 24.07.08 - CB
@@ -1599,6 +1614,7 @@ void xMIPv6::sendTestInit(cMessage *msg)
 
         // statistic collection
         /*statVectorCoTItoCN.record(1);*/
+        emit(statVectorCoTItoCN, 1);
     }
 
     // update 13.9.07 - CB
@@ -1758,6 +1774,7 @@ void xMIPv6::processHoTIMessage(HomeTestInit *HoTI, IPv6ControlInfo *ctrlInfo)
 
     // statistic collection
     /*statVectorHoTtoMN.record(1);*/
+    emit(statVectorHoTtoMN, 1);
 
     delete HoTI;
     delete ctrlInfo;
@@ -1780,6 +1797,7 @@ void xMIPv6::processCoTIMessage(CareOfTestInit *CoTI, IPv6ControlInfo *ctrlInfo)
 
     // statistic collection
     /*statVectorCoTtoMN.record(1);*/
+    emit(statVectorCoTtoMN, 1);
 
     delete CoTI;
     delete ctrlInfo;
@@ -1818,6 +1836,7 @@ void xMIPv6::processHoTMessage(HomeTest *HoT, IPv6ControlInfo *ctrlInfo)
 
         // gather statistics
         /*statVectorHoTfromCN.record(1);*/
+        emit(statVectorHoTfromCN, 1);
     }
 
     delete HoT;
@@ -1911,6 +1930,7 @@ void xMIPv6::processCoTMessage(CareOfTest *CoT, IPv6ControlInfo *ctrlInfo)
 
         // gather statistics
         /*statVectorCoTfromCN.record(1);*/
+        emit(statVectorCoTfromCN, 1);
     }
 
     delete CoT;

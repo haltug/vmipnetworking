@@ -213,7 +213,7 @@ void DataAgent::sendAgentUpdateResponse(cMessage *msg)
     UpdateAckTimer *uat = (UpdateAckTimer *) msg->getContextPointer();
     const IPv6Address &dest =  uat->dest;
     uat->nextScheduledTime = simTime() + uat->ackTimeout;
-    uat->ackTimeout = (uat->ackTimeout)*1.2;
+    uat->ackTimeout = (uat->ackTimeout)*1;
     IdentificationHeader *ih = getAgentHeader(3, IP_PROT_NONE, getSeqNo(uat->id), 0, uat->id);
     ih->setIsIdInitialized(true);
     ih->setIsIdAcked(true);

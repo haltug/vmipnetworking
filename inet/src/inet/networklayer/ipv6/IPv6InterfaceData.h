@@ -71,9 +71,9 @@ class IPv6RoutingTable;
 #ifdef WITH_xMIPv6
 /***************RFC 3775: Section 12 Protocol Constants************************/
 #define MIPv6_DHAAD_RETRIES                    4 // retransmissions
-#define MIPv6_INITIAL_BINDACK_TIMEOUT          1 // second
-#define MIPv6_INITIAL_DHAAD_TIMEOUT            3 // seconds
-#define MIPv6_INITIAL_SOLICIT_TIMER            3 // seconds
+#define MIPv6_INITIAL_BINDACK_TIMEOUT          1 // RFC: 1 // second
+#define MIPv6_INITIAL_DHAAD_TIMEOUT            3 // RFC: 3 // seconds
+#define MIPv6_INITIAL_SOLICIT_TIMER            3 // RFC: 3 // seconds
 #define MIPv6_MAX_BINDACK_TIMEOUT              32 // seconds
 #define MIPv6_MAX_NONCE_LIFETIME               240 // seconds
 #define MIPv6_MAX_TOKEN_LIFETIME               210 // seconds

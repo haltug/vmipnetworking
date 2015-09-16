@@ -147,7 +147,7 @@ void ControlAgent::sendAgentInit(cMessage *msg)
     if(!ie) throw cRuntimeError("CA: no interface provided.");
     IPv6Address dest = mit->dest;
     mit->nextScheduledTime = simTime() + mit->ackTimeout;
-    mit->ackTimeout = (mit->ackTimeout)*2;
+    mit->ackTimeout = (mit->ackTimeout)*1;
     for(auto &item : getAddressMap()) {
         EV_DEBUG << "CA: Send initialization message to DataAgent " << dest << endl;
         IdentificationHeader *ih = getAgentHeader(2, IP_PROT_NONE, getSeqNo(item.first), 0, item.first);
@@ -197,7 +197,7 @@ void ControlAgent::sendAgentUpdate(cMessage *msg)
     SequenceUpdateTimer *sut = (SequenceUpdateTimer *) msg->getContextPointer();
     const IPv6Address &dest =  sut->dest;
     sut->nextScheduledTime = simTime() + sut->ackTimeout;
-    sut->ackTimeout = (sut->ackTimeout)*1.5;
+    sut->ackTimeout = (sut->ackTimeout)*1;
     IdentificationHeader *ih = getAgentHeader(2, IP_PROT_NONE, getSeqNo(sut->id), getSeqNo(sut->id), sut->id);
     ih->setIsIdInitialized(true);
     ih->setIsIdAcked(true);
@@ -264,7 +264,7 @@ void ControlAgent::sendSequenceUpdateAck(cMessage *msg)
     SequenceUpdateAckTimer *suat = (SequenceUpdateAckTimer *) msg->getContextPointer();
     uint64 mobileId = suat->id;
     suat->nextScheduledTime = simTime() + suat->ackTimeout;
-    suat->ackTimeout = (suat->ackTimeout)*2;
+    suat->ackTimeout = (suat->ackTimeout)*1;
     AddressDiff ad = getAddressList(mobileId);
     AddressList list = ad.insertedList;
     for (AddressTuple tuple : list ) {

@@ -142,6 +142,19 @@ void IPv6::handleMessage(cMessage *msg)
 void IPv6::endService(cPacket *msg)
 {
     EV_DEBUG << "IPv6: Packet in front of queue is processed in endService(). kind: " << msg->getKind() << "; name: "  << msg->getName() << endl;
+    if(rt->isHomeAgent() || rt->isMobileNode())
+    {
+        if(dynamic_cast<MobilityHeader *>(msg)) {
+            EV << "BREAK POINT ACHIEVED" << endl;
+        } else if(dynamic_cast<IPv6Datagram *>(msg)) {
+            IPv6Datagram *datagram = (IPv6Datagram *) msg;
+            if(datagram->getTransportProtocol() == IP_PROT_IPv6EXT_MOB)
+                EV << "BREAK POINT ACHIEVED" << endl;
+        }
+    }
+    if (msg->getArrivalGate()->isName("xMIPv6In")) {
+        EV << "BREAK POINT ACHIEVED" << endl;
+    }
 #ifdef WITH_xMIPv6
     // 28.09.07 - CB
     // support for rescheduling datagrams which are supposed to be sent over
@@ -234,7 +247,7 @@ void IPv6::preroutingFinish(IPv6Datagram *datagram, const InterfaceEntry *fromIE
     IPv6Address& destAddr = datagram->getDestAddress();
     // remove control info
     delete datagram->removeControlInfo();
-    if(isUnconfiguredAddressesDropped) // -- HA drop packets with wrong source address configuration
+    if(isUnconfiguredAddressesDropped) // --HA drop packets with wrong source address configuration
         if(!datagram->getSrcAddress().isGlobal())
             if(datagram->getTransportProtocol() == IP_PROT_UDP || datagram->getTransportProtocol() == IP_PROT_TCP || datagram->getTransportProtocol() == IP_PROT_IPv6EXT_ID){
                 EV_DEBUG << "Dropping packet due to unconfigured source address. Packet name: " << datagram->getFullName() << endl;
@@ -312,6 +325,11 @@ void IPv6::datagramLocalOut(IPv6Datagram *datagram, const InterfaceEntry *destIE
 {
     EV_DEBUG << "IPv6: called datagramLocalOut: requested Address " << requestedNextHopAddress << endl;
     // route packet
+    if(rt->isMobileNode()){
+        if(datagram->getTransportProtocol() == IP_PROT_IPv6EXT_MOB) {
+            EV << "BP" << endl;
+        }
+    }
     if (destIE != nullptr)
         fragmentAndSend(datagram, destIE, MACAddress::BROADCAST_ADDRESS, true); // FIXME what MAC address to use?
     else if (!datagram->getDestAddress().isMulticast())
@@ -693,6 +711,9 @@ void IPv6::handleReceivedICMP(ICMPv6Message *msg)
         EV_INFO << "ICMPv6 packet: passing it to higher layer\n";
         IPv6Datagram *bogusPacket = check_and_cast<IPv6Datagram *>(msg->getEncapsulatedPacket());
         int protocol = bogusPacket->getTransportProtocol();
+        if(mapping.findOutputGateForProtocol(protocol)==-2){
+            return;
+        }
         int gateindex = mapping.getOutputGateForProtocol(protocol);
         send(msg, "transportOut", gateindex);
     }

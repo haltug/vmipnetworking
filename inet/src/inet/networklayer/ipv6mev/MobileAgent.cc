@@ -263,7 +263,7 @@ void MobileAgent::sendSessionInit(cMessage* msg) {
     SessionInitTimer *sit = (SessionInitTimer *) msg->getContextPointer();
     const IPv6Address &dest = sit->dest;
     sit->nextScheduledTime = simTime() + sit->ackTimeout;
-    sit->ackTimeout = (sit->ackTimeout)*1.5;
+    sit->ackTimeout = (sit->ackTimeout)*1;
     if(sit->dest.isGlobal()) { // not necessary
         IdentificationHeader *ih = getAgentHeader(1, IP_PROT_NONE, 0, 0, agentId);
         ih->setIsIdInitialized(true);
@@ -299,7 +299,7 @@ void MobileAgent::sendSequenceInit(cMessage *msg) {
     const IPv6Address &dest = sit->dest;
 //    InterfaceEntry *ie = getInterface();
     sit->nextScheduledTime = simTime() + sit->ackTimeout;
-    sit->ackTimeout = (sit->ackTimeout)*1.5;
+    sit->ackTimeout = (sit->ackTimeout)*1;
     if(!isInterfaceAssociated()) {
         scheduleAt(sit->nextScheduledTime, msg);
         EV_WARN << "MA_sendSequenceInit: Currently no interface available for sending sequence initialization" << endl;
@@ -368,7 +368,7 @@ void MobileAgent::sendSequenceUpdate(cMessage* msg) {
     SequenceUpdateTimer *sut = (SequenceUpdateTimer *) msg->getContextPointer();
     const IPv6Address &dest =  sut->dest;
     sut->nextScheduledTime = simTime() + sut->ackTimeout;
-    sut->ackTimeout = (sut->ackTimeout)*1.5;
+    sut->ackTimeout = (sut->ackTimeout)*1;
     IdentificationHeader *ih = getAgentHeader(1, IP_PROT_NONE, getSeqNo(agentId), getAckNo(agentId), agentId);
     ih->setName(msg->getName());
     ih->setIsIdInitialized(true);
