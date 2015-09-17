@@ -59,6 +59,22 @@ class INET_API TraCIMobility : public MovingMobilityBase {
         TraCIScenarioManager *traciManager;
         static simsignal_t parkingStateChangedSignal;
         static simsignal_t accidentStateChangedSignal;
+        // Statistics
+        static simsignal_t currentPosXVec;
+        static simsignal_t currentPosYVec;
+        static simsignal_t currentSpeedVec;
+        static simsignal_t currentAccelerationVec;
+        static simsignal_t currentCO2EmissionVec;
+        double minSpeed; /**< for statistics: minimum value of currentSpeed */
+        double maxSpeed; /**< for statistics: maximum value of currentSpeed */
+        double totalDistance; /**< for statistics: total distance travelled */
+        double totalCO2Emission; /**< for statistics: total CO2 emission */
+        double firstRoadNumber; /**< for statistics: number of first road we encountered (if road id can be expressed as a number) */
+        simtime_t startTime; /**< for statistics: start time */
+        simtime_t totalTime; /**< for statistics: total time travelled */
+        simtime_t stopTime; /**< for statistics: stop time */
+        const double MY_INFINITY = (std::numeric_limits<double>::has_infinity ? std::numeric_limits<double>::infinity() : std::numeric_limits<double>::max());
+
 
         TraCIScenarioManager::VehicleSignal vehicleState; /**<updated by nextPosition() */
         bool isParking;
@@ -95,29 +111,6 @@ class INET_API TraCIMobility : public MovingMobilityBase {
 		virtual TraCIScenarioManager::VehicleSignal getVehicleState();
 		virtual double getMaxSpeed() const override { return currentSpeed; }
 		double calculateCO2emission(double v, double a);
-// =================================================================================================================================
-        class Statistics {
-            public:
-                double firstRoadNumber; /**< for statistics: number of first road we encountered (if road id can be expressed as a number) */
-                simtime_t startTime; /**< for statistics: start time */
-                simtime_t totalTime; /**< for statistics: total time travelled */
-                simtime_t stopTime; /**< for statistics: stop time */
-                double minSpeed; /**< for statistics: minimum value of currentSpeed */
-                double maxSpeed; /**< for statistics: maximum value of currentSpeed */
-                double totalDistance; /**< for statistics: total distance travelled */
-                double totalCO2Emission; /**< for statistics: total CO2 emission */
-                const double MY_INFINITY = (std::numeric_limits<double>::has_infinity ? std::numeric_limits<double>::infinity() : std::numeric_limits<double>::max());
-                void initialize();
-                void watch(cSimpleModule& module);
-                void recordScalars(cSimpleModule& module);
-        };
-
-        cOutVector currentPosXVec; /**< vector plotting posx */
-        cOutVector currentPosYVec; /**< vector plotting posy */
-        cOutVector currentSpeedVec; /**< vector plotting speed */
-        cOutVector currentAccelerationVec; /**< vector plotting acceleration */
-        cOutVector currentCO2EmissionVec; /**< vector plotting current CO2 emission */
-        Statistics statistics; /**< everything statistics-related */
 };
 
 class INET_API TraCIMobilityAccess

@@ -36,7 +36,7 @@ channel E1 extends ned.DatarateChannel
 channel E2 extends ned.DatarateChannel
 {
     parameters:
-        delay = 250us;
+        delay = 500us;
         datarate = 10Gbps;
 }
 

@@ -42,6 +42,12 @@ simple TraCIMobility extends MovingMobilityBase
         @display("i=block/cogwheel");
         string traciManager = "manager";
         string environmentModule = "environment";
+        @statistic[currentPosXVec](title="currentPosXVec"; record=count,vector; interpolationmode=none);
+        @statistic[currentPosYVec](title="currentPosYVec"; record=count,vector; interpolationmode=none);
+        @statistic[currentSpeedVec](title="currentSpeedVec"; record=count,vector; interpolationmode=none);
+        // acc and co2 stat is disabled! Look in TraCIMobility.cc
+        @statistic[currentAccelerationVec](title="currentAccelerationVec"; record=count,vector; interpolationmode=none);
+        @statistic[currentCO2EmissionVec](title="currentCO2EmissionVec"; record=count,vector; interpolationmode=none);
 //		double updateInterval @unit(s) = default(0.1s);
 //======== Start position, if not randomized.
 //        double initialX; 

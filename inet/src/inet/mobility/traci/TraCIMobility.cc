@@ -34,6 +34,12 @@ Define_Module(TraCIMobility);
 
 simsignal_t TraCIMobility::parkingStateChangedSignal = cComponent::registerSignal("parkingStateChangedSignal");
 simsignal_t TraCIMobility::accidentStateChangedSignal = cComponent::registerSignal("accidentStateChangedSignal");
+// Statistics
+simsignal_t TraCIMobility::currentPosXVec = cComponent::registerSignal("currentPosXVec");
+simsignal_t TraCIMobility::currentPosYVec = cComponent::registerSignal("currentPosYVec");
+simsignal_t TraCIMobility::currentSpeedVec = cComponent::registerSignal("currentSpeedVec");
+simsignal_t TraCIMobility::currentAccelerationVec = cComponent::registerSignal("currentAccelerationVec");
+simsignal_t TraCIMobility::currentCO2EmissionVec = cComponent::registerSignal("currentCO2EmissionVec");
 
 void TraCIMobility::initialize(int stage) {
     MovingMobilityBase::initialize(stage);
@@ -44,13 +50,19 @@ void TraCIMobility::initialize(int stage) {
         if(!traciManager)
             cRuntimeError("Initialization of TraCIMobility aborted. No TraCIScenarioManager exists. Check your .ned file.");
         // Set statistics configuration
-        currentPosXVec.setName("posx");
-		currentPosYVec.setName("posy");
-		currentSpeedVec.setName("speed");
-		currentAccelerationVec.setName("acceleration");
-		currentCO2EmissionVec.setName("co2emission");
-		statistics.initialize();
-		statistics.watch(*this);
+        firstRoadNumber = MY_INFINITY;
+        startTime = simTime();
+        totalTime = 0;
+        stopTime = 0;
+        minSpeed = MY_INFINITY;
+        maxSpeed = -MY_INFINITY;
+        totalDistance = 0;
+        totalCO2Emission = 0;
+        WATCH(totalTime);
+        WATCH(minSpeed);
+        WATCH(maxSpeed);
+        WATCH(totalDistance);
+
 		// set base class configuration
 		nextChange = -1;
 		stationary = false;
@@ -59,8 +71,6 @@ void TraCIMobility::initialize(int stage) {
 
 void TraCIMobility::finish()
 {
-    statistics.stopTime = simTime();
-    statistics.recordScalars(*this);
 }
 
 void TraCIMobility::setStartPosition(std::string vehicle_id, const Coord& position, std::string road_id, double speed, double angle, simtime_t nextTime, double updateTime, TraCIScenarioManager::VehicleSignal state) {
@@ -76,12 +86,9 @@ void TraCIMobility::setStartPosition(std::string vehicle_id, const Coord& positi
     this->updateInterval = updateTime;
 //    this->nextChange = nextTime + this->updateInterval;
     this->vehicleState = state;
-    EV << "Checking position." << endl;
+//    EV << "Checking position." << endl;
     checkPosition();
-//    emitMobilityStateChangedSignal();
-//    updateVisualRepresentation();
-//    this->lastUpdate = simTime();
-    EV << "Scheduling" << endl;
+//    EV << "Scheduling" << endl;
     scheduleUpdate();
 }
 
@@ -105,21 +112,22 @@ void TraCIMobility::move() {
     // FIXME check statistics variables
     if(lastUpdate == simTime())
         cRuntimeError("Move function called twice in one time step.");
-    if (statistics.startTime != simTime()) {
+
+    if (startTime != simTime()) {
         simtime_t updateInterval = simTime() - this->lastUpdate;
         double distance = lastPosition.distance(nextPosition);
-        statistics.totalDistance += distance;
-        statistics.totalTime += updateInterval;
+        totalDistance += distance;
+        totalTime += updateInterval;
         if (nextSpeed != -1) {
-            statistics.minSpeed = std::min(statistics.minSpeed, nextSpeed);
-            statistics.maxSpeed = std::max(statistics.maxSpeed, nextSpeed);
-            currentSpeedVec.record(nextSpeed);
+            minSpeed = std::min(minSpeed, nextSpeed);
+            maxSpeed = std::max(maxSpeed, nextSpeed);
+            emit(currentSpeedVec, nextSpeed);
             if (currentSpeed != -1) {
                 double acceleration = (nextSpeed - currentSpeed) / this->updateInterval;
                 double co2emission = calculateCO2emission(nextSpeed, acceleration);
-                currentAccelerationVec.record(acceleration);
-                currentCO2EmissionVec.record(co2emission);
-                statistics.totalCO2Emission += co2emission * this->updateInterval.dbl();
+//                emit(currentAccelerationVec,acceleration);
+//                emit(currentCO2EmissionVec,co2emission);
+                totalCO2Emission += co2emission * this->updateInterval.dbl();
             }
         }
     }
@@ -127,6 +135,8 @@ void TraCIMobility::move() {
     lastPosition.x = nextPosition.x;
     lastPosition.y = nextPosition.y;
 //    lastPosition.z = nextPosition.z;
+//    emit(currentPosXVec,lastPosition.x);
+//    emit(currentPosYVec,lastPosition.y);
     currentSpeed = nextSpeed;
     currentAngle = nextAngle;
     currentOrientation = Coord(cos(currentAngle), -sin(currentAngle));
@@ -176,38 +186,6 @@ double TraCIMobility::calculateCO2emission(double v, double a) {
 
     if (P_tract <= 0) return alpha1;
     return alpha + beta*v*3.6 + delta*v*v*v*(3.6*3.6*3.6) + zeta*a*v;
-}
-// ================================ STATISTICS ================================
-void TraCIMobility::Statistics::initialize()
-{
-    firstRoadNumber = MY_INFINITY;
-    startTime = simTime();
-    totalTime = 0;
-    stopTime = 0;
-    minSpeed = MY_INFINITY;
-    maxSpeed = -MY_INFINITY;
-    totalDistance = 0;
-    totalCO2Emission = 0;
-}
-
-void TraCIMobility::Statistics::watch(cSimpleModule& )
-{
-    WATCH(totalTime);
-    WATCH(minSpeed);
-    WATCH(maxSpeed);
-    WATCH(totalDistance);
-}
-
-void TraCIMobility::Statistics::recordScalars(cSimpleModule& module)
-{
-    if (firstRoadNumber != MY_INFINITY) module.recordScalar("firstRoadNumber", firstRoadNumber);
-    module.recordScalar("startTime", startTime);
-    module.recordScalar("totalTime", totalTime);
-    module.recordScalar("stopTime", stopTime);
-    if (minSpeed != MY_INFINITY) module.recordScalar("minSpeed", minSpeed);
-    if (maxSpeed != -MY_INFINITY) module.recordScalar("maxSpeed", maxSpeed);
-    module.recordScalar("totalDistance", totalDistance);
-    module.recordScalar("totalCO2Emission", totalCO2Emission);
 }
 
 } // namespace inet
