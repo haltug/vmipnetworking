@@ -162,7 +162,7 @@ void DataAgent::sendSequenceUpdateNotification(cMessage *msg)
         return;
     }
 //    EV_DEBUG << "DA_sendSequenceUpdateNotification: Sending sequence update acknowledgment to Control Agent for Mobile Agent ("<< unt->id << ")." << endl;
-    IdentificationHeader *ih = getAgentHeader(3, IP_PROT_NONE, getSeqNo(unt->id), 0, unt->id);
+    IdentificationHeader *ih = createAgentHeader(3, IP_PROT_NONE, getSeqNo(unt->id), 0, unt->id);
     ih->setIsIdInitialized(true);
     ih->setIsIdAcked(true);
     ih->setIsSeqValid(true);
@@ -183,7 +183,7 @@ void DataAgent::sendSequenceUpdateNotification(cMessage *msg)
 
 void DataAgent::sendAgentInitResponse(IPv6Address destAddr, uint64 mobileId, uint seq)
 {
-    IdentificationHeader *ih = getAgentHeader(3, IP_PROT_NONE, getSeqNo(mobileId), 0, mobileId);
+    IdentificationHeader *ih = createAgentHeader(3, IP_PROT_NONE, getSeqNo(mobileId), 0, mobileId);
     ih->setIsIdInitialized(true);
     ih->setIsSeqValid(true);
     ih->setName("sendAgentInitResponse");
@@ -214,7 +214,7 @@ void DataAgent::sendAgentUpdateResponse(cMessage *msg)
     const IPv6Address &dest =  uat->dest;
     uat->nextScheduledTime = simTime() + uat->ackTimeout;
     uat->ackTimeout = (uat->ackTimeout)*1;
-    IdentificationHeader *ih = getAgentHeader(3, IP_PROT_NONE, getSeqNo(uat->id), 0, uat->id);
+    IdentificationHeader *ih = createAgentHeader(3, IP_PROT_NONE, getSeqNo(uat->id), 0, uat->id);
     ih->setIsIdInitialized(true);
     ih->setIsIdAcked(true);
     ih->setIsSeqValid(true);
@@ -383,7 +383,7 @@ void DataAgent::processIncomingIcmpPacket(ICMPv6Message *icmp, IPv6ControlInfo *
     FlowUnit *funit = getFlowUnit(tuple);
 //    if((icmp->getType() == ICMPv6_ECHO_REPLY || icmp->getType() == ICMPv6_ECHO_REQUEST) && funit->state == REGISTERED) {
     if(funit->state == REGISTERED) {
-        IdentificationHeader *ih = getAgentHeader(3, IP_PROT_IPv6_ICMP, getSeqNo(funit->id), 0, tuple.interfaceId);
+        IdentificationHeader *ih = createAgentHeader(3, IP_PROT_IPv6_ICMP, getSeqNo(funit->id), 0, tuple.interfaceId);
         ih->setIsIdInitialized(true);
         ih->setIsIdAcked(true);
         ih->setIsSeqValid(true);
@@ -559,7 +559,7 @@ void DataAgent::processUdpFromNode(cMessage *msg)
         tuple.interfaceId = controlInfo->getSourceAddress().toIPv6().getInterfaceId();
         FlowUnit *funit = getFlowUnit(tuple);
         if(funit->state == REGISTERED) {
-            IdentificationHeader *ih = getAgentHeader(3, IP_PROT_UDP, getSeqNo(funit->id), 0, tuple.interfaceId);
+            IdentificationHeader *ih = createAgentHeader(3, IP_PROT_UDP, getSeqNo(funit->id), 0, tuple.interfaceId);
             ih->setIsIdInitialized(true);
             ih->setIsIdAcked(true);
             ih->setIsSeqValid(true);
@@ -677,7 +677,7 @@ void DataAgent::processTcpFromNode(cMessage *msg)
 //        EV << "DA: Received regular message from Node, ADDR:" << tuple.destAddress << " DP:" << tuple.destPort << " SP:"<< tuple.sourcePort << endl;
         FlowUnit *funit = getFlowUnit(tuple);
         if(funit->state == REGISTERED ) {
-            IdentificationHeader *ih = getAgentHeader(3, IP_PROT_TCP, getSeqNo(funit->id), 0, tuple.interfaceId);
+            IdentificationHeader *ih = createAgentHeader(3, IP_PROT_TCP, getSeqNo(funit->id), 0, tuple.interfaceId);
             ih->setIsIdInitialized(true);
             ih->setIsIdAcked(true);
             ih->setIsSeqValid(true);

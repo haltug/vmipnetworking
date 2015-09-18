@@ -94,7 +94,7 @@ bool Agent::isAddressAssociated(const IPv6Address &dest)
     return (i != addressAssociation.end());
 }
 
-IdentificationHeader *Agent::getAgentHeader(short type, short protocol, uint seq, uint ack, uint64 id) {
+IdentificationHeader *Agent::createAgentHeader(short type, short protocol, uint seq, uint ack, uint64 id) {
     IdentificationHeader *ih = new IdentificationHeader();
     ih->setNextHeader(protocol);
     ih->setByteLength(SIZE_AGENT_HEADER);
