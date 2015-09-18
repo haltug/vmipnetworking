@@ -2527,8 +2527,9 @@ void IPv6NeighbourDiscovery::processRAPrefixInfoForAddrAutoConf(IPv6NDPrefixInfo
             // already existing at the interface
 
             // initiate the returning home procedure
-            ASSERT(!CoA.isUnspecified());
-            mipv6->returningHome(CoA, ie);
+//            ASSERT(!CoA.isUnspecified()); // --HA skipping check
+            if(!CoA.isUnspecified())
+                mipv6->returningHome(CoA, ie);
         }
         else {    // non-mobile nodes will never have returnedHome == true, so they will always assign a new address
             CoA = ie->ipv6Data()->getGlobalAddress(IPv6InterfaceData::CoA);

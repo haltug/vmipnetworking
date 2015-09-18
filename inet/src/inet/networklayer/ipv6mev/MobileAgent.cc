@@ -265,7 +265,7 @@ void MobileAgent::sendSessionInit(cMessage* msg) {
     sit->nextScheduledTime = simTime() + sit->ackTimeout;
     sit->ackTimeout = (sit->ackTimeout)*1;
     if(sit->dest.isGlobal()) { // not necessary
-        IdentificationHeader *ih = getAgentHeader(1, IP_PROT_NONE, 0, 0, agentId);
+        IdentificationHeader *ih = createAgentHeader(1, IP_PROT_NONE, 0, 0, agentId);
         ih->setIsIdInitialized(true);
         ih->setByteLength(SIZE_AGENT_HEADER);
         ih->setName(msg->getName());
@@ -306,7 +306,7 @@ void MobileAgent::sendSequenceInit(cMessage *msg) {
         return;
 //        throw cRuntimeError("MA: no interface provided in sendSeqInit.");
     }
-    IdentificationHeader *ih = getAgentHeader(1, IP_PROT_NONE, getSeqNo(agentId), 0, agentId);
+    IdentificationHeader *ih = createAgentHeader(1, IP_PROT_NONE, getSeqNo(agentId), 0, agentId);
     ih->setIsIdInitialized(true);
     ih->setIsIdAcked(true);
     ih->setIsSeqValid(true);
@@ -371,7 +371,7 @@ void MobileAgent::sendSequenceUpdate(cMessage* msg) {
     const IPv6Address &dest =  sut->dest;
     sut->nextScheduledTime = simTime() + sut->ackTimeout;
     sut->ackTimeout = (sut->ackTimeout)*1;
-    IdentificationHeader *ih = getAgentHeader(1, IP_PROT_NONE, getSeqNo(agentId), getAckNo(agentId), agentId);
+    IdentificationHeader *ih = createAgentHeader(1, IP_PROT_NONE, getSeqNo(agentId), getAckNo(agentId), agentId);
     ih->setName(msg->getName());
     ih->setIsIdInitialized(true);
     ih->setIsIdAcked(true);
@@ -456,7 +456,7 @@ void MobileAgent::sendFlowRequest(cMessage *msg) {
     EV_INFO << "MA_sendFlowRequest: Sending flow request." << endl;
     const IPv6Address nodeAddress = frt->nodeAddress;
     const IPv6Address &dest =  frt->dest;
-    IdentificationHeader *ih = getAgentHeader(1, IP_PROT_NONE, getSeqNo(agentId), getAckNo(agentId), agentId);
+    IdentificationHeader *ih = createAgentHeader(1, IP_PROT_NONE, getSeqNo(agentId), getAckNo(agentId), agentId);
     ih->setName(msg->getName());
     ih->setIsIdInitialized(true);
     ih->setIsIdAcked(true);
@@ -1079,7 +1079,7 @@ void MobileAgent::processOutgoingIcmpPacket(cMessage *msg)
 void MobileAgent::sendUpperLayerPacket(cPacket *packet, IPv6ControlInfo *controlInfo, IPv6Address agentAddr, short prot)
 {
     if(sessionState == ASSOCIATED && seqnoState == ASSOCIATED) {
-        IdentificationHeader *ih = getAgentHeader(1, prot, getSeqNo(agentId), getAckNo(agentId), agentId);
+        IdentificationHeader *ih = createAgentHeader(1, prot, getSeqNo(agentId), getAckNo(agentId), agentId);
         ih->setIsIdInitialized(true);
         ih->setIsIdAcked(true);
         ih->setIsSeqValid(true);

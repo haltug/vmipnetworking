@@ -184,7 +184,7 @@ class INET_API Agent : public cSimpleModule
     /**
      * All fields are by default false. Type: MA=1, CA=2, DA=3
      */
-    IdentificationHeader *getAgentHeader(short type, short protocol, uint seq, uint ack, uint64 id);
+    IdentificationHeader *createAgentHeader(short type, short protocol, uint seq, uint ack, uint64 id);
 
     // Interface Id of DA or local id of MA/CA
     uint64 agentId;
