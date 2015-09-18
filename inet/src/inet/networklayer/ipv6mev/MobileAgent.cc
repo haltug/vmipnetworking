@@ -320,12 +320,14 @@ void MobileAgent::sendSequenceInit(cMessage *msg) {
     if(ad.insertedList.size() > 0) {
         for(int idx=0; idx < ad.insertedList.size(); idx++)
             ih->setIPaddresses(idx, ad.insertedList.at(idx).address);
+        ih->setByteLength(SIZE_AGENT_HEADER+SIZE_ADDING_ADDR_TO_HDR);
+        ih->setName(msg->getName());
+        long size = ih->getByteLength();
+        emit(controlSignalLoad, size);
+        sendToLowerLayer(ih, dest);
+    } else {
+        EV_DEBUG << "MA_sendSequenceInit: No IP address provided for sequence number initialization: " << endl;
     }
-    ih->setByteLength(SIZE_AGENT_HEADER+SIZE_ADDING_ADDR_TO_HDR);
-    ih->setName(msg->getName());
-    long size = ih->getByteLength();
-    emit(controlSignalLoad, size);
-    sendToLowerLayer(ih, dest);
     scheduleAt(sit->nextScheduledTime, msg);
     EV_INFO << "MA_sendSequenceInit: Sending sequence number initialization: " << getSeqNo(agentId) << endl;
 }
@@ -402,10 +404,12 @@ void MobileAgent::sendSequenceUpdate(cMessage* msg) {
 bool MobileAgent::createFlowRequest(FlowTuple &tuple) {
     if(sessionState != ASSOCIATED ||  seqnoState != ASSOCIATED) {
         EV_WARN << "MA_createFlowRequest: Session/Sequence initialization not completed. Flow request dropped." << endl;
-        if(sessionState != ASSOCIATED)
-            createSessionInit();
-        else
-            createSequenceInit();
+        if(isInterfaceAssociated()) {
+            if(sessionState != ASSOCIATED)
+                createSessionInit();
+            else
+                createSequenceInit();
+        }
         return false;
     }
     cMessage *msg = new cMessage("createFlowRequest", MSG_FLOW_REQ);

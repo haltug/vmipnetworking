@@ -338,11 +338,6 @@ class INET_API Agent : public cSimpleModule
         bool operator==(const AddressTuple& b) const {
             return address == b.address && interface == b.interface;
         }
-//        AddressTuple& operator=(const AddressTuple& b) {
-//            interface = b.interface;
-//            address = b.address;
-//            return *this;
-//        }
     };
     typedef std::vector<AddressTuple> AddressList;
     typedef std::map<uint,AddressList> AddressTable;
@@ -353,11 +348,11 @@ class INET_API Agent : public cSimpleModule
     void initAddressMap(uint64 id, uint seq); // used by mobile agent
     bool initAddressMap(uint64 id, uint seq, IPv6Address addr); // used by control/data agent
     void insertAddress(uint64 id, int iface, IPv6Address addr); // for adding of new ip by MA and CA. a new value increments the seqNo
-    void deleteAddress(uint64 id, int iface, IPv6Address addr); // for removing existing ip in last seq entry
+    void deleteAddress(uint64 id, int iface, IPv6Address addr); // for removing existing ip in last seq entry, seqNo is again incremented
     void insertTable(uint64 id, uint seq, AddressList addr); // insert a complete seqTable to address map
-    AddressDiff getAddressList(uint64 id, uint seq, uint ack);
-    AddressDiff getAddressList(uint64 id, uint seq);
-    AddressDiff getAddressList(uint64 id); //AddressList getAddressList(uint64 id);
+    AddressDiff getAddressList(uint64 id, uint seq, uint ack); // returns a list of address changes from ackNo to seqNo
+    AddressDiff getAddressList(uint64 id, uint seq); // returns all addresses at seqNo
+    AddressDiff getAddressList(uint64 id); // return all address at last seqNo
     AddressTuple getAddressTuple(uint64 id, uint seq, IPv6Address addr);
     AddressTuple getAddressTuple(uint64 id, uint seq, int iface);
     bool isAddressInserted(uint64 id, uint seq, IPv6Address dest);
