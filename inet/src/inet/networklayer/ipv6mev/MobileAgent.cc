@@ -615,7 +615,7 @@ void MobileAgent::processOutgoingUdpPacket(cMessage *msg)
             UDPPacket *udpPacket =  (UDPPacket *) msg;
             PacketTimerKey packet(IP_PROT_UDP,controlInfo->getDestinationAddress().toIPv6(),udpPacket->getDestinationPort(),udpPacket->getSourcePort());
 //            if(isInterfaceUp()) {
-            if(true) {
+            if(true) { // packet queueing is moved into IPv6 layer
                 FlowTuple tuple;
                 tuple.protocol = IP_PROT_UDP;
                 if(enableNodeRequesting) {
