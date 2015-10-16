@@ -117,6 +117,7 @@ void MobileAgent::initialize(int stage)
         } else {
             EV << "MA: Id layer is disabled." << endl;
         }
+        emit(sequenceUpdateDa, sequenceUpdateDaStat);
     }
     if (stage == INITSTAGE_APPLICATION_LAYER) {
 //        simtime_t startTime = par("startTime");
@@ -177,7 +178,7 @@ void MobileAgent::handleMessage(cMessage *msg)
             processOutgoingIcmpPacket(msg);
         }
         else {
-            throw cRuntimeError("MA_handleMessage: Unknown selfMessage received. Kind: %s ClassName: %s", msg->getKind(), msg->getClassName());
+//            throw cRuntimeError("MA_handleMessage: Unknown selfMessage received. Kind: %s ClassName: %s", msg->getKind(), msg->getClassName());
         }
     }
     else if(msg->arrivedOn("fromUDP")) {
@@ -219,7 +220,7 @@ void MobileAgent::handleMessage(cMessage *msg)
             IPv6ControlInfo *controlInfo = check_and_cast<IPv6ControlInfo *>(msg->removeControlInfo());
             processIncomingIcmpPacket((ICMPv6Message *) msg, controlInfo);
         } else {
-            throw cRuntimeError("MA: IP module should only forward ID packages.");
+//            throw cRuntimeError("MA: IP module should only forward ID packages.");
         }
     }
     else

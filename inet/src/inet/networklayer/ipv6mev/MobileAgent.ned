@@ -32,7 +32,7 @@ simple MobileAgent
 		*.routingTableModule = default(absPath(routingTableModule));
         @statistic[controlSignalLoad](title="controlSignalLoad"; unit=B; record=count,vector,histogram; interpolationmode=none);
 		@statistic[dataSignalLoad](title="dataSignalLoad"; unit=B; record=count,vector,histogram; interpolationmode=none);
-        @statistic[interfaceSnir](title="interfaceSnir"; record=count,vector,histogram; interpolationmode=none);
+//        @statistic[interfaceSnir](title="interfaceSnir"; record=count,vector,histogram; interpolationmode=none);
         @statistic[interfaceId](title="interfaceId"; record=last,vector,histogram; interpolationmode=none);
 		@statistic[sequenceUpdateCa](title="sequenceUpdateCa"; record=last,vector; interpolationmode=none);
 		@statistic[sequenceUpdateDa](title="sequenceUpdateDa"; record=last,vector; interpolationmode=none);
