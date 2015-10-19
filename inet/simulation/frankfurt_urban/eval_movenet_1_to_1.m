@@ -23,13 +23,13 @@ trans_protocol{4,1} = 'UDP_MA_to_CN';
 
 for idx_app = 1:app_size
     %% Variables
-    close all;
+%     close all;
     vecAddressChanges = [];
     vecHandoverDelay = [];
     vecRttMean = [];
     vecRttMin = [];
     vecRttMax = [];
-
+    delay_over_twenty = [];
     %% Measurement calculation
     for idx_run = 1:N
         result_folder = [communication '/' trans_protocol{idx_app,1}];
@@ -100,7 +100,7 @@ for idx_app = 1:app_size
         % Transforming in matrix
         rcvd_pkt = [dataArray1{:, 1} dataArray1{:, 2}]; % array of received packets
         addressed_ca = [dataArray2{:, 1} dataArray2{:, 2}]; % array indicating time of acquired ip
-        addressed_da = [dataArray3{:, 1} dataArray3{:, 2}];
+        addressed_da = []; %[dataArray3{:, 1} dataArray3{:, 2}];
         rtt = [dataArray4{:, 1} dataArray4{:, 2}];
 
 
@@ -111,7 +111,7 @@ for idx_app = 1:app_size
             bit_mask = true(size(addressed_ca(:,1))); % bit mask
             last_time = 1; % starting point
             for idx_addr=2:length(addressed_ca(:,1)) % for all remaining points,
-                if(abs(addressed_ca(idx_addr,1)-addressed_ca(last_time,1))<retransmission_thr) % If this point is within the tolerance of the last accepted point, set it as false in the bit mask;
+                if(abs(addressed_ca(idx_addr,1)-addressed_ca(last_time,1)) < retransmission_thr) % If this point is within the tolerance of the last accepted point, set it as false in the bit mask;
                     bit_mask(idx_addr) = false;
                 else % Otherwise, keep it and mark the last kept
                     last_time = idx_addr;
@@ -140,6 +140,8 @@ for idx_app = 1:app_size
                         tmp_delay = abs(tmp_seq(1) - tmp_addr);
                         if(tmp_delay < 20) % only consider handover delays not exceeding 20s 
                             vecHandoverDelay = [vecHandoverDelay tmp_delay];
+                        else
+                            delay_over_twenty = [delay_over_twenty tmp_delay];
                         end
                         last_seq = tmp_seq(1);
                     end

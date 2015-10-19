@@ -28,14 +28,14 @@ import inet.mobility.traci.TraCIScenarioManagerLaunchd;
 channel E1 extends ned.DatarateChannel
 {
     parameters:
-        delay = 75us;
+        delay = 1000us;
         datarate = 1Gbps;
 }
 
 channel E2 extends ned.DatarateChannel
 {
     parameters:
-        delay = 500us;
+        delay = 10000us;
         datarate = 10Gbps;
 }
 
@@ -143,10 +143,10 @@ network frankfurt_urban_n_vehicles
                 @display("p=5339,1655;is=s");
         }
 
-        
+
         CA: ControlAgent {
             parameters:
-                @display("p=793,1206;is=s");
+                @display("p=5009.8525,1206.8966;is=s");
         }
         DA1[total_da]: DataAgent {
             parameters:
@@ -193,8 +193,8 @@ network frankfurt_urban_n_vehicles
         AP_9.ethg$o++ --> E1 --> R_5.ethg$i++;
         AP_9.ethg$i++ <-- E1 <-- R_5.ethg$o++;
 
-        CA.ethg$o++ --> E2 --> R_6.ethg$i++;
-        CA.ethg$i++ <-- E2 <-- R_6.ethg$o++;
+        CA.ethg$o++ --> E2 --> R_8.ethg$i++;
+        CA.ethg$i++ <-- E2 <-- R_8.ethg$o++;
         for i=0..total_cn-1 {
             CN1[i].ethg$o++ --> E2 --> R_9.ethg$i++;
             CN1[i].ethg$i++ <-- E2 <-- R_9.ethg$o++;

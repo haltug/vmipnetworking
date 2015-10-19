@@ -28,14 +28,14 @@ import inet.mobility.traci.TraCIScenarioManagerLaunchd;
 channel E1 extends ned.DatarateChannel
 {
     parameters:
-        delay = 75us;
+        delay = 1000us;
         datarate = 1Gbps;
 }
 
 channel E2 extends ned.DatarateChannel
 {
     parameters:
-        delay = 500us;
+        delay = 10000us;
         datarate = 10Gbps;
 }
 

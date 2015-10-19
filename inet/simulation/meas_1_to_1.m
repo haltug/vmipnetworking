@@ -1,10 +1,9 @@
 CALC = 0;
-
 if(CALC)
-    clear all;
+%     clear all;
     close all;
-    PLOT = 0; % Enables plots in sub script
-    CREATE_TEX = 0; % Enables tex generation in sub scrips
+    PLOT = 1; % Enables plots in sub script
+    CREATE_TEX = 1; % Enables tex generation in sub scrips
     % movenet
     run frankfurt_urban/eval_movenet_1_to_1.m
     % mipv6
@@ -12,7 +11,7 @@ if(CALC)
     % multi
     run frankfurt_urban_multi_radio/eval_movenet_multi_1_to_1.m
 end
- close all;
+close all;
  
 %% Plot data
 CREATE_PLOT = 1;
@@ -27,35 +26,47 @@ end
 %%  Handover Delay: TCP
 idx_plot = idx_plot + 1;
 figure(idx_plot); clf;
-grid on;
 ax1 = subplot(1,6,1);
 boxplot(vecHandoverDelay_Mobileipv6_1_to_1_TCP_CN_to_MA);
-% ylim(ax1,[0 20]);
+grid on;
+ylim(ax1,[0.000001 30]);
+set(gca,'YScale','log');
 ylabel('Time [s]');
 xlabel(['Delay TCP CN->VN' char(10) 'MobileIPv6']); 
 ax2 = subplot(1,6,2);
 boxplot(vecHandoverDelay_Movenet_1_to_1_TCP_CN_to_MA);
-% ylim(ax2,[0 20]);
+grid on;
+ylim(ax2,[0.000001 30]);
+set(gca,'YScale','log');
 ylabel('Time [s]');
 xlabel(['Delay TCP CN->VN' char(10) 'MoVeNet']);
 ax3 = subplot(1,6,3);
 boxplot(vecHandoverDelay_Movenet_multi_1_to_1_TCP_CN_to_MA);
-ylim(ax3,[0 0.1]);
+grid on;
+ylim(ax3,[0.000001 30]);
+set(gca,'YScale','log');
 ylabel('Time [s]');
 xlabel(['Delay TCP CN->VN' char(10) 'MoVeNet Multi-homing']);
+grid on;
 ax4 = subplot(1,6,4);
 boxplot(vecHandoverDelay_Mobileipv6_1_to_1_TCP_MA_to_CN);
-% ylim(ax4,[0 1]);
+grid on;
+set(gca,'YScale','log');
+ylim(ax4,[0.000001 30]);
 ylabel('Time [s]');
 xlabel(['Delay TCP VN->CN' char(10) 'MobileIPv6']);
 ax5 = subplot(1,6,5);
 boxplot(vecHandoverDelay_Movenet_1_to_1_TCP_MA_to_CN);
-% ylim(ax5,[0 1]);
+grid on;
+set(gca,'YScale','log');
+ylim(ax5,[0.000001 30]);
 ylabel('Time [s]');
 xlabel(['Delay TCP VN->CN' char(10) 'MoVeNet']);
 ax6 = subplot(1,6,6);
 boxplot(vecHandoverDelay_Movenet_multi_1_to_1_TCP_MA_to_CN);
-ylim(ax6,[0 0.1]);
+grid on;
+ylim(ax6,[0.000001 30]);
+set(gca,'YScale','log');
 ylabel('Time [s]');
 xlabel(['Delay TCP VN->CN' char(10) 'MoVeNet Multi-homing']);
 if(CREATE_PLOT)
@@ -65,35 +76,46 @@ end
 %%  Handover Delay: UDP
 idx_plot = idx_plot + 1;
 figure(idx_plot); clf;
-grid on;
 ax1 = subplot(1,6,1);
 boxplot(vecHandoverDelay_Mobileipv6_1_to_1_UDP_CN_to_MA);
-ylim(ax1,[0 0.05]);
+grid on;
+ylim(ax1,[0.000001 30]);
+set(gca,'YScale','log');
 ylabel('Time [s]');
 xlabel(['Delay UDP CN->VN' char(10) 'MobileIPv6']); 
 ax2 = subplot(1,6,2);
 boxplot(vecHandoverDelay_Movenet_1_to_1_UDP_CN_to_MA);
-ylim(ax2,[0 0.05]);
+grid on;
+set(gca,'YScale','log');
+ylim(ax2,[0.000001 30]);
 ylabel('Time [s]');
 xlabel(['Delay UDP CN->VN' char(10) 'MoVeNet']);
 ax3 = subplot(1,6,3);
 boxplot(vecHandoverDelay_Movenet_multi_1_to_1_UDP_CN_to_MA);
-% ylim(ax3,[0 0.05]);
+grid on;
+ylim(ax3,[0.000001 30]);
+set(gca,'YScale','log');
 ylabel('Time [s]');
 xlabel(['Delay UDP CN->VN' char(10) 'MoVeNet Multi-homing']);
 ax4 = subplot(1,6,4);
 boxplot(vecHandoverDelay_Mobileipv6_1_to_1_UDP_MA_to_CN);
-ylim(ax4,[0 0.05]);
+grid on;
+ylim(ax4,[0.000001 30]);
+set(gca,'YScale','log');
 ylabel('Time [s]');
 xlabel(['Delay UDP VN->CN' char(10) 'MobileIPv6']);
 ax5 = subplot(1,6,5);
 boxplot(vecHandoverDelay_Movenet_1_to_1_UDP_MA_to_CN);
-ylim(ax5,[0 0.05]);
+grid on;
+set(gca,'YScale','log');
+ylim(ax5,[0.000001 30]);
 ylabel('Time [s]');
 xlabel(['Delay UDP VN->CN' char(10) 'MoVeNet']);
 ax6 = subplot(1,6,6);
 boxplot(vecHandoverDelay_Movenet_multi_1_to_1_UDP_MA_to_CN);
-ylim(ax6,[0 0.05]);
+grid on;
+ylim(ax6,[0.000001 30]);
+set(gca,'YScale','log');
 ylabel('Time [s]');
 xlabel(['Delay UDP VN->CN' char(10) 'MoVeNet Multi-homing']);
 if(CREATE_PLOT)
@@ -103,34 +125,39 @@ end
 %% RTT TCP
 idx_plot = idx_plot + 1;
 figure(idx_plot); clf;
-grid on;
 ax1 = subplot(1,6,1);
 boxplot(vecRttMean_Mobileipv6_1_to_1_TCP_CN_to_MA);
-% ylim(ax1,[0 0.02]);
+grid on;
+ylim(ax1,[0 1]);
 ylabel('Time [s]');
 xlabel(['RTT TCP CN->VN' char(10) 'MobileIPv6']); 
 ax2 = subplot(1,6,2);
 boxplot(vecRttMean_Movenet_1_to_1_TCP_CN_to_MA);
-% ylim(ax2,[0 0.02]);
+grid on;
+ylim(ax2,[0 1]);
 ylabel('Time [s]');
 xlabel(['RTT TCP CN->VN' char(10) 'MoVeNet']);
 ax3 = subplot(1,6,3);
 boxplot(vecRttMean_Movenet_multi_1_to_1_TCP_CN_to_MA);
-% ylim(ax3,[0 0.02]);
+grid on;
+ylim(ax3,[0 1]);
 ylabel('Time [s]');
 xlabel(['RTT TCP CN->VN' char(10) 'MoVeNet Multi-homing']);
 ax4 = subplot(1,6,4);
 boxplot(vecRttMean_Mobileipv6_1_to_1_TCP_MA_to_CN);
+grid on;
 ylim(ax4,[0 0.1]);
 ylabel('Time [s]');
 xlabel(['RTT TCP VN->CN' char(10) 'MobileIPv6']);
 ax5 = subplot(1,6,5);
 boxplot(vecRttMean_Movenet_1_to_1_TCP_MA_to_CN);
+grid on;
 ylim(ax5,[0 0.1]);
 ylabel('Time [s]');
 xlabel(['RTT TCP VN->CN' char(10) 'MoVeNet']);
 ax6 = subplot(1,6,6);
 boxplot(vecRttMean_Movenet_multi_1_to_1_TCP_MA_to_CN);
+grid on;
 ylim(ax6,[0 0.1]);
 ylabel('Time [s]');
 xlabel(['RTT TCP VN->CN' char(10) 'MoVeNet Multi-homing']);
@@ -141,34 +168,39 @@ end
 %% RTT UDP
 idx_plot = idx_plot + 1;
 figure(idx_plot); clf;
-grid on;
 ax1 = subplot(1,6,1);
 boxplot(vecRttMean_Mobileipv6_1_to_1_UDP_CN_to_MA);
-ylim(ax1,[0 0.05]);
+grid on;
+ylim(ax1,[0.01 0.04]);
 ylabel('Time [s]');
 xlabel(['RTT UDP CN->VN' char(10) 'MobileIPv6']); 
 ax2 = subplot(1,6,2);
 boxplot(vecRttMean_Movenet_1_to_1_UDP_CN_to_MA);
-ylim(ax2,[0 0.05]);
+grid on;
+ylim(ax2,[0.01 0.04]);
 ylabel('Time [s]');
 xlabel(['RTT UDP CN->VN' char(10) 'MoVeNet']);
 ax3 = subplot(1,6,3);
 boxplot(vecRttMean_Movenet_multi_1_to_1_UDP_CN_to_MA);
-ylim(ax3,[0 0.05]);
+grid on;
+ylim(ax3,[0.01 0.04]);
 ylabel('Time [s]');
 xlabel(['RTT UDP CN->VN' char(10) 'MoVeNet Multi-homing']);
 ax4 = subplot(1,6,4);
 boxplot(vecRttMean_Mobileipv6_1_to_1_UDP_MA_to_CN);
+grid on;
 ylim(ax4,[0 0.05]);
 ylabel('Time [s]');
 xlabel(['RTT UDP VN->CN' char(10) 'MobileIPv6']);
 ax5 = subplot(1,6,5);
 boxplot(vecRttMean_Movenet_1_to_1_UDP_MA_to_CN);
+grid on;
 ylim(ax5,[0 0.05]);
 ylabel('Time [s]');
 xlabel(['RTT UDP VN->CN' char(10) 'MoVeNet']);
 ax6 = subplot(1,6,6);
 boxplot(vecRttMean_Movenet_multi_1_to_1_UDP_MA_to_CN);
+grid on;
 ylim(ax6,[0 0.05]);
 ylabel('Time [s]');
 xlabel(['RTT UDP VN->CN' char(10) 'MoVeNet Multi-homing']);

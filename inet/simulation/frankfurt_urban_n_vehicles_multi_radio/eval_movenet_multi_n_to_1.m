@@ -99,7 +99,7 @@ for idx_app = 1:app_size
             % Transforming in matrix
             rcvd_pkt = [dataArray1{:, 1} dataArray1{:, 2}]; % array of received packets
             addressed_ca = [dataArray2{:, 1} dataArray2{:, 2}]; % array indicating time of acquired ip
-            addressed_da = [dataArray3{:, 1} dataArray3{:, 2}];
+            addressed_da = []; %[dataArray3{:, 1} dataArray3{:, 2}];
             rtt = [dataArray4{:, 1} dataArray4{:, 2}];
 
 

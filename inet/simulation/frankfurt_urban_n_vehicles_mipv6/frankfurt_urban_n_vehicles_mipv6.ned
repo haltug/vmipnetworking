@@ -29,14 +29,14 @@ import inet.mobility.traci.TraCIScenarioManagerLaunchd;
 channel E1 extends ned.DatarateChannel
 {
     parameters:
-        delay = 75us;
+        delay = 1000us;
         datarate = 1Gbps;
 }
 
 channel E2 extends ned.DatarateChannel
 {
     parameters:
-        delay = 500us;
+        delay = 10000us;
         datarate = 10Gbps;
 }
 
@@ -146,7 +146,7 @@ network frankfurt_urban_n_vehicles_mipv6
         }
         HA2: HomeAgent6 {
             parameters:
-                @display("p=5689,98;is=s");
+                @display("p=4955.665,1201.9705;is=s");
         }
     connections allowunconnected:
         R_1.ethg$o++ --> E1 --> R_2.ethg$i++;
@@ -194,6 +194,6 @@ network frankfurt_urban_n_vehicles_mipv6
         }
         HA.ethg$o++ --> E2 --> R_6.ethg$i++;
         HA.ethg$i++ <-- E2 <-- R_6.ethg$o++;
-        HA2.ethg$o++ --> E2 --> R_5.ethg$i++;
-        HA2.ethg$i++ <-- E2 <-- R_5.ethg$o++;
+        HA2.ethg$o++ --> E2 --> R_8.ethg$i++;
+        HA2.ethg$i++ <-- E2 <-- R_8.ethg$o++;
 }

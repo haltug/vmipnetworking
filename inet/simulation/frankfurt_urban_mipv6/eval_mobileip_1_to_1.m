@@ -23,13 +23,13 @@ trans_protocol{4,1} = 'UDP_MA_to_CN';
 
 for idx_app = 1:app_size
     %% Variables
-    close all;
+%     close all;
     vecAddressChanges = [];
     vecHandoverDelay = [];
     vecRttMean = [];
     vecRttMin = [];
     vecRttMax = [];
-
+    delay_over_twenty = [];
     %% Measurement calculation
     for idx_run = 1:N
         result_folder = [communication '/' trans_protocol{idx_app,1}];
@@ -100,10 +100,10 @@ for idx_app = 1:app_size
         % Transforming in matrix
         rcvd_pkt = [dataArray1{:, 1} dataArray1{:, 2}]; % array of received packets
         addressed_ca = [dataArray2{:, 1} dataArray2{:, 2}]; % array indicating time of acquired ip
-        addressed_da = [dataArray3{:, 1} dataArray3{:, 2}];
+        addressed_da = []; %[dataArray3{:, 1} dataArray3{:, 2}];
         rtt = [dataArray4{:, 1} dataArray4{:, 2}];
 
-
+        
         %% Processing data
         % Measuring delay
         if(length(rcvd_pkt) > seq_thr & length(addressed_ca) > 0) % Skipping data set if seq is below 
@@ -140,6 +140,8 @@ for idx_app = 1:app_size
                         tmp_delay = abs(tmp_seq(1) - tmp_addr);
                         if(tmp_delay < 20) % only consider handover delays not exceeding 20s 
                             vecHandoverDelay = [vecHandoverDelay tmp_delay];
+                        else
+                            delay_over_twenty = [delay_over_twenty tmp_delay];
                         end
                         last_seq = tmp_seq(1);
                     end
