@@ -4,7 +4,7 @@
 # Configure folder
 echo "Running frankfurt_urban"
 out=output/1_to_1
-N=31
+N=95
 
 if [ ! -d results ]; then 	
 	echo "No results folder exists. Terminating process."
