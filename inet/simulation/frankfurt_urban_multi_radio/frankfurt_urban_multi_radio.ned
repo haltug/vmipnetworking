@@ -28,14 +28,14 @@ import inet.mobility.traci.TraCIScenarioManagerLaunchd;
 channel E1 extends ned.DatarateChannel
 {
     parameters:
-        delay = 1000us;
+        delay = 10000us;
         datarate = 1Gbps;
 }
 
 channel E2 extends ned.DatarateChannel
 {
     parameters:
-        delay = 10000us;
+        delay = 1000us;
         datarate = 10Gbps;
 }
 
@@ -164,16 +164,16 @@ network frankfurt_urban_multi_radio
         R_4.ethg$i++ <-- E1 <-- R_5.ethg$o++;
         R_6.ethg$o++ --> E2 --> R_7.ethg$i++;
         R_6.ethg$i++ <-- E2 <-- R_7.ethg$o++;
-        R_6.ethg$o++ --> E2 --> R_2.ethg$i++;
-        R_6.ethg$i++ <-- E2 <-- R_2.ethg$o++;
+        R_6.ethg$o++ --> E1 --> R_2.ethg$i++;
+        R_6.ethg$i++ <-- E1 <-- R_2.ethg$o++;
         R_7.ethg$o++ --> E2 --> R_9.ethg$i++;
         R_7.ethg$i++ <-- E2 <-- R_9.ethg$o++;
         R_8.ethg$o++ --> E2 --> R_9.ethg$i++;
         R_8.ethg$i++ <-- E2 <-- R_9.ethg$o++;
         R_8.ethg$o++ --> E2 --> R_6.ethg$i++;
         R_8.ethg$i++ <-- E2 <-- R_6.ethg$o++;
-        R_8.ethg$o++ --> E2 --> R_4.ethg$i++;
-        R_8.ethg$i++ <-- E2 <-- R_4.ethg$o++;
+        R_8.ethg$o++ --> E1 --> R_4.ethg$i++;
+        R_8.ethg$i++ <-- E1 <-- R_4.ethg$o++;
         AP_1.ethg$o++ --> E1 --> R_1.ethg$i++;
         AP_1.ethg$i++ <-- E1 <-- R_1.ethg$o++;
         AP_2.ethg$o++ --> E1 --> R_1.ethg$i++;
@@ -200,7 +200,7 @@ network frankfurt_urban_multi_radio
             CN1[i].ethg$i++ <-- E2 <-- R_9.ethg$o++;
         }
         for i=0..total_da-1 {
-            DA1[i].ethg$o++ --> E1 --> R_9.ethg$i++;
-            DA1[i].ethg$i++ <-- E1 <-- R_9.ethg$o++;
+            DA1[i].ethg$o++ --> E2 --> R_9.ethg$i++;
+            DA1[i].ethg$i++ <-- E2 <-- R_9.ethg$o++;
         }
 }

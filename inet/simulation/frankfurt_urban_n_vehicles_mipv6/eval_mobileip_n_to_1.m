@@ -6,7 +6,7 @@ N = 32; % number of simulation
 sim_time = 450; % simulation duration
 seq_thr = 100; % minimum number of elements in data set of a simulation
 period_time = 1; % time interval of packet reception
-min_pkt_per_period = 10; % minimum number of packets within period
+min_pkt_per_period = 30; % minimum number of packets within period
 retransmission_thr = 10; % threshold for not tolerable values when ip address is configured
 
 %% Simulation configuration
@@ -138,7 +138,9 @@ for idx_app = 1:app_size
                             end
                             tmp_delay = abs(tmp_seq(1) - tmp_addr);
                             if(tmp_delay < 20) % only consider handover delays not exceeding 20s 
-                                vecHandoverDelay = [vecHandoverDelay tmp_delay];
+                                if(tmp_delay > 0.0001) % and not below 1ms
+                                    vecHandoverDelay = [vecHandoverDelay tmp_delay];
+                                end
                             end
                             last_seq = tmp_seq(1);
                         end
