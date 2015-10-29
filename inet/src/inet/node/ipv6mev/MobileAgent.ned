@@ -57,7 +57,7 @@ module MobileAgent extends NodeBaseIdModification
     submodules:
         tunApp[numTunInterfaces]: <> like ITunApp {
             parameters:
-                @display("p=147,258");
+                @display("p=186,258");
         }
         tcpApp[numTcpApps]: <> like ITCPApp {
             parameters:

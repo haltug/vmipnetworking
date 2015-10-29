@@ -16,6 +16,7 @@
 package copy_frankfurt_urban;
 
 import inet.linklayer.ethernet.EtherHub;
+import inet.node.xmipv6.HomeAgent6;
 import inet.physicallayer.ieee80211.packetlevel.*;
 import inet.environment.common.PhysicalEnvironment;
 import inet.networklayer.configurator.ipv6.FlatNetworkConfigurator6;
@@ -148,15 +149,18 @@ network copy_frankfurt_urban
                 numRadios = default(1);
         }
 
-//        CA: ControlAgent {
-//            parameters:
-//                @display("p=793,1206;is=s");
-//        }
-//        DA1[total_da]: DataAgent {
-//            parameters:
-//                @display("p=4073,1945;is=s");
-//        }
+        ControlAgent: ControlAgent {
+            parameters:
+                @display("p=325.12317,1206.8966");
+        }
+        DataAgent: DataAgent {
+            parameters:
+                @display("p=4068.9656,1921.1824");
+        }
 
+        HomeAgent: HomeAgent6 {
+            @display("p=798.0296,1206.8966");
+        }
     connections allowunconnected:
         R_1.ethg$o++ --> E1 --> R_2.ethg$i++;
         R_1.ethg$i++ <-- E1 <-- R_2.ethg$o++;
@@ -199,4 +203,7 @@ network copy_frankfurt_urban
         CorrespondentNode.ethg$o++ --> E2 --> R_9.ethg$i++;
         CorrespondentNode.ethg$i++ <-- E2 <-- R_9.ethg$o++;
 
+        ControlAgent.ethg++ <--> R_6.ethg++;
+        DataAgent.ethg++ <--> R_9.ethg++;
+        R_6.ethg++ <--> HomeAgent.ethg++;
 }

@@ -1443,7 +1443,7 @@ double MobileAgent::getMeanSnir(InterfaceEntry *ie)
 // Returns the interface with the highest SNIR based on the mean within the last two seconds.
 void MobileAgent::determineInterface(IPv6Address destAddr, int destPort, int sourcePort, short protocol)
 { // const IPv6Address &destAddr,
-    if(ift->getNumInterfaces() < 3)
+    if(ift->getNumInterfaces() < 3) // !!!! value is set according to number of interfaces
         return;
     InterfaceEntry *ie = nullptr;
     double maxSnr
@@ -1500,6 +1500,7 @@ void MobileAgent::sendToLowerLayer(cMessage *msg, const IPv6Address& destAddr, s
 //    }
     controlInfo->setInterfaceId(-1);
     controlInfo->setSrcAddr(IPv6Address::UNSPECIFIED_ADDRESS);
+    determineInterface(IPv6Address::UNSPECIFIED_ADDRESS);
     msg->setControlInfo(controlInfo);
     cGate *outgate = gate("toLowerLayer");
     if (delayTime > 0) {
