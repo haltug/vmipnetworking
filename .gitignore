@@ -27,7 +27,6 @@ inet/out/
 *.dylib
 *.dll
 *.a
-*.csv
 *.la
 *.lai
 *.libgit 
