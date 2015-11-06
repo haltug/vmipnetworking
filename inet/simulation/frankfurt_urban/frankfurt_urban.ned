@@ -88,69 +88,69 @@ network frankfurt_urban
         }
         R_6: Router6 {
             parameters:
-                @display("p=2128,1211;is=n;i=,black");
+                @display("p=2128,1211;is=s;i=,black");
         }
         R_7: Router6 {
             parameters:
-                @display("p=2128,1655;is=n;i=,black");
+                @display("p=2128,1655;is=s;i=,black");
         }
         R_8: Router6 {
             parameters:
-                @display("p=4073,1211;is=n;i=,black");
+                @display("p=4073,1211;is=s;i=,black");
         }
         R_9: Router6 {
             parameters:
-                @display("p=4073,1655;is=n;i=,black");
+                @display("p=4073,1655;is=s;i=,black");
         }
         AP_1: AccessPoint {
             parameters:
-                @display("p=1369,1487;is=s");
+                @display("p=1369,1487;is=l;b=,,oval,red,red,10;i=device/antennatower");
         }
         AP_2: AccessPoint {
             parameters:
-                @display("p=1137,733;is=s");
+                @display("p=1137,733;is=l;b=,,oval,red,red,10;i=device/antennatower");
         }
         AP_3: AccessPoint {
             parameters:
-                @display("p=1665,532;is=s");
+                @display("p=1665,532;is=l;b=,,oval,red,red,10;i=device/antennatower");
         }
         AP_4: AccessPoint {
             parameters:
-                @display("p=2472,532;is=s");
+                @display("p=2472,532;is=l;b=,,oval,red,red,10;i=device/antennatower");
         }
         AP_5: AccessPoint {
             parameters:
-                @display("p=3315,620;is=s");
+                @display("p=3315,620;is=l;b=,,oval,red,red,10;i=device/antennatower");
         }
         AP_6: AccessPoint {
             parameters:
-                @display("p=4128,709;is=s");
+                @display("p=4128,709;is=l;b=,,oval,red,red,10;i=device/antennatower");
         }
         AP_7: AccessPoint {
             parameters:
-                @display("p=4753,556;is=s");
+                @display("p=4753,556;is=l;b=,,oval,red,red,10;i=device/antennatower");
         }
         AP_8: AccessPoint {
             parameters:
-                @display("p=5226,940;is=s");
+                @display("p=5226,940;is=l;b=,,oval,red,red,10;i=device/antennatower");
         }
         AP_9: AccessPoint {
             parameters:
-                @display("p=6000,620;is=s");
+                @display("p=6000,620;is=l;b=,,oval,red,red,10;i=device/antennatower");
         }
         CN1[total_cn]: StandardHost6 {
             parameters:
-                @display("p=5339,1655;is=s");
+                @display("p=5339,1655;is=l;i=device/mainframe");
         }
 
 
         CA: ControlAgent {
             parameters:
-                @display("p=793,1206;is=s");
+                @display("p=793,1206;is=n");
         }
         DA1[total_da]: DataAgent {
             parameters:
-                @display("p=4073,1945;is=s");
+                @display("p=4068.9656,1896.5518;is=n");
         }
 
     connections allowunconnected:

@@ -53,7 +53,7 @@ module MobileAgent extends NodeBaseIdModification
         routingTable.routes = routes;
         networkLayer.proxyARP = default(false);
         *.icmpv6Module = default(absPath(".icmpv6"));
-        @display("i=device/adam;bgb=,-");
+        @display("i=device/adam;bgb=,-;is=l");
     submodules:
         tunApp[numTunInterfaces]: <> like ITunApp {
             parameters:
